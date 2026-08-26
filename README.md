@@ -1,4 +1,4 @@
-# CScholar (codename: capstopn)
+# CScholar
 
 **Semantic Search and AI-Powered Recommendation System for the Caraga State University (CSU) Thesis and Capstone Repository — CEIT edition**
 
