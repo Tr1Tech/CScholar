@@ -1,0 +1,5 @@
+# Phase 1 (current): only what is needed to boot the API.
+# This list will grow as we reach later phases.
+Flask==3.0.3
+Flask-CORS==4.0.1
+python-dotenv==1.0.1
