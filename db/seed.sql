@@ -6,6 +6,9 @@
 -- All data here is FICTIONAL and for development/demo only.
 -- =============================================================
 
+-- Use the same schema as schema.sql
+SET search_path TO ceit_repository;
+
 -- ---- Academic year (limited scope) ----
 INSERT INTO academic_years (name, start_year, end_year, is_active)
 VALUES ('2025-2026', 2025, 2026, TRUE);

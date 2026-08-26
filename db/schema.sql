@@ -11,7 +11,11 @@
 --   psql -U postgres -d cscholar -f seed.sql
 -- =============================================================
 
--- 0. Enable the pgvector extension (must be installed in Postgres first)
+-- 0. Point all objects at the ceit_repository schema.
+--    (Run the rename steps in setup.md / below FIRST so this schema exists.)
+SET search_path TO ceit_repository;
+
+-- Enable the pgvector extension (must be installed in Postgres first)
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 1. users -----------------------------------------------------
