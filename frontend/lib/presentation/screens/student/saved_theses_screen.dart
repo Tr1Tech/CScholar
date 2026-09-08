@@ -1,10 +1,12 @@
-// Saved theses screen — user's bookmarked studies
+// Saved Studies — Stitch design v2
+// Uses shared StudentLayout (sidebar + topbar)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/student_layout.dart';
 import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 class SavedThesesScreen extends ConsumerWidget {
@@ -14,94 +16,87 @@ class SavedThesesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final savedIds = ref.watch(savedThesisIdsProvider);
     final allTheses = ref.watch(thesisListProvider(const ThesisListParams()));
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 800;
 
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-          onPressed: () => context.go('/student/dashboard'),
-        ),
-        title: const Text('Saved Studies', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
-        actions: [
-          if (savedIds.isNotEmpty)
-            TextButton.icon(
-              onPressed: () => ref.read(savedThesisIdsProvider.notifier).clear(),
-              icon: const Icon(Icons.clear_all, size: 18),
-              label: const Text('Clear all'),
+    return StudentLayout(
+      currentIndex: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Saved Studies', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                    Text('${savedIds.length} studies saved', style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary)),
+                  ],
+                ),
+                FilledButton.icon(
+                  onPressed: () => context.go('/repository'),
+                  style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text('Discover More'),
+                ),
+              ],
             ),
-          const SizedBox(width: 8),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: CScholarColors.dividerLight, height: 1),
-        ),
-      ),
-      body: allTheses.when(
-        data: (theses) {
-          final saved = theses?.where((t) => savedIds.contains(t.id)).toList() ?? [];
-          if (saved.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.bookmark_border, size: 72, color: CScholarColors.textHint.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No saved studies yet',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Bookmark theses to access them quickly later',
-                    style: TextStyle(fontSize: 14, color: CScholarColors.textSecondary),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () => context.go('/repository'),
-                    style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-                    icon: const Icon(Icons.search),
-                    label: const Text('Browse Repository'),
-                  ),
-                ],
+            const SizedBox(height: 24),
+            // Saved list
+            Expanded(
+              child: allTheses.when(
+                data: (list) {
+                  if (list == null || list.isEmpty) {
+                    return _emptyState('No studies in repository');
+                  }
+                  final saved = list.where((t) => savedIds.contains(t.id)).toList();
+                  if (saved.isEmpty) {
+                    return _emptyState('No saved studies yet');
+                  }
+                  return ListView.builder(
+                    itemCount: saved.length,
+                    itemBuilder: (ctx, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Dismissible(
+                        key: ValueKey(saved[i].id),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (_) => ref.read(savedThesisIdsProvider.notifier).toggle(saved[i].id),
+                        background: Container(
+                          decoration: BoxDecoration(
+                            color: CScholarColors.error,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          child: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+                        ),
+                        child: ThesisCard(thesis: saved[i]),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Center(child: Text('Could not load saved studies')),
               ),
-            );
-          }
-          return GridView.builder(
-            padding: EdgeInsets.all(isWide ? 32 : 16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 3 : 1,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: isWide ? 1.5 : 2.2,
             ),
-            itemCount: saved.length,
-            itemBuilder: (context, index) => ThesisCard(thesis: saved[index]),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+          ],
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 2,
-        backgroundColor: Colors.white,
-        indicatorColor: CScholarColors.primaryGreenVeryLight,
-        onDestinationSelected: (i) {
-          if (i == 0) context.go('/student/dashboard');
-          if (i == 1) context.go('/repository');
-          if (i == 2) {}
-          if (i == 3) context.go('/profile');
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: CScholarColors.primaryGreen), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search, color: CScholarColors.primaryGreen), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.bookmark_outline), selectedIcon: Icon(Icons.bookmark, color: CScholarColors.primaryGreen), label: 'Saved'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person, color: CScholarColors.primaryGreen), label: 'Profile'),
+    );
+  }
+
+  Widget _emptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bookmark_outline, size: 64, color: CScholarColors.textHint),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(fontSize: 16, color: CScholarColors.textSecondary)),
+          const SizedBox(height: 8),
+          const Text('Start exploring the repository to save studies', style: TextStyle(fontSize: 13, color: CScholarColors.textHint)),
         ],
       ),
     );

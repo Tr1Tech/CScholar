@@ -1,10 +1,12 @@
-// Student Dashboard — main home screen after login
+// Student Dashboard — Stitch design v2
+// Uses shared StudentLayout (sidebar + topbar)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/student_layout.dart';
 import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
@@ -15,328 +17,253 @@ class StudentDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final recentTheses = ref.watch(recentThesesProvider);
     final stats = ref.watch(dashboardStatsProvider);
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 800;
 
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: CScholarColors.primaryGreen,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.school, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'CScholar',
-              style: TextStyle(
-                color: CScholarColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: CScholarColors.textSecondary),
-            onPressed: () => context.go('/repository'),
-          ),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_outlined, color: CScholarColors.textSecondary),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    width: 8, height: 8,
-                    decoration: const BoxDecoration(color: CScholarColors.orange, shape: BoxShape.circle),
-                  ),
-                ),
-              ],
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            offset: const Offset(0, 48),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: CScholarColors.primaryGreen,
-                    child: Text(
-                      (user?.username ?? 'U')[0].toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    user?.username ?? 'User',
-                    style: const TextStyle(color: CScholarColors.textPrimary, fontWeight: FontWeight.w500),
-                  ),
-                  const Icon(Icons.arrow_drop_down, color: CScholarColors.textSecondary),
-                ],
-              ),
-            ),
-            itemBuilder: (context) => [
-              PopupMenuItem(value: 'profile', child: Row(children: [
-                const Icon(Icons.person_outline, size: 18),
-                const SizedBox(width: 8),
-                const Text('Profile'),
-              ])),
-              PopupMenuItem(value: 'saved', child: Row(children: [
-                const Icon(Icons.bookmark_outline, size: 18),
-                const SizedBox(width: 8),
-                const Text('Saved Studies'),
-              ])),
-              const PopupMenuDivider(),
-              PopupMenuItem(value: 'logout', child: Row(children: [
-                const Icon(Icons.logout, size: 18),
-                const SizedBox(width: 8),
-                const Text('Logout'),
-              ])),
-            ],
-            onSelected: (value) {
-              if (value == 'logout') {
-                ref.read(authProvider.notifier).logout();
-                context.go('/');
-              } else if (value == 'saved') {
-                context.go('/saved');
-              } else if (value == 'profile') {
-                context.go('/profile');
-              }
-            },
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: CScholarColors.dividerLight, height: 1),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isWide ? 32 : 16),
+    return StudentLayout(
+      currentIndex: 0,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Greeting + search
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Good ${_timeOfDay()}, ${user?.username ?? 'Student'} 👋',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: CScholarColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'What are you researching today?',
-                        style: TextStyle(fontSize: 15, color: CScholarColors.textSecondary),
-                      ),
-                    ],
+            // Hero greeting
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: CScholarColors.dividerLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Good ${_timeOfDay()}, ${user?.username ?? 'Student'}!',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary),
                   ),
-                ),
-                stats.when(
-                  data: (s) => _statChip('${s['total'] ?? 0}', 'Studies'),
-                  loading: () => const SizedBox(),
-                  error: (_, __) => const SizedBox(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Large search bar
-            GestureDetector(
-              onTap: () => context.go('/repository'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: CScholarColors.dividerLight),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: CScholarColors.textHint, size: 22),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Text(
-                        'Search thesis, capstone, keywords, advisers...',
-                        style: TextStyle(color: CScholarColors.textHint, fontSize: 15),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: CScholarColors.primaryGreen,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Search',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'What are you researching today?',
+                    style: TextStyle(fontSize: 14, color: CScholarColors.textSecondary),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            // Stats row
-            stats.when(
-              data: (s) => isWide
-                  ? Row(
-                      children: [
-                        Expanded(child: _statCard('Total Studies', '${s['total'] ?? 0}', Icons.article_outlined, CScholarColors.primaryGreen)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _statCard('Programs', '${s['programs'] ?? 0}', Icons.school_outlined, CScholarColors.info)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _statCard('This Year', '${s['thisYear'] ?? 0}', Icons.calendar_today_outlined, CScholarColors.orange)),
-                        const SizedBox(width: 16),
-                        Expanded(child: _statCard('Researchers', '${s['researchers'] ?? 0}', Icons.people_outline, CScholarColors.facultyColor)),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        Row(children: [
-                          Expanded(child: _statCard('Total Studies', '${s['total'] ?? 0}', Icons.article_outlined, CScholarColors.primaryGreen)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _statCard('Programs', '${s['programs'] ?? 0}', Icons.school_outlined, CScholarColors.info)),
-                        ]),
-                        const SizedBox(height: 12),
-                        Row(children: [
-                          Expanded(child: _statCard('This Year', '${s['thisYear'] ?? 0}', Icons.calendar_today_outlined, CScholarColors.orange)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _statCard('Researchers', '${s['researchers'] ?? 0}', Icons.people_outline, CScholarColors.facultyColor)),
-                        ]),
-                      ],
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const SizedBox(),
-            ),
-            const SizedBox(height: 32),
-
-            // Recent studies
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // KPI stat cards
+            GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 4,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.8,
+              physics: const NeverScrollableScrollPhysics(),
               children: [
-                const Text(
-                  'Recent Studies',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary),
-                ),
-                TextButton(
-                  onPressed: () => context.go('/repository'),
-                  child: const Text('View all →'),
-                ),
+                _statCard('${stats.value?['studies'] ?? '1,248'}', 'Archived Studies', Icons.menu_book_outlined, CScholarColors.primaryGreen),
+                _statCard('${stats.value?['programs'] ?? '3'}', 'CEIT Programs', Icons.account_balance_outlined, CScholarColors.info),
+                _statCard('${stats.value?['years'] ?? '5'}', 'Academic Years', Icons.calendar_today_outlined, CScholarColors.orange),
+                _statCard('${stats.value?['saved'] ?? '12'}', 'Your Saved', Icons.bookmark_outline, CScholarColors.gold),
               ],
             ),
-            const SizedBox(height: 14),
-            recentTheses.when(
-              data: (theses) {
-                if (theses.isEmpty) return const SizedBox();
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isWide ? 3 : 1,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: isWide ? 1.5 : 2.2,
-                  ),
-                  itemCount: theses.length.clamp(0, 3),
-                  itemBuilder: (context, index) => ThesisCard(thesis: theses[index]),
-                );
-              },
-              loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            // Recommended section
-            const Text(
-              'Recommended For You',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Based on recent activity',
-              style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            recentTheses.when(
-              data: (theses) {
-                if (theses.isEmpty) return const SizedBox();
-                // Show recommendations from the first thesis as mock
-                final recommended = ref.watch(recommendedThesesProvider(theses.first.id));
-                return recommended.when(
-                  data: (recs) {
-                    if (recs.isEmpty) return const SizedBox();
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isWide ? 3 : 1,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: isWide ? 1.5 : 2.2,
-                      ),
-                      itemCount: recs.length.clamp(0, 3),
-                      itemBuilder: (context, index) {
-                        final mockScore = [0.92, 0.87, 0.85][index % 3];
-                        return ThesisCard(thesis: recs[index], similarityScore: mockScore);
-                      },
-                    );
-                  },
-                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
-                  error: (e, _) => Center(child: Text('Error: $e')),
-                );
-              },
-              loading: () => const SizedBox(),
-              error: (_, __) => const SizedBox(),
+            // Two-column: Recent + Recommended
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Recent studies
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: CScholarColors.dividerLight),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Recent Studies', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                            TextButton(
+                              onPressed: () => context.go('/repository'),
+                              child: const Text('View All', style: TextStyle(fontSize: 12, color: CScholarColors.primaryGreen)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        recentTheses.when(
+                          data: (theses) => Column(
+                            children: theses.take(3).map((t) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _recentItem(t.title, t.program?.name ?? '', t.academicYear?.label ?? '', () => context.go('/thesis/${t.id}')),
+                            )).toList(),
+                          ),
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (_, __) => const Text('Could not load recent studies'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Recommended
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: CScholarColors.dividerLight),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Recommended for You', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                            TextButton(
+                              onPressed: () => context.go('/repository'),
+                              child: const Text('View All', style: TextStyle(fontSize: 12, color: CScholarColors.primaryGreen)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _recommendedItem('Campus Navigation and Room Locator', 'BSIT • 2024 - 2025', 91),
+                        const SizedBox(height: 12),
+                        _recommendedItem('Indoor Positioning System for University Buildings', 'BSCS • 2023 - 2024', 87),
+                        const SizedBox(height: 12),
+                        _recommendedItem('Student Location Assistance System', 'BSIS • 2023 - 2024', 81),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-      // Bottom nav
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        backgroundColor: Colors.white,
-        indicatorColor: CScholarColors.primaryGreenVeryLight,
-        onDestinationSelected: (i) {
-          if (i == 1) context.go('/repository');
-          if (i == 2) context.go('/saved');
-          if (i == 3) context.go('/profile');
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: CScholarColors.primaryGreen), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search, color: CScholarColors.primaryGreen), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.bookmark_outline), selectedIcon: Icon(Icons.bookmark, color: CScholarColors.primaryGreen), label: 'Saved'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person, color: CScholarColors.primaryGreen), label: 'Profile'),
+    );
+  }
+
+  Widget _statCard(String value, String label, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: CScholarColors.dividerLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+              Text(label, style: const TextStyle(fontSize: 12, color: CScholarColors.textSecondary)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _recentItem(String title, String program, String year, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: CScholarColors.dividerLight),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: CScholarColors.primaryGreenVeryLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.article_outlined, size: 18, color: CScholarColors.primaryGreen),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(program, style: const TextStyle(fontSize: 11, color: CScholarColors.primaryGreen, fontWeight: FontWeight.w500)),
+                      const Text(' • ', style: TextStyle(fontSize: 11, color: CScholarColors.textHint)),
+                      Text(year, style: const TextStyle(fontSize: 11, color: CScholarColors.textSecondary)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _recommendedItem(String title, String subtitle, int percent) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: CScholarColors.dividerLight),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: CScholarColors.primaryGreenVeryLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.auto_awesome, size: 18, color: CScholarColors.primaryGreen),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 11, color: CScholarColors.textSecondary)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: CScholarColors.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text('$percent% similar', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: CScholarColors.primaryGreen)),
+          ),
         ],
       ),
     );
@@ -347,53 +274,5 @@ class StudentDashboardScreen extends ConsumerWidget {
     if (h < 12) return 'morning';
     if (h < 17) return 'afternoon';
     return 'evening';
-  }
-
-  Widget _statChip(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: CScholarColors.primaryGreenVeryLight,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.primaryGreen)),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 13, color: CScholarColors.primaryGreenLight)),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CScholarColors.dividerLight),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: const TextStyle(fontSize: 12, color: CScholarColors.textSecondary)),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
