@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
-import 'package:frontend/core/providers/providers.dart';
-import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -23,7 +21,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   final _yearCtrl = TextEditingController();
   String _status = 'published';
   String _researchType = 'thesis';
-  int? _programId;
 
   @override
   void dispose() {
@@ -164,7 +161,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CScholarColors.textSecondary)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           items: options.map((o) => DropdownMenuItem(value: o, child: Text(o.toUpperCase()))).toList(),
           onChanged: onChanged,
           decoration: InputDecoration(

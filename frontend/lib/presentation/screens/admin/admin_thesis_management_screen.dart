@@ -103,7 +103,7 @@ class AdminThesisManagementScreen extends ConsumerWidget {
                           );
                         },
                         loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                        error: (_, __) => const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Could not load theses'))),
+                        error: (_, _) => const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Could not load theses'))),
                       ),
                     ),
                   ),
@@ -194,7 +194,7 @@ class AdminThesisManagementScreen extends ConsumerWidget {
           },
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(child: Text('Could not load theses')),
+        error: (_, _) => const Center(child: Text('Could not load theses')),
       ),
     );
   }

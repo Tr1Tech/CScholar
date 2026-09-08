@@ -17,9 +17,9 @@ ThemeData lightTheme() {
       onPrimaryContainer: CScholarColors.primaryGreenDark,
       secondary: CScholarColors.orange,
       onSecondary: CScholarColors.white,
-      secondaryContainer: CScholarColors.yellowLight,
+      secondaryContainer: CScholarColors.goldLight,
       onSecondaryContainer: CScholarColors.textPrimary,
-      tertiary: CScholarColors.yellow,
+      tertiary: CScholarColors.gold,
       onTertiary: CScholarColors.textPrimary,
       error: CScholarColors.error,
       onError: CScholarColors.white,
@@ -188,8 +188,8 @@ ThemeData lightTheme() {
         elevation: 0,
         backgroundColor: CScholarColors.primaryGreen,
         foregroundColor: CScholarColors.white,
-        disabledBackgroundColor: CScholarColors.primaryGreen.withOpacity(0.5),
-        disabledForegroundColor: CScholarColors.white.withOpacity(0.7),
+        disabledBackgroundColor: CScholarColors.primaryGreen.withValues(alpha:0.5),
+        disabledForegroundColor: CScholarColors.white.withValues(alpha:0.7),
         padding: const EdgeInsets.symmetric(
           horizontal: CScholarSpacing.lg,
           vertical: CScholarSpacing.md,
@@ -205,7 +205,7 @@ ThemeData lightTheme() {
       ).copyWith(
         overlayColor: WidgetStateProperty.resolveWith<Color?>(
           (states) => states.contains(WidgetState.pressed)
-              ? CScholarColors.primaryGreenDark.withOpacity(0.2)
+              ? CScholarColors.primaryGreenDark.withValues(alpha:0.2)
               : null,
         ),
       ),
@@ -301,7 +301,7 @@ ThemeData lightTheme() {
       disabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(CScholarRadius.md),
         borderSide: BorderSide(
-          color: CScholarColors.dividerLight.withOpacity(0.5),
+          color: CScholarColors.dividerLight.withValues(alpha:0.5),
           width: 1,
         ),
       ),
@@ -346,8 +346,8 @@ ThemeData lightTheme() {
     chipTheme: ChipThemeData(
       backgroundColor: CScholarColors.primaryGreenVeryLight,
       disabledColor: CScholarColors.surfaceLight,
-      selectedColor: CScholarColors.primaryGreen.withOpacity(0.2),
-      secondarySelectedColor: CScholarColors.primaryGreen.withOpacity(0.2),
+      selectedColor: CScholarColors.primaryGreen.withValues(alpha:0.2),
+      secondarySelectedColor: CScholarColors.primaryGreen.withValues(alpha:0.2),
       padding: const EdgeInsets.symmetric(
         horizontal: CScholarSpacing.md,
         vertical: CScholarSpacing.xs,
@@ -391,7 +391,7 @@ ThemeData lightTheme() {
       dividerColor: Colors.transparent,
       overlayColor: WidgetStateProperty.resolveWith<Color?>(
         (states) => states.contains(WidgetState.pressed)
-            ? CScholarColors.primaryGreen.withOpacity(0.1)
+            ? CScholarColors.primaryGreen.withValues(alpha:0.1)
             : null,
       ),
     ),
@@ -468,7 +468,7 @@ ThemeData lightTheme() {
         fontWeight: FontWeight.w400,
         color: CScholarColors.white,
       ),
-      actionTextColor: CScholarColors.yellow,
+      actionTextColor: CScholarColors.gold,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(CScholarRadius.md),
@@ -508,7 +508,7 @@ ThemeData lightTheme() {
       activeTrackColor: CScholarColors.primaryGreen,
       inactiveTrackColor: CScholarColors.primaryGreenVeryLight,
       thumbColor: CScholarColors.primaryGreen,
-      overlayColor: CScholarColors.primaryGreen.withOpacity(0.2),
+      overlayColor: CScholarColors.primaryGreen.withValues(alpha:0.2),
       valueIndicatorColor: CScholarColors.primaryGreen,
       valueIndicatorTextStyle: GoogleFonts.inter(
         fontSize: 12,
@@ -530,14 +530,14 @@ ThemeData lightTheme() {
       trackColor: WidgetStateProperty.resolveWith<Color>(
         (states) {
           if (states.contains(WidgetState.selected)) {
-            return CScholarColors.primaryGreen.withOpacity(0.4);
+            return CScholarColors.primaryGreen.withValues(alpha:0.4);
           }
           return CScholarColors.dividerLight;
         },
       ),
       overlayColor: WidgetStateProperty.resolveWith<Color?>(
         (states) => states.contains(WidgetState.pressed)
-            ? CScholarColors.primaryGreen.withOpacity(0.2)
+            ? CScholarColors.primaryGreen.withValues(alpha:0.2)
             : null,
       ),
     ),
@@ -574,7 +574,7 @@ ThemeData lightTheme() {
       ),
       overlayColor: WidgetStateProperty.resolveWith<Color?>(
         (states) => states.contains(WidgetState.pressed)
-            ? CScholarColors.primaryGreen.withOpacity(0.2)
+            ? CScholarColors.primaryGreen.withValues(alpha:0.2)
             : null,
       ),
     ),

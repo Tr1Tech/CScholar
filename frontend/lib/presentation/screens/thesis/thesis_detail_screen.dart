@@ -401,7 +401,7 @@ class ThesisDetailScreen extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Text(
+            error: (_, _) => const Text(
               'Could not load recommendations',
               style: TextStyle(fontSize: 13, color: CScholarColors.error),
             ),

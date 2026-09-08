@@ -208,7 +208,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ],
           ),
         ),
-        Switch(value: value, onChanged: onChanged, activeColor: CScholarColors.primaryGreen),
+        Switch(value: value, onChanged: onChanged, activeThumbColor: CScholarColors.primaryGreen),
       ],
     );
   }

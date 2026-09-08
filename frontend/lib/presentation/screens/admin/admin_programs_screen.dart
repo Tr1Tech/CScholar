@@ -145,7 +145,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         },
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('Could not load programs')),
+      error: (_, _) => const Center(child: Text('Could not load programs')),
     );
   }
 
@@ -168,7 +168,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         },
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('Could not load academic years')),
+      error: (_, _) => const Center(child: Text('Could not load academic years')),
     );
   }
 
@@ -191,7 +191,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         },
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const Center(child: Text('Could not load categories')),
+      error: (_, _) => const Center(child: Text('Could not load categories')),
     );
   }
 

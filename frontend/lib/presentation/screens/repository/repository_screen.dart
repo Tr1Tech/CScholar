@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
@@ -84,7 +83,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                           Switch(
                             value: _isSemantic,
                             onChanged: (v) => setState(() => _isSemantic = v),
-                            activeColor: CScholarColors.primaryGreen,
+                            activeThumbColor: CScholarColors.primaryGreen,
                           ),
                         ],
                       ),
@@ -113,7 +112,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                         );
                       },
                       loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Center(child: Text('Could not load studies')),
+                      error: (_, _) => const Center(child: Text('Could not load studies')),
                     ),
                   ),
                 ],

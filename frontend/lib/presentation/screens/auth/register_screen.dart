@@ -21,7 +21,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _studentIdController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _error;
   String _selectedRole = 'student';
 

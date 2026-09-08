@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
-import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -103,7 +102,7 @@ class StudentDashboardScreen extends ConsumerWidget {
                             )).toList(),
                           ),
                           loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (_, __) => const Text('Could not load recent studies'),
+                          error: (_, _) => const Text('Could not load recent studies'),
                         ),
                       ],
                     ),

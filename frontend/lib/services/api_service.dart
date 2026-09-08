@@ -1,7 +1,6 @@
 // API service — HTTP calls to the CScholar backend
 // Production implementation: replace mock_service calls with these
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:frontend/core/config.dart';

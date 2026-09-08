@@ -150,7 +150,7 @@ class LandingScreen extends ConsumerWidget {
                       itemBuilder: (ctx, i) => ThesisCard(thesis: theses[i], similarityScore: [0.96, 0.87, 0.82][i]),
                     ),
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (_, __) => const Text('Could not load featured studies'),
+                    error: (_, _) => const Text('Could not load featured studies'),
                   ),
                 ],
               ),

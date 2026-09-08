@@ -78,7 +78,7 @@ class SavedThesesScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Center(child: Text('Could not load saved studies')),
+                error: (_, _) => const Center(child: Text('Could not load saved studies')),
               ),
             ),
           ],
