@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CScholar - CEIT Thesis &amp; Capstone Repository</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Poppins:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#009900",
+            "accent-yellow": "#F9DC07",
+            "accent-orange": "#FF9900",
+            "background-light": "#F8FAFC",
+            "background-dark": "#0F172A",
+          },
+          fontFamily: {
+            display: ["Poppins", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-body text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+<header class="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+<div class="flex items-center gap-8">
+<a class="flex items-center gap-3 group" href="#">
+<div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 shadow-sm">
+<svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+<path d="M12 2L1 7.5L12 13L21 8.09V15.5H23V7.5L12 2Z"></path>
+<path d="M4.5 10.5V15.5C4.5 19.09 7.86 22 12 22C16.14 22 19.5 19.09 19.5 15.5V10.5L12 14.5L4.5 10.5Z" fill="#F9DC07"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white flex items-center">
+              CScholar
+            </span>
+<span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tracking-wider -mt-1 uppercase">CEIT Repository</span>
+</div>
+</a>
+<nav class="hidden md:flex items-center gap-1 pl-4">
+<a class="px-4 py-2 text-sm font-semibold text-primary rounded-lg bg-emerald-50 dark:bg-emerald-950/50 transition" href="#">Home</a>
+<a class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition" href="#browse">Browse</a>
+<a class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition" href="#about">About</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition" type="button">
+<span class="material-symbols-outlined text-[22px]">search</span>
+</button>
+<button class="p-2 text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition" id="themeToggle" title="Toggle theme">
+<span class="material-symbols-outlined text-[22px] dark:hidden">dark_mode</span>
+<span class="material-symbols-outlined text-[22px] hidden dark:block">light_mode</span>
+</button>
+<div class="h-5 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+<a class="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-[#008000] rounded-lg shadow-sm transition" href="#">
+          Login
+        </a>
+<a class="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 rounded-lg transition shadow-sm" href="#">
+          Register
+        </a>
+</div>
+</div>
+</header>
+<main class="flex-1">
+<section class="relative overflow-hidden bg-slate-900 py-20 lg:py-28">
+<div class="absolute inset-0 z-0">
+<img alt="University campus collegiate building" class="w-full h-full object-cover object-center opacity-30 mix-blend-overlay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm-9uBxoqyIHq0IumwXCeYl0vwc_cqedQcUOlm48BBIzAO3o6t8Vq4UnPOKllI8lRYezBDHO4Hfdb8QN1sbNVA5V6sgBIaLLS_FXiOU4M8uzMuCoWSMlNsh02PCG1M9dDBkzvxoGcwbgkPpGQQ0sPpGN-ItGjjV0tmPbYvbhaflJrMlF5o3Y5vN9ejxgUQIwtJRgy8kZs-HapcroEAsIYmbXezTOHhTgAeSxNWVhknou7rKcMIGYSh"/>
+<div class="absolute inset-0 bg-gradient-to-r from-[#004d00]/95 via-[#006600]/85 to-[#009900]/70"></div>
+<div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-[#F9DC07]/10 blur-3xl pointer-events-none"></div>
+</div>
+<div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-left md:text-left">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-400/30 text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-6">
+<span class="w-2 h-2 rounded-full bg-[#F9DC07] animate-pulse"></span>
+          CEIT Thesis &amp; Capstone Repository
+        </div>
+<h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight leading-tight max-w-2xl">
+          Discover research that matches your ideas.
+        </h1>
+<p class="mt-4 text-base sm:text-lg text-emerald-100/90 max-w-2xl leading-relaxed">
+          Search CEIT thesis and capstone projects using keywords or natural-language questions.
+        </p>
+<div class="mt-8 max-w-3xl">
+<div class="relative flex items-center bg-white dark:bg-slate-800 rounded-xl p-1.5 shadow-2xl border border-white/20">
+<div class="pl-4 text-slate-400">
+<span class="material-symbols-outlined text-2xl">search</span>
+</div>
+<input class="w-full pl-3 pr-4 py-3 bg-transparent text-slate-800 dark:text-slate-100 placeholder-slate-400 border-none focus:ring-0 text-sm md:text-base font-normal" placeholder="Search thesis, capstone, topic, author, keyword..." type="text"/>
+<button class="flex items-center justify-center bg-primary hover:bg-[#008000] text-white px-5 py-3 rounded-lg font-medium transition shadow-md shrink-0">
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</div>
+<div class="mt-4 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+<span class="text-emerald-100/80 font-medium mr-1">Popular searches:</span>
+<a class="px-3 py-1 rounded-full bg-black/20 hover:bg-black/35 text-white backdrop-blur-sm border border-white/10 transition font-medium" href="#">machine learning</a>
+<a class="px-3 py-1 rounded-full bg-black/20 hover:bg-black/35 text-white backdrop-blur-sm border border-white/10 transition font-medium" href="#">web application</a>
+<a class="px-3 py-1 rounded-full bg-black/20 hover:bg-black/35 text-white backdrop-blur-sm border border-white/10 transition font-medium" href="#">campus navigation</a>
+<a class="px-3 py-1 rounded-full bg-black/20 hover:bg-black/35 text-white backdrop-blur-sm border border-white/10 transition font-medium hidden sm:inline-block" href="#">IoT &amp; robotics</a>
+</div>
+</div>
+</div>
+</section>
+<section class="py-14 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" id="browse">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h2 class="font-display font-bold text-2xl text-slate-900 dark:text-white">Featured Studies</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Explore top-rated and recently published capstone works from CEIT students</p>
+</div>
+<a class="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-emerald-700 dark:hover:text-emerald-400 transition" href="#">
+          View All <span class="material-symbols-outlined text-base">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300">
+                Thesis
+              </span>
+<button class="text-slate-400 hover:text-primary transition" title="Save to bookmarks">
+<span class="material-symbols-outlined text-[20px]">bookmark_border</span>
+</button>
+</div>
+<h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-primary transition line-clamp-2">
+              AI-Based Student Attendance Monitoring System
+            </h3>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
+              BS Information Technology • 2024–2025
+            </p>
+<p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              John Dela Cruz, Maria Santos
+            </p>
+</div>
+<div class="pt-5 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+<span class="material-symbols-outlined text-sm">auto_awesome</span> 96% match
+            </span>
+<a class="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary flex items-center gap-1 transition" href="#">
+              Details
+            </a>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300">
+                Capstone
+              </span>
+<button class="text-primary transition" title="Saved">
+<span class="material-symbols-outlined text-[20px] fill-current">bookmark</span>
+</button>
+</div>
+<h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-primary transition line-clamp-2">
+              Mobile Campus Navigation System with Indoor Positioning
+            </h3>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
+              BS Computer Science • 2024–2025
+            </p>
+<p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Ralph Martinez, Ana Reyes
+            </p>
+</div>
+<div class="pt-5 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+<span class="material-symbols-outlined text-sm">auto_awesome</span> 87% match
+            </span>
+<a class="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary flex items-center gap-1 transition" href="#">
+              Details
+            </a>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200/80 dark:border-slate-700/70 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="px-2.5 py-0.5 text-xs font-semibold rounded-md bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300">
+                Thesis
+              </span>
+<button class="text-slate-400 hover:text-primary transition" title="Save to bookmarks">
+<span class="material-symbols-outlined text-[20px]">bookmark_border</span>
+</button>
+</div>
+<h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-primary transition line-clamp-2">
+              Web-Based Learning Management System for CEIT Students
+            </h3>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">
+              BS Information Systems • 2023–2024
+            </p>
+<p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Kevin Tan, Lara Garcia
+            </p>
+</div>
+<div class="pt-5 mt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+<span class="material-symbols-outlined text-sm">auto_awesome</span> 82% match
+            </span>
+<a class="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-primary flex items-center gap-1 transition" href="#">
+              Details
+            </a>
+</div>
+</div>
+</div>
+</section>
+<section class="border-y border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+<div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+<p class="font-display font-bold text-3xl text-primary">1,248</p>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Archived Theses</p>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+<p class="font-display font-bold text-3xl text-primary">3</p>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">CEIT Programs</p>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+<p class="font-display font-bold text-3xl text-primary">5+</p>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">Academic Years</p>
+</div>
+<div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/50 shadow-sm">
+<p class="font-display font-bold text-3xl text-[#FF9900]">100%</p>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">CEIT Peer Reviewed</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-8 text-center sm:text-left">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-2">
+<span class="font-display font-bold text-slate-800 dark:text-slate-200">CScholar</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">© 2025 CEIT Thesis &amp; Capstone Repository. CSU Official Colors.</span>
+</div>
+<div class="flex items-center gap-6 text-xs text-slate-500 dark:text-slate-400">
+<a class="hover:text-primary transition" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition" href="#">Terms of Access</a>
+<a class="hover:text-primary transition" href="#">Department Guidelines</a>
+</div>
+</div>
+</footer>
+<script>
+    const themeToggleBtn = document.getElementById('themeToggle');
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+    });
+  </script>
+
+</body></html>
