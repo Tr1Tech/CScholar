@@ -1,4 +1,5 @@
-// Landing / Welcome screen — CScholar entry point
+// Landing / Welcome — Stitch design v2
+// Hero section with search bar + featured studies grid
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,256 +21,153 @@ class LandingScreen extends ConsumerWidget {
       backgroundColor: CScholarColors.backgroundLight,
       body: CustomScrollView(
         slivers: [
-          // ── Header ──────────────────────────────────────
+          // Header
           SliverToBoxAdapter(
             child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 48 : 20,
-                vertical: 16,
-              ),
-              decoration: const BoxDecoration(
+              padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 16),
+              decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: CScholarColors.dividerLight, width: 1),
-                ),
+                border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
               ),
               child: Row(
                 children: [
-                  // Logo
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: CScholarColors.primaryGreen,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.school, color: Colors.white, size: 24),
+                    child: const Icon(Icons.school, color: Colors.white, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'CScholar',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: CScholarColors.textPrimary,
-                    ),
-                  ),
+                  const Text('CScholar', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
                   const Spacer(),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('Sign In'),
-                  ),
+                  TextButton(onPressed: () => context.go('/login'), child: const Text('Sign In')),
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: () => context.go('/login'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: CScholarColors.primaryGreen,
-                    ),
+                    style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
                     child: const Text('Get Started'),
                   ),
                 ],
               ),
             ),
           ),
-
-          // ── Hero ────────────────────────────────────────
+          // Hero section
           SliverToBoxAdapter(
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 48 : 20,
-                vertical: 80,
-              ),
-              decoration: const BoxDecoration(
+              padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 80),
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [CScholarColors.primaryGreen, CScholarColors.primaryGreenLight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
+                  colors: [CScholarColors.sidebarDeep, CScholarColors.adminSidebar],
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: CScholarColors.gold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: CScholarColors.gold.withValues(alpha: 0.3)),
                     ),
-                    child: const Text(
-                      'CEIT Research Repository',
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
+                    child: const Text('CEIT Thesis & Capstone Repository', style: TextStyle(color: CScholarColors.gold, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1)),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Discover research that\nmatches your ideas.',
-                    style: TextStyle(
-                      fontSize: isWide ? 48 : 36,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1.2,
-                    ),
-                  ),
+                  Text('Discover research that\nmatches your ideas.', style: TextStyle(fontSize: isWide ? 48 : 36, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2)),
                   const SizedBox(height: 16),
-                  Text(
-                    'Semantic search powered by AI — find related theses and capstone\nprojects across the College of Engineering and Information Technology.',
-                    style: TextStyle(
-                      fontSize: isWide ? 17 : 15,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      height: 1.5,
-                    ),
-                  ),
+                  Text('Search CEIT thesis and capstone projects using keywords or natural-language questions.', style: TextStyle(fontSize: isWide ? 17 : 15, color: Colors.white70, height: 1.5)),
                   const SizedBox(height: 32),
                   // Search bar
                   Container(
-                    constraints: BoxConstraints(maxWidth: isWide ? 640 : double.infinity),
-                    child: TextField(
-                      readOnly: true,
-                      onTap: () => context.go('/login'),
-                      decoration: InputDecoration(
-                        hintText: 'Search CEIT thesis and capstone projects...',
-                        hintStyle: TextStyle(color: CScholarColors.textHint),
-                        prefixIcon: const Icon(Icons.search, color: CScholarColors.textSecondary),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4))],
+                    ),
+                    child: Row(
+                      children: [
+                        const Padding(padding: EdgeInsets.only(left: 12), child: Icon(Icons.search, color: CScholarColors.textHint, size: 24)),
+                        const SizedBox(width: 12),
+                        const Expanded(child: TextField(decoration: InputDecoration(hintText: 'Search thesis, capstone, topic, author, keyword...', border: InputBorder.none), style: TextStyle(fontSize: 15))),
+                        FilledButton(
+                          onPressed: () => context.go('/login'),
+                          style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+                          child: const Icon(Icons.arrow_forward, size: 20),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
+                  // Popular searches
+                  Row(
                     children: [
-                      _chip('machine learning'),
-                      _chip('mobile app'),
-                      _chip('iot'),
-                      _chip('database'),
+                      const Text('Popular searches:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(width: 8),
+                      _popularChip('machine learning'),
+                      _popularChip('web application'),
+                      _popularChip('campus navigation'),
                     ],
                   ),
                 ],
               ),
             ),
           ),
-
-          // ── Features ────────────────────────────────────
+          // Featured studies
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 48 : 20,
-                vertical: 48,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'How CScholar Works',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: CScholarColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'AI-powered research discovery for CEIT students and faculty.',
-                    style: TextStyle(fontSize: 16, color: CScholarColors.textSecondary),
-                  ),
-                  const SizedBox(height: 32),
-                  isWide
-                      ? Row(
-                          children: [
-                            Expanded(child: _featureCard(Icons.search, 'Semantic Search', 'Describe what you\'re looking for in plain language — CScholar finds conceptually related research.')),
-                            const SizedBox(width: 16),
-                            Expanded(child: _featureCard(Icons.auto_awesome, 'AI Recommendations', 'Get personalized study recommendations based on what you\'ve viewed and saved.')),
-                            const SizedBox(width: 16),
-                            Expanded(child: _featureCard(Icons.bookmark, 'Save & Organize', 'Bookmark theses, organize your research, and build your literature review.')),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            _featureCard(Icons.search, 'Semantic Search', 'Describe what you\'re looking for in plain language — CScholar finds conceptually related research.'),
-                            const SizedBox(height: 16),
-                            _featureCard(Icons.auto_awesome, 'AI Recommendations', 'Get personalized study recommendations based on what you\'ve viewed and saved.'),
-                            const SizedBox(height: 16),
-                            _featureCard(Icons.bookmark, 'Save & Organize', 'Bookmark theses, organize your research, and build your literature review.'),
-                          ],
-                        ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Recent Studies ──────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recent Studies',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: CScholarColors.textPrimary,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('View all →'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          recentTheses.when(
-            data: (theses) => SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20, vertical: 16),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isWide ? 3 : 1,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: isWide ? 1.5 : 2.5,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => ThesisCard(thesis: theses[index]),
-                  childCount: theses.length.clamp(0, 3),
-                ),
-              ),
-            ),
-            loading: () => const SliverToBoxAdapter(
-              child: Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))),
-            error: (_, __) => const SliverToBoxAdapter(child: SizedBox()),
-          ),
-
-          // ── Footer ─────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              color: CScholarColors.textPrimary,
-              child: Column(
-                children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.school, color: Colors.white, size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'CScholar — CEIT Thesis Repository',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
+                      const Text('Featured Studies', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                      TextButton(onPressed: () => context.go('/login'), child: const Text('View All →', style: TextStyle(color: CScholarColors.primaryGreen))),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Caraga State University · College of Engineering and Information Technology',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  const Text('Explore top-rated and recently published capstone works from CEIT students', style: TextStyle(fontSize: 14, color: CScholarColors.textSecondary)),
+                  const SizedBox(height: 24),
+                  recentTheses.when(
+                    data: (theses) => GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: isWide ? 3 : 1,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: isWide ? 0.75 : 1.2,
+                      ),
+                      itemCount: theses.take(3).length,
+                      itemBuilder: (ctx, i) => ThesisCard(thesis: theses[i], similarityScore: [0.96, 0.87, 0.82][i]),
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => const Text('Could not load featured studies'),
                   ),
+                ],
+              ),
+            ),
+          ),
+          // Stats section
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _statColumn('1,248', 'Archived Theses'),
+                  _statColumn('3', 'CEIT Programs'),
+                  _statColumn('5+', 'Academic Years'),
+                  _statColumn('100%', 'CEIT Peer Reviewed'),
                 ],
               ),
             ),
@@ -279,67 +177,26 @@ class LandingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _chip(String label) {
+  Widget _popularChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
-      ),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
     );
   }
 
-  Widget _featureCard(IconData icon, String title, String desc) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CScholarColors.dividerLight),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: CScholarColors.primaryGreenVeryLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: CScholarColors.primaryGreen, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: CScholarColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            desc,
-            style: const TextStyle(
-              fontSize: 14,
-              color: CScholarColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
+  Widget _statColumn(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: CScholarColors.primaryGreen)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12, color: CScholarColors.textSecondary)),
+      ],
     );
   }
 }

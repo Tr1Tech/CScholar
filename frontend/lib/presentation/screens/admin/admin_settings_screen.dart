@@ -1,4 +1,5 @@
-// Admin: System Settings — site config, repository info, contact
+// Admin: System Settings — Stitch design v2
+// Sidebar + topbar + settings cards
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,18 +16,15 @@ class AdminSettingsScreen extends ConsumerStatefulWidget {
 
 class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _siteNameCtrl = TextEditingController(text: 'CScholar');
-  final _siteDescCtrl = TextEditingController(
-    text: 'Semantic Search and AI-Powered Recommendation System for the CEIT Thesis and Capstone Repository',
-  );
+  final _siteDescCtrl = TextEditingController(text: 'Semantic Search and AI-Powered Recommendation System for the CEIT Thesis and Capstone Repository');
   final _contactEmailCtrl = TextEditingController(text: 'ceit@csu.edu.ph');
   final _contactNameCtrl = TextEditingController(text: 'CEIT Office');
   final _maxResultsCtrl = TextEditingController(text: '20');
-  final _allowPublicSearchCtrl = TextEditingController(text: 'true');
 
-  String _selectedTheme = 'Light';
   bool _semanticEnabled = true;
   bool _recommendationsEnabled = true;
   bool _autoArchive = false;
+  bool _publicSearch = true;
   bool _isSaving = false;
 
   @override
@@ -36,7 +34,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _contactEmailCtrl.dispose();
     _contactNameCtrl.dispose();
     _maxResultsCtrl.dispose();
-    _allowPublicSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -45,12 +42,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     Future.delayed(const Duration(seconds: 1), () {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Settings saved successfully'),
-          backgroundColor: CScholarColors.success,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved successfully'), backgroundColor: CScholarColors.success));
     });
   }
 
@@ -59,125 +51,103 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
 
-    Widget body() => Scaffold(
+    if (!isWide) {
+      return _mobileLayout(context);
+    }
+
+    return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        leading: isWide
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-                onPressed: () => context.go('/admin/dashboard'),
-              ),
-        title: const Text('System Settings', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: CScholarColors.dividerLight, height: 1)),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isWide ? 32 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // General Settings
-            _sectionCard(
-              title: 'General',
-              icon: Icons.settings,
+      body: Row(
+        children: [
+          const AdminSidebar(currentPath: '/admin/settings'),
+          Expanded(
+            child: Column(
               children: [
-                _textField(label: 'Repository Name', hint: 'e.g., CScholar CEIT Repository', controller: _siteNameCtrl),
-                const SizedBox(height: 16),
-                _textField(label: 'Description', hint: 'Brief description of the repository', controller: _siteDescCtrl, maxLines: 3),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // AI & Search Settings
-            _sectionCard(
-              title: 'AI & Search',
-              icon: Icons.auto_awesome,
-              children: [
-                _toggleRow('Semantic Search', 'Enable AI-powered semantic search', _semanticEnabled, (v) => setState(() => _semanticEnabled = v)),
-                const Divider(height: 24),
-                _toggleRow('Recommendations', 'Show AI recommendations on thesis detail', _recommendationsEnabled, (v) => setState(() => _recommendationsEnabled = v)),
-                const Divider(height: 24),
-                _textField(label: 'Max Search Results', hint: 'e.g., 20', controller: _maxResultsCtrl),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Content Settings
-            _sectionCard(
-              title: 'Content & Access',
-              icon: Icons.content_paste,
-              children: [
-                _toggleRow('Auto-Archive', 'Automatically archive theses older than 3 years', _autoArchive, (v) => setState(() => _autoArchive = v)),
-                const Divider(height: 24),
-                _toggleRow('Public Search', 'Allow non-logged-in users to search', _allowPublicSearchCtrl.text == 'true', (v) => setState(() => _allowPublicSearchCtrl.text = v.toString())),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Contact Info
-            _sectionCard(
-              title: 'Contact Information',
-              icon: Icons.contact_mail,
-              children: [
-                _textField(label: 'Contact Name', hint: 'e.g., CEIT Office', controller: _contactNameCtrl),
-                const SizedBox(height: 16),
-                _textField(label: 'Contact Email', hint: 'e.g., ceit@csu.edu.ph', controller: _contactEmailCtrl),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _isSaving ? null : _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: CScholarColors.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                // Top bar
+                Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('System Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: _isSaving ? null : _save,
+                        style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
+                        child: _isSaving
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Save Settings'),
+                      ),
+                    ],
+                  ),
                 ),
-                child: _isSaving
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Save Settings', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-              ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // General settings
+                        _sectionCard('General', Icons.settings, [
+                          _textField('Repository Name', 'e.g., CScholar CEIT Repository', _siteNameCtrl),
+                          const SizedBox(height: 16),
+                          _textField('Description', 'Brief description of the repository', _siteDescCtrl, maxLines: 3),
+                        ]),
+                        const SizedBox(height: 20),
+                        // AI & Search
+                        _sectionCard('AI & Search', Icons.auto_awesome, [
+                          _toggleRow('Semantic Search', 'Enable AI-powered semantic search', _semanticEnabled, (v) => setState(() => _semanticEnabled = v)),
+                          const Divider(height: 24),
+                          _toggleRow('Recommendations', 'Show AI recommendations on thesis detail', _recommendationsEnabled, (v) => setState(() => _recommendationsEnabled = v)),
+                          const Divider(height: 24),
+                          _textField('Max Search Results', 'e.g., 20', _maxResultsCtrl),
+                        ]),
+                        const SizedBox(height: 20),
+                        // Content & Access
+                        _sectionCard('Content & Access', Icons.content_paste, [
+                          _toggleRow('Auto-Archive', 'Automatically archive theses older than 3 years', _autoArchive, (v) => setState(() => _autoArchive = v)),
+                          const Divider(height: 24),
+                          _toggleRow('Public Search', 'Allow non-logged-in users to search', _publicSearch, (v) => setState(() => _publicSearch = v)),
+                        ]),
+                        const SizedBox(height: 20),
+                        // Contact
+                        _sectionCard('Contact Information', Icons.contact_mail, [
+                          _textField('Contact Name', 'e.g., CEIT Office', _contactNameCtrl),
+                          const SizedBox(height: 16),
+                          _textField('Contact Email', 'e.g., ceit@csu.edu.ph', _contactEmailCtrl),
+                        ]),
+                        const SizedBox(height: 32),
+                        // Version info
+                        Center(
+                          child: Text(
+                            'CScholar v1.0.0 — CEIT Thesis & Capstone Repository',
+                            style: TextStyle(fontSize: 12, color: CScholarColors.textSecondary.withValues(alpha: 0.6)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-
-            // Version info
-            Center(
-              child: Text(
-                'CScholar v1.0.0 — CEIT Thesis & Capstone Repository',
-                style: TextStyle(fontSize: 12, color: CScholarColors.textSecondary.withValues(alpha: 0.6)),
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-
-    if (!isWide) return body();
-
-    return Row(
-      children: [
-        const AdminSidebar(currentPath: '/admin/settings'),
-        Container(width: 1, color: CScholarColors.dividerLight),
-        Expanded(child: body()),
-      ],
     );
   }
 
-  Widget _sectionCard({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _sectionCard(String title, IconData icon, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: CScholarColors.dividerLight),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -195,21 +165,13 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(children: children),
-          ),
+          Padding(padding: const EdgeInsets.all(20), child: Column(children: children)),
         ],
       ),
     );
   }
 
-  Widget _textField({
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    int maxLines = 1,
-  }) {
+  Widget _textField(String label, String hint, TextEditingController controller, {int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -222,7 +184,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             hintText: hint,
             hintStyle: TextStyle(color: CScholarColors.textSecondary.withValues(alpha: 0.5)),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: CScholarColors.backgroundLight,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: CScholarColors.primaryGreen)),
@@ -246,12 +208,25 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ],
           ),
         ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: CScholarColors.primaryGreen,
-        ),
+        Switch(value: value, onChanged: onChanged, activeColor: CScholarColors.primaryGreen),
       ],
+    );
+  }
+
+  Widget _mobileLayout(BuildContext context) {
+    return Scaffold(
+      backgroundColor: CScholarColors.backgroundLight,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        toolbarHeight: 64,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+          onPressed: () => context.go('/admin/dashboard'),
+        ),
+        title: const Text('System Settings', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+      ),
+      body: const Center(child: Text('Mobile view - Settings')),
     );
   }
 }

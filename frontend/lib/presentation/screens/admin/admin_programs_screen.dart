@@ -1,11 +1,11 @@
-// Admin: Programs & Categories management
+// Admin: Programs & Categories — Stitch design v2
+// Sidebar + topbar + tabbed content
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
-import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminProgramsScreen extends ConsumerStatefulWidget {
@@ -16,265 +16,199 @@ class AdminProgramsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  late TabController _tabCtrl;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final programs = ref.watch(programsProvider);
-    final years = ref.watch(academicYearsProvider);
-    final categories = ref.watch(categoriesProvider);
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
 
-    Widget body() => Scaffold(
+    if (!isWide) {
+      return _mobileLayout(context, ref);
+    }
+
+    return Scaffold(
+      backgroundColor: CScholarColors.backgroundLight,
+      body: Row(
+        children: [
+          const AdminSidebar(currentPath: '/admin/programs'),
+          Expanded(
+            child: Column(
+              children: [
+                // Top bar
+                Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('Programs & Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                      const Spacer(),
+                      FilledButton.icon(
+                        onPressed: () {},
+                        style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add Program'),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: CScholarColors.dividerLight),
+                      ),
+                      child: Column(
+                        children: [
+                          // Tab bar
+                          TabBar(
+                            controller: _tabCtrl,
+                            labelColor: CScholarColors.primaryGreen,
+                            unselectedLabelColor: CScholarColors.textSecondary,
+                            indicatorColor: CScholarColors.primaryGreen,
+                            tabs: const [
+                              Tab(text: 'Programs'),
+                              Tab(text: 'Academic Years'),
+                              Tab(text: 'Categories'),
+                            ],
+                          ),
+                          // Tab content
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabCtrl,
+                              children: [
+                                _programsTab(context, ref),
+                                _academicYearsTab(context, ref),
+                                _categoriesTab(context, ref),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _programsTab(BuildContext context, WidgetRef ref) {
+    final programs = ref.watch(programsProvider);
+    return programs.when(
+      data: (list) => ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        itemBuilder: (ctx, i) {
+          final p = list[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: CScholarColors.primaryGreen,
+                child: Text(p.name[0], style: const TextStyle(color: Colors.white)),
+              ),
+              title: Text(p.name),
+              subtitle: Text('${p.code} • ${p.college ?? 'CEIT'}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () {}),
+                  IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: CScholarColors.error), onPressed: () {}),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('Could not load programs')),
+    );
+  }
+
+  Widget _academicYearsTab(BuildContext context, WidgetRef ref) {
+    final years = ref.watch(academicYearsProvider);
+    return years.when(
+      data: (list) => ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        itemBuilder: (ctx, i) {
+          final y = list[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.calendar_today_outlined, color: CScholarColors.primaryGreen),
+              title: Text(y.label),
+              subtitle: Text('${y.startYear} - ${y.endYear}'),
+            ),
+          );
+        },
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('Could not load academic years')),
+    );
+  }
+
+  Widget _categoriesTab(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(categoriesProvider);
+    return categories.when(
+      data: (list) => ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: list.length,
+        itemBuilder: (ctx, i) {
+          final c = list[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const Icon(Icons.category_outlined, color: CScholarColors.primaryGreen),
+              title: Text(c.name),
+              subtitle: Text(c.description ?? ''),
+            ),
+          );
+        },
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const Center(child: Text('Could not load categories')),
+    );
+  }
+
+  Widget _mobileLayout(BuildContext context, WidgetRef ref) {
+    return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 64,
-        leading: isWide
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-                onPressed: () => context.go('/admin/dashboard'),
-              ),
-        title: const Text('Programs & Categories', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: CScholarColors.dividerLight, height: 1)),
-      ),
-      body: Column(
-        children: [
-          Container(color: Colors.white, child: TabBar(
-            controller: _tabController,
-            labelColor: CScholarColors.primaryGreen,
-            unselectedLabelColor: CScholarColors.textSecondary,
-            indicatorColor: CScholarColors.primaryGreen,
-            tabs: const [
-              Tab(text: 'Programs'),
-              Tab(text: 'Academic Years'),
-              Tab(text: 'Categories'),
-            ],
-          )),
-          Expanded(child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildProgramsTab(programs, isWide),
-              _buildYearsTab(years, isWide),
-              _buildCategoriesTab(categories, isWide),
-            ],
-          )),
-        ],
-      ),
-    );
-
-    if (!isWide) return body();
-
-    return Row(
-      children: [
-        const AdminSidebar(currentPath: '/admin/programs'),
-        Container(width: 1, color: CScholarColors.dividerLight),
-        Expanded(child: body()),
-      ],
-    );
-  }
-
-  Widget _buildProgramsTab(AsyncValue<List<Program>> programs, bool isWide) {
-    return programs.when(
-      data: (list) => _buildDataTable(
-        isWide: isWide,
-        cols: const ['Code', 'Program Name', 'College'],
-        rows: list.map((p) => [p.code, p.name, p.college ?? 'CEIT']).toList(),
-        emptyMessage: 'No programs found',
-        addAction: () => _showAddProgramDialog(),
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
-
-  Widget _buildYearsTab(AsyncValue<List<AcademicYear>> years, bool isWide) {
-    return years.when(
-      data: (list) => _buildDataTable(
-        isWide: isWide,
-        cols: const ['Label', 'Start Year', 'End Year', 'Status'],
-        rows: list.map((y) => [y.label, y.startYear.toString(), y.endYear.toString(), y.isActive ? 'Active' : 'Inactive']).toList(),
-        emptyMessage: 'No academic years found',
-        addAction: () => _showAddYearDialog(),
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
-
-  Widget _buildCategoriesTab(AsyncValue<List<Category>> categories, bool isWide) {
-    return categories.when(
-      data: (list) => _buildDataTable(
-        isWide: isWide,
-        cols: const ['Name', 'Description'],
-        rows: list.map((c) => [c.name, c.description ?? '—']).toList(),
-        emptyMessage: 'No categories found',
-        addAction: () => _showAddCategoryDialog(),
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-    );
-  }
-
-  Widget _buildDataTable({
-    required bool isWide,
-    required List<String> cols,
-    required List<List<String>> rows,
-    required String emptyMessage,
-    required VoidCallback addAction,
-  }) {
-    if (isWide) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('${rows.length} records', style: const TextStyle(color: CScholarColors.textSecondary)),
-                FilledButton.icon(
-                  onPressed: addAction,
-                  style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                  label: const Text('Add New', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: CScholarColors.dividerLight),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
-                columns: cols.map((c) => DataColumn(label: Text(c, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
-                rows: rows.map((r) => DataRow(cells: r.map((c) => DataCell(Text(c))).toList())).toList(),
-              ),
-            ),
-          ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+          onPressed: () => context.go('/admin/dashboard'),
         ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: rows.asMap().entries.map((entry) {
-          final r = entry.value;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: CScholarColors.dividerLight),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: r.asMap().entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 80, child: Text('${cols[e.key]}:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: CScholarColors.textSecondary))),
-                    Expanded(child: Text(r[e.key], style: const TextStyle(fontSize: 13))),
-                  ],
-                ),
-              )).toList(),
-            ),
-          );
-        }).toList(),
+        title: const Text('Programs & Categories', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
-    );
-  }
-
-  void _showAddProgramDialog() {
-    final codeCtrl = TextEditingController();
-    final nameCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Program'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: 'Code (e.g., BSIT)')),
-          const SizedBox(height: 12),
-          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${nameCtrl.text} added'), backgroundColor: CScholarColors.success));
-            },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddYearDialog() {
-    final labelCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Academic Year'),
-        content: TextField(controller: labelCtrl, decoration: const InputDecoration(labelText: 'Label (e.g., 2025–2026)')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${labelCtrl.text} added'), backgroundColor: CScholarColors.success));
-            },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddCategoryDialog() {
-    final nameCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Category'),
-        content: TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Category Name')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${nameCtrl.text} added'), backgroundColor: CScholarColors.success));
-            },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      body: const Center(child: Text('Mobile view - Programs & Categories')),
     );
   }
 }
