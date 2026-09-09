@@ -3,16 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/router/app_router.dart';
+import 'package:frontend/core/providers/providers.dart';
 
 void main() {
   runApp(const ProviderScope(child: CScholarApp()));
 }
 
-class CScholarApp extends ConsumerWidget {
+class CScholarApp extends ConsumerStatefulWidget {
   const CScholarApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CScholarApp> createState() => _CScholarAppState();
+}
+
+class _CScholarAppState extends ConsumerState<CScholarApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Load saved token on startup
+    ref.read(authProvider.notifier).loadToken();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouter);
 
     return MaterialApp.router(

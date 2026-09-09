@@ -99,6 +99,10 @@ final appRouter = Provider<GoRouter>((ref) {
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
           ),
+          GoRoute(
+            path: '/recommendations',
+            builder: (context, state) => const Scaffold(body: Center(child: Text('Recommendations'))),
+          ),
         ],
       ),
 

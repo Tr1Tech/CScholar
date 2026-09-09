@@ -102,3 +102,8 @@ def me():
         "is_active": user.is_active,
         "created_at": user.created_at.isoformat(),
     }), 200
+
+@auth_bp.route("/api/auth/logout", methods=["POST"])
+def logout():
+    """Client-side logout — token is discarded on frontend."""
+    return jsonify({"message": "Logged out"}), 200
