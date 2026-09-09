@@ -7,6 +7,7 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: CScholarApp()),
     );
+    await tester.pumpAndSettle();
     expect(find.text('CScholar'), findsAny);
   });
 }

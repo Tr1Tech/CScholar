@@ -1,5 +1,3 @@
-// Reusable ThesisCard widget
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
@@ -7,7 +5,7 @@ import 'package:frontend/models/thesis.dart';
 
 class ThesisCard extends StatelessWidget {
   final Thesis thesis;
-  final double? similarityScore; // 0.0–1.0 for recommendation cards
+  final double? similarityScore;
   final VoidCallback? onTap;
 
   const ThesisCard({
@@ -24,39 +22,33 @@ class ThesisCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CScholarColors.dividerLight),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(CScholarRadius.xl),
+          border: Border.all(color: CScholarColors.borderLight),
+          boxShadow: CScholarShadows.card,
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image placeholder / header
+            // Image banner / header
             Container(
-              height: 80,
+              height: 76,
               decoration: BoxDecoration(
                 color: _headerColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
               ),
               child: Stack(
                 children: [
                   Positioned(
                     right: 12,
-                    bottom: 8,
+                    bottom: 4,
                     child: Icon(
                       Icons.article_outlined,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      size: 40,
+                      color: Colors.white.withValues(alpha: 0.25),
+                      size: 48,
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -64,14 +56,14 @@ class ThesisCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(CScholarRadius.sm),
                           ),
                           child: Text(
                             thesis.researchType.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                            style: CScholarTextStyles.inter(
+                              10,
+                              FontWeight.w700,
+                              Colors.white,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -97,34 +89,38 @@ class ThesisCard extends StatelessWidget {
                       thesis.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: CScholarColors.textPrimary,
+                      style: CScholarTextStyles.poppins(
+                        14.5,
+                        FontWeight.w700,
+                        CScholarColors.textPrimary,
                         height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     if (thesis.authors != null && thesis.authors!.isNotEmpty)
                       Text(
                         thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: CScholarColors.textSecondary,
+                        style: CScholarTextStyles.inter(
+                          11.5,
+                          FontWeight.w400,
+                          CScholarColors.textSecondary,
                         ),
                       ),
                     const Spacer(),
                     Row(
                       children: [
-                        _tag(thesis.program?.name ?? ''),
-                        const Spacer(),
+                        Flexible(
+                          child: _tag(_programCode(thesis.program?.name)),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          thesis.academicYear?.label ?? ''.toString(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: CScholarColors.textHint,
+                          thesis.academicYear?.label ?? '2024 - 2025',
+                          style: CScholarTextStyles.inter(
+                            11,
+                            FontWeight.w500,
+                            CScholarColors.textHint,
                           ),
                         ),
                       ],
@@ -139,27 +135,26 @@ class ThesisCard extends StatelessWidget {
     );
   }
 
-  /// Prominent semantic match badge shown on AI recommendation cards.
   Widget _semanticBadge(double score) {
     final pct = (score * 100).round();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: CScholarColors.primaryGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.2)),
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(CScholarRadius.full),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.auto_awesome, size: 11, color: CScholarColors.primaryGreen),
+          const Icon(Icons.auto_awesome, size: 11, color: CScholarColors.gold),
           const SizedBox(width: 4),
           Text(
             '$pct% match',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: CScholarColors.primaryGreen,
+            style: CScholarTextStyles.inter(
+              10.5,
+              FontWeight.w700,
+              Colors.white,
             ),
           ),
         ],
@@ -171,27 +166,37 @@ class ThesisCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: CScholarColors.primaryGreenVeryLight,
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-          color: CScholarColors.primaryGreen,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: CScholarTextStyles.inter(
+          10.5,
+          FontWeight.w700,
+          CScholarColors.textSecondary,
         ),
       ),
     );
   }
 
+  String _programCode(String? name) {
+    if (name == null || name.isEmpty) return 'BSIT';
+    if (name.contains('Information Technology')) return 'BSIT';
+    if (name.contains('Computer Science')) return 'BSCS';
+    if (name.contains('Information Systems')) return 'BSIS';
+    return name;
+  }
+
   Color get _headerColor {
-    final colors = [
+    const colors = [
       CScholarColors.primaryGreen,
-      CScholarColors.primaryGreenLight,
+      Color(0xFF0D9488),
       CScholarColors.orange,
-      CScholarColors.info,
-      CScholarColors.facultyColor,
+      Color(0xFF2563EB),
+      Color(0xFF7C3AED),
     ];
     return colors[thesis.id % colors.length];
   }

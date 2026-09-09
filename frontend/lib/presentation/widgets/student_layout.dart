@@ -1,12 +1,10 @@
-// Shared student layout — Stitch design v2
-// Left sidebar + top navbar + scrollable content
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 
 class StudentLayout extends ConsumerWidget {
   final Widget child;
@@ -30,7 +28,7 @@ class StudentLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 720;
+    final isWide = size.width > 840;
 
     if (!isWide) {
       return _mobileLayout(context, ref, user);
@@ -40,9 +38,7 @@ class StudentLayout extends ConsumerWidget {
       backgroundColor: CScholarColors.backgroundLight,
       body: Row(
         children: [
-          // Left sidebar
           _sidebar(context, ref, user),
-          // Main content area
           Expanded(
             child: Column(
               children: [
@@ -58,92 +54,122 @@ class StudentLayout extends ConsumerWidget {
 
   Widget _sidebar(BuildContext context, WidgetRef ref, User? user) {
     return Container(
-      width: 240,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [CScholarColors.sidebarDeep, CScholarColors.adminSidebar],
+      width: 256,
+      decoration: const BoxDecoration(
+        color: CScholarColors.sidebarDeep,
+        border: Border(
+          right: BorderSide(color: Color(0xFF074823), width: 1),
         ),
       ),
       child: Column(
         children: [
-          // Brand header
+          // Logo & Branding Header
           Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 76,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             alignment: Alignment.centerLeft,
-            child: Row(
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Color(0x33000000), width: 1),
+              ),
+            ),
+            child: const CScholarLogo(
+              iconSize: 36,
+              isDark: true,
+              subtitle: 'CEIT THESIS REPOSITORY',
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Navigation Links
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.school, color: CScholarColors.primaryGreen, size: 20),
+                _navItem(
+                  context,
+                  icon: Icons.dashboard_outlined,
+                  selectedIcon: Icons.dashboard,
+                  label: 'Dashboard',
+                  path: '/student/dashboard',
+                  index: 0,
                 ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'CScholar',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Text(
-                      'CEIT THESIS REPOSITORY',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
+                _navItem(
+                  context,
+                  icon: Icons.menu_book_outlined,
+                  selectedIcon: Icons.menu_book,
+                  label: 'Repository',
+                  path: '/repository',
+                  index: 1,
+                ),
+                _navItem(
+                  context,
+                  icon: Icons.bookmark_outline,
+                  selectedIcon: Icons.bookmark,
+                  label: 'Saved Studies',
+                  path: '/saved',
+                  index: 2,
+                ),
+                _navItem(
+                  context,
+                  icon: Icons.auto_awesome_outlined,
+                  selectedIcon: Icons.auto_awesome,
+                  label: 'Recommendations',
+                  path: '/repository',
+                  index: 3,
+                ),
+                _navItem(
+                  context,
+                  icon: Icons.person_outline,
+                  selectedIcon: Icons.person,
+                  label: 'Profile',
+                  path: '/profile',
+                  index: 4,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          // Navigation
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: CScholarColors.sidebarDeep,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  _navItem(context, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard', '/student/dashboard', 0),
-                  _navItem(context, Icons.search_outlined, Icons.search, 'Repository', '/repository', 1),
-                  _navItem(context, Icons.bookmark_outline, Icons.bookmark, 'Saved Studies', '/saved', 2),
-                  _navItem(context, Icons.lightbulb_outline, Icons.lightbulb, 'Recommendations', '/recommendations', 3),
-                  _navItem(context, Icons.person_outline, Icons.person, 'Profile', '/profile', 4),
-                ],
+
+          // Sidebar Footer / Logout
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Color(0x33000000), width: 1),
               ),
             ),
-          ),
-          // Logout
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextButton.icon(
-              onPressed: () {
-                ref.read(authProvider.notifier).logout();
-                context.go('/');
-              },
-              style: TextButton.styleFrom(foregroundColor: CScholarColors.gold),
-              icon: const Icon(Icons.logout, size: 18, color: CScholarColors.gold),
-              label: const Text('Log out', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(CScholarRadius.md),
+                onTap: () {
+                  ref.read(authProvider.notifier).logout();
+                  context.go('/');
+                },
+                hoverColor: CScholarColors.sidebarHover,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.logout,
+                        size: 20,
+                        color: Color(0xFF86EFAC),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Log out',
+                        style: CScholarTextStyles.inter(
+                          13,
+                          FontWeight.w500,
+                          const Color(0xFFBBF7D0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -151,23 +177,43 @@ class StudentLayout extends ConsumerWidget {
     );
   }
 
-  Widget _navItem(BuildContext context, IconData icon, IconData selectedIcon, String label, String path, int index) {
+  Widget _navItem(
+    BuildContext context, {
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+    required String path,
+    required int index,
+  }) {
     final isSelected = currentIndex == index;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Material(
         color: isSelected ? CScholarColors.sidebarActive : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(CScholarRadius.md),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(CScholarRadius.md),
+          hoverColor: CScholarColors.sidebarHover,
           onTap: () => context.go(path),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             child: Row(
               children: [
-                Icon(isSelected ? selectedIcon : icon, size: 20, color: isSelected ? CScholarColors.gold : Colors.white70),
-                const SizedBox(width: 10),
-                Text(label, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500, color: isSelected ? CScholarColors.gold : Colors.white70)),
+                Icon(
+                  isSelected ? selectedIcon : icon,
+                  size: 20,
+                  color: isSelected ? CScholarColors.gold : const Color(0xFFD1FAE5),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: CScholarTextStyles.inter(
+                    13,
+                    isSelected ? FontWeight.w600 : FontWeight.w500,
+                    isSelected ? Colors.white : const Color(0xFFE2E8F0),
+                  ),
+                ),
               ],
             ),
           ),
@@ -178,67 +224,134 @@ class StudentLayout extends ConsumerWidget {
 
   Widget _topBar(BuildContext context, WidgetRef ref, User? user) {
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
+      height: 76,
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+        border: Border(
+          bottom: BorderSide(color: CScholarColors.borderLight, width: 1),
+        ),
       ),
       child: Row(
         children: [
-          // Search bar
+          // Global Search Field
           Expanded(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: TextField(
                 controller: searchController,
                 onChanged: onSearchChanged,
                 onSubmitted: (_) => onSearchSubmit?.call(),
+                style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: searchHint ?? 'Search thesis, capstone, topic, author, keyword...',
-                  hintStyle: const TextStyle(color: CScholarColors.textHint, fontSize: 14),
+                  hintStyle: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textHint),
                   prefixIcon: const Icon(Icons.search, size: 20, color: CScholarColors.textHint),
                   filled: true,
-                  fillColor: CScholarColors.backgroundLight,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: CScholarColors.primaryGreen)),
+                  fillColor: const Color(0xFFF9FAFB),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                    borderSide: const BorderSide(color: CScholarColors.borderLight),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                    borderSide: const BorderSide(color: CScholarColors.borderLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                    borderSide: const BorderSide(color: CScholarColors.primaryGreen, width: 1.5),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
               ),
             ),
           ),
-          const Spacer(),
-          // Notification bell
-          IconButton(
-            icon: Stack(
-              children: const [
-                Icon(Icons.notifications_outlined, size: 22, color: CScholarColors.textSecondary),
-                Positioned(top: 2, right: 2, child: CircleAvatar(radius: 4, backgroundColor: CScholarColors.orange)),
-              ],
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 12),
-          // User profile pill
+
+          const SizedBox(width: 16),
+
+          // Notifications & Profile
           Row(
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: CScholarColors.primaryGreen,
-                child: Text(
-                  (user?.username ?? 'U')[0].toUpperCase(),
-                  style: const TextStyle(color: CScholarColors.gold, fontSize: 12, fontWeight: FontWeight.bold),
+              // Notification Bell
+              IconButton(
+                tooltip: 'Notifications',
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_none_rounded, size: 22, color: CScholarColors.textSecondary),
+                    Positioned(
+                      top: 1,
+                      right: 1,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: CScholarColors.orange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                onPressed: () {},
               ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(user?.username ?? 'User', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
-                  Text('Student', style: const TextStyle(fontSize: 11, color: CScholarColors.textSecondary)),
-                ],
+
+              const SizedBox(width: 12),
+
+              // User Profile Pill
+              InkWell(
+                borderRadius: BorderRadius.circular(CScholarRadius.full),
+                onTap: () => context.go('/profile'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(CScholarRadius.full),
+                    border: Border.all(color: CScholarColors.borderLight),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 17,
+                        backgroundColor: const Color(0xFF047857),
+                        child: Text(
+                          _initials(user?.username ?? 'Juan Dela Cruz'),
+                          style: CScholarTextStyles.poppins(
+                            12,
+                            FontWeight.w700,
+                            CScholarColors.gold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            user?.username ?? 'Juan Dela Cruz',
+                            style: CScholarTextStyles.inter(
+                              13,
+                              FontWeight.w600,
+                              CScholarColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            user?.role == 'admin' ? 'Administrator' : 'Student',
+                            style: CScholarTextStyles.inter(
+                              11,
+                              FontWeight.w500,
+                              CScholarColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.keyboard_arrow_down, size: 18, color: CScholarColors.textHint),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -254,54 +367,100 @@ class StudentLayout extends ConsumerWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 64,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: CScholarColors.primaryGreen,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.school, color: Colors.white, size: 16),
-            ),
-            const SizedBox(width: 10),
-            const Text('CScholar', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
+        title: const CScholarLogo(iconSize: 28, subtitle: 'CEIT REPOSITORY'),
         actions: [
           IconButton(
-            icon: Stack(
-              children: const [
-                Icon(Icons.notifications_outlined, size: 20, color: CScholarColors.textSecondary),
-                Positioned(top: 2, right: 2, child: CircleAvatar(radius: 3, backgroundColor: CScholarColors.orange)),
-              ],
-            ),
+            icon: const Icon(Icons.notifications_outlined, color: CScholarColors.textSecondary),
             onPressed: () {},
           ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => context.go('/profile'),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFF047857),
+                child: Text(
+                  _initials(user?.username ?? 'Juan Dela Cruz'),
+                  style: CScholarTextStyles.poppins(11, FontWeight.bold, CScholarColors.gold),
+                ),
+              ),
+            ),
+          ),
         ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: CScholarColors.borderLight),
+        ),
       ),
       drawer: Drawer(
-        child: _sidebar(context, ref, user),
+        backgroundColor: CScholarColors.sidebarDeep,
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: CScholarLogo(iconSize: 36, isDark: true),
+              ),
+              const Divider(color: Color(0x33000000)),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    _navItem(context, icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard, label: 'Dashboard', path: '/student/dashboard', index: 0),
+                    _navItem(context, icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book, label: 'Repository', path: '/repository', index: 1),
+                    _navItem(context, icon: Icons.bookmark_outline, selectedIcon: Icons.bookmark, label: 'Saved Studies', path: '/saved', index: 2),
+                    _navItem(context, icon: Icons.auto_awesome_outlined, selectedIcon: Icons.auto_awesome, label: 'Recommendations', path: '/repository', index: 3),
+                    _navItem(context, icon: Icons.person_outline, selectedIcon: Icons.person, label: 'Profile', path: '/profile', index: 4),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Color(0xFF86EFAC)),
+                title: Text('Log out', style: CScholarTextStyles.inter(14, FontWeight.w500, const Color(0xFFBBF7D0))),
+                onTap: () {
+                  ref.read(authProvider.notifier).logout();
+                  context.go('/');
+                },
+              ),
+            ],
+          ),
+        ),
       ),
       body: child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        backgroundColor: Colors.white,
-        indicatorColor: CScholarColors.primaryGreenVeryLight,
-        onDestinationSelected: (i) {
-          if (i == 0) context.go('/student/dashboard');
-          if (i == 1) context.go('/repository');
-          if (i == 2) context.go('/saved');
-          if (i == 3) context.go('/profile');
+        selectedIndex: currentIndex.clamp(0, 4),
+        onDestinationSelected: (idx) {
+          switch (idx) {
+            case 0:
+              context.go('/student/dashboard');
+              break;
+            case 1:
+              context.go('/repository');
+              break;
+            case 2:
+              context.go('/saved');
+              break;
+            case 3:
+              context.go('/profile');
+              break;
+          }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: CScholarColors.primaryGreen), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search, color: CScholarColors.primaryGreen), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.bookmark_outline), selectedIcon: Icon(Icons.bookmark, color: CScholarColors.primaryGreen), label: 'Saved'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person, color: CScholarColors.primaryGreen), label: 'Profile'),
+          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
+          NavigationDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book), label: 'Repository'),
+          NavigationDestination(icon: Icon(Icons.bookmark_outline), selectedIcon: Icon(Icons.bookmark), label: 'Saved'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.isNotEmpty ? name[0].toUpperCase() : 'U';
   }
 }

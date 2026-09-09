@@ -1,6 +1,3 @@
-// Admin: Add/Edit Thesis — Stitch design v2
-// Sidebar + topbar + form
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,108 +13,429 @@ class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _abstractCtrl = TextEditingController();
-  final _yearCtrl = TextEditingController();
-  String _status = 'published';
-  String _researchType = 'thesis';
+  final _authorsCtrl = TextEditingController();
+  final _keywordsCtrl = TextEditingController();
+
+  String _program = 'BS Information Technology';
+  String _year = '2024 - 2025';
+  String _researchType = 'Applied Research';
+  String _adviser = 'Engr. Roberto Garcia';
+  String _category = 'Mobile Application';
+  String? _uploadedFileName;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _abstractCtrl.dispose();
-    _yearCtrl.dispose();
+    _authorsCtrl.dispose();
+    _keywordsCtrl.dispose();
     super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Thesis manuscript registered and indexed successfully!')),
+    );
+    context.go('/admin/dashboard');
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 900;
-
-    if (!isWide) {
-      return _mobileLayout(context);
-    }
+    final isDesktop = size.width > 920;
 
     return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
+      backgroundColor: const Color(0xFFF8FAF9),
       body: Row(
         children: [
-          const AdminSidebar(currentPath: '/admin/thesis/new'),
+          if (isDesktop) const AdminSidebar(currentPath: '/admin/thesis/new'),
           Expanded(
             child: Column(
               children: [
-                // Top bar
+                // Top Header Bar
                 Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
+                  height: 70,
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+                    border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
                   ),
                   child: Row(
                     children: [
-                      Text(widget.thesisId != null ? 'Edit Thesis' : 'Add New Thesis', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
+                      Text(
+                        widget.thesisId != null ? 'Edit Thesis Manuscript' : 'Add New Thesis / Capstone',
+                        style: CScholarTextStyles.poppins(18, FontWeight.w700, CScholarColors.textPrimary),
+                      ),
                       const Spacer(),
                       OutlinedButton.icon(
-                        onPressed: () => context.go('/admin/thesis/management'),
-                        style: OutlinedButton.styleFrom(foregroundColor: CScholarColors.textPrimary, side: BorderSide(color: CScholarColors.dividerLight)),
-                        icon: const Icon(Icons.arrow_back, size: 18),
-                        label: const Text('Back to List'),
+                        onPressed: () => context.go('/admin/dashboard'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: CScholarColors.textPrimary,
+                          side: const BorderSide(color: CScholarColors.borderLight),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                        ),
+                        icon: const Icon(Icons.arrow_back, size: 16),
+                        label: Text('Back to Dashboard', style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
                       ),
                     ],
                   ),
                 ),
-                // Content
+
+                // Form Scrollable Container
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: CScholarColors.dividerLight),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Thesis Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                          const SizedBox(height: 20),
-                          _textField('Title', 'Enter thesis title', _titleCtrl),
-                          const SizedBox(height: 16),
-                          _textField('Abstract', 'Enter abstract', _abstractCtrl, maxLines: 5),
-                          const SizedBox(height: 16),
-                          Row(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                    child: Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 1040),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: _dropdownField('Research Type', ['thesis', 'capstone'], _researchType, (v) => setState(() => _researchType = v!))),
-                              const SizedBox(width: 16),
-                              Expanded(child: _dropdownField('Status', ['published', 'pending', 'rejected'], _status, (v) => setState(() => _status = v!))),
+                              // Instructions Banner
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: CScholarColors.primaryGreenVeryLight,
+                                              borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                                            ),
+                                            child: Text(
+                                              'SUBMISSION PORTAL',
+                                              style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text('•  CEIT Department', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Register Academic Manuscript',
+                                        style: CScholarTextStyles.poppins(22, FontWeight.w800, CScholarColors.textPrimary),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Please provide complete and accurate information regarding the academic research manuscript.',
+                                        style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(CScholarRadius.md),
+                                      border: Border.all(color: CScholarColors.borderLight),
+                                    ),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                                        children: const [
+                                          TextSpan(text: 'Fields marked with '),
+                                          TextSpan(text: '*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                          TextSpan(text: ' are required'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Form Card
+                              Container(
+                                padding: const EdgeInsets.all(28),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+                                  border: Border.all(color: CScholarColors.borderLight),
+                                  boxShadow: CScholarShadows.card,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Title Input
+                                    _fieldLabel('TITLE', isRequired: true),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: _titleCtrl,
+                                      validator: (v) => (v == null || v.isEmpty) ? 'Please enter thesis title' : null,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Enter complete thesis or capstone project title...',
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 20),
+
+                                    // Abstract Textarea
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        _fieldLabel('ABSTRACT', isRequired: true),
+                                        Text('Recommended 150-300 words', style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textHint)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: _abstractCtrl,
+                                      maxLines: 5,
+                                      validator: (v) => (v == null || v.isEmpty) ? 'Please provide the abstract' : null,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Enter abstract summary, methodology, and primary conclusions...',
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 24),
+
+                                    // Grid 1: Academic Classification
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('ACADEMIC PROGRAM', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              DropdownButtonFormField<String>(
+                                                initialValue: _program,
+                                                items: const [
+                                                  DropdownMenuItem(value: 'BS Information Technology', child: Text('BS Information Technology (BSIT)')),
+                                                  DropdownMenuItem(value: 'BS Computer Science', child: Text('BS Computer Science (BSCS)')),
+                                                  DropdownMenuItem(value: 'BS Information Systems', child: Text('BS Information Systems (BSIS)')),
+                                                ],
+                                                onChanged: (v) => setState(() => _program = v!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 18),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('ACADEMIC YEAR', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              DropdownButtonFormField<String>(
+                                                initialValue: _year,
+                                                items: const [
+                                                  DropdownMenuItem(value: '2024 - 2025', child: Text('2024 - 2025')),
+                                                  DropdownMenuItem(value: '2023 - 2024', child: Text('2023 - 2024')),
+                                                  DropdownMenuItem(value: '2022 - 2023', child: Text('2022 - 2023')),
+                                                ],
+                                                onChanged: (v) => setState(() => _year = v!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 20),
+
+                                    // Grid 2: Research Type & Adviser
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('RESEARCH TYPE', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              DropdownButtonFormField<String>(
+                                                initialValue: _researchType,
+                                                items: const [
+                                                  DropdownMenuItem(value: 'Applied Research', child: Text('Applied Research')),
+                                                  DropdownMenuItem(value: 'Capstone Project', child: Text('Capstone Project')),
+                                                  DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
+                                                ],
+                                                onChanged: (v) => setState(() => _researchType = v!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 18),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('FACULTY ADVISER', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              DropdownButtonFormField<String>(
+                                                initialValue: _adviser,
+                                                items: const [
+                                                  DropdownMenuItem(value: 'Engr. Roberto Garcia', child: Text('Engr. Roberto Garcia')),
+                                                  DropdownMenuItem(value: 'Dr. Alan Turing', child: Text('Dr. Alan Turing')),
+                                                  DropdownMenuItem(value: 'Prof. Clara Santos, MIT', child: Text('Prof. Clara Santos, MIT')),
+                                                ],
+                                                onChanged: (v) => setState(() => _adviser = v!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 20),
+
+                                    // Authors Input
+                                    _fieldLabel('AUTHORS', isRequired: true),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: _authorsCtrl,
+                                      validator: (v) => (v == null || v.isEmpty) ? 'Please specify authors' : null,
+                                      decoration: const InputDecoration(
+                                        hintText: 'e.g. Juan Dela Cruz, Maria Santos',
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 20),
+
+                                    // Primary Category & Keywords
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('PRIMARY CATEGORY', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              DropdownButtonFormField<String>(
+                                                initialValue: _category,
+                                                items: const [
+                                                  DropdownMenuItem(value: 'Mobile Application', child: Text('Mobile Application')),
+                                                  DropdownMenuItem(value: 'Machine Learning / AI', child: Text('Machine Learning / AI')),
+                                                  DropdownMenuItem(value: 'Web-based System', child: Text('Web-based System')),
+                                                  DropdownMenuItem(value: 'IoT & Automation', child: Text('IoT & Automation')),
+                                                ],
+                                                onChanged: (v) => setState(() => _category = v!),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 18),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              _fieldLabel('KEYWORDS / TAGS', isRequired: true),
+                                              const SizedBox(height: 6),
+                                              TextFormField(
+                                                controller: _keywordsCtrl,
+                                                decoration: const InputDecoration(
+                                                  hintText: 'campus navigation, GPS, BLE beacons',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 28),
+
+                                    // Manuscript PDF File Upload Area
+                                    _fieldLabel('MANUSCRIPT PDF ATTACHMENT', isRequired: false),
+                                    const SizedBox(height: 8),
+                                    InkWell(
+                                      onTap: () {
+                                        setState(() => _uploadedFileName = 'CScholar_Manuscript_Final_Draft.pdf (4.8 MB)');
+                                      },
+                                      borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF8FAFC),
+                                          borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                                          border: Border.all(
+                                            color: CScholarColors.primaryGreen.withValues(alpha: 0.4),
+                                            width: 1.5,
+                                            style: BorderStyle.solid,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.cloud_upload_outlined, size: 38, color: CScholarColors.primaryGreen),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              _uploadedFileName ?? 'Click or drag PDF manuscript file here to upload',
+                                              style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Supports PDF documents up to 25MB for AI indexing',
+                                              style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textHint),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 32),
+
+                                    // Form Submission Buttons
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton(
+                                          onPressed: () => context.go('/admin/dashboard'),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: CScholarColors.textSecondary,
+                                            side: const BorderSide(color: CScholarColors.borderLight),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          ),
+                                          child: Text('Cancel', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textSecondary)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        OutlinedButton(
+                                          onPressed: () {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Draft saved successfully!')),
+                                            );
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: CScholarColors.primaryGreen,
+                                            side: const BorderSide(color: CScholarColors.primaryGreen),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          ),
+                                          child: Text('Save Draft', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.primaryGreen)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        FilledButton.icon(
+                                          onPressed: _submit,
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: CScholarColors.primaryGreen,
+                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                                          ),
+                                          icon: const Icon(Icons.check, size: 18),
+                                          label: Text('Submit Thesis / Capstone', style: CScholarTextStyles.inter(13.5, FontWeight.w700, Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          _textField('Year', 'e.g., 2024', _yearCtrl),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              OutlinedButton(
-                                onPressed: () => context.go('/admin/thesis/management'),
-                                style: OutlinedButton.styleFrom(foregroundColor: CScholarColors.textPrimary, side: BorderSide(color: CScholarColors.dividerLight)),
-                                child: const Text('Cancel'),
-                              ),
-                              const SizedBox(width: 12),
-                              FilledButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thesis saved'), backgroundColor: CScholarColors.success));
-                                  context.go('/admin/thesis/management');
-                                },
-                                style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
-                                child: const Text('Save Thesis'),
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -130,67 +448,17 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
     );
   }
 
-  Widget _textField(String label, String hint, TextEditingController controller, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _fieldLabel(String text, {bool isRequired = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CScholarColors.textSecondary)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: CScholarColors.textSecondary.withValues(alpha: 0.5)),
-            filled: true,
-            fillColor: CScholarColors.backgroundLight,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: CScholarColors.primaryGreen)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
+        Text(
+          text,
+          style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
         ),
+        if (isRequired)
+          const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
-    );
-  }
-
-  Widget _dropdownField(String label, List<String> options, String value, ValueChanged<String?> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: CScholarColors.textSecondary)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: value,
-          items: options.map((o) => DropdownMenuItem(value: o, child: Text(o.toUpperCase()))).toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: CScholarColors.backgroundLight,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: CScholarColors.primaryGreen)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _mobileLayout(BuildContext context) {
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-          onPressed: () => context.go('/admin/thesis/management'),
-        ),
-        title: Text(widget.thesisId != null ? 'Edit Thesis' : 'Add New Thesis', style: const TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-      ),
-      body: const Center(child: Text('Mobile view - Add/Edit Thesis')),
     );
   }
 }

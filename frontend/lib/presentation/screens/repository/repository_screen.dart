@@ -1,12 +1,9 @@
-// Repository / Search — Stitch design v2
-// Uses shared StudentLayout (sidebar + topbar)
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
-import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 class RepositoryScreen extends ConsumerStatefulWidget {
   const RepositoryScreen({super.key});
@@ -17,18 +14,40 @@ class RepositoryScreen extends ConsumerStatefulWidget {
 
 class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   final _searchController = TextEditingController();
+  final _keywordController = TextEditingController();
   String _query = '';
   bool _isSemantic = false;
+  String _selectedProgram = 'All Programs';
+  String _selectedYear = 'All Years';
+  String _selectedCategory = 'All Categories';
+  String _selectedType = 'All Types';
+  String _sortBy = 'Relevance';
 
   @override
   void dispose() {
     _searchController.dispose();
+    _keywordController.dispose();
     super.dispose();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedProgram = 'All Programs';
+      _selectedYear = 'All Years';
+      _selectedCategory = 'All Categories';
+      _selectedType = 'All Types';
+      _keywordController.clear();
+      _searchController.clear();
+      _query = '';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theses = ref.watch(thesisListProvider(ThesisListParams(query: _query.isEmpty ? null : _query)));
+    final savedIds = ref.watch(savedThesisIdsProvider);
+    final size = MediaQuery.of(context).size;
+    final showDesktopFilter = size.width > 920;
 
     return StudentLayout(
       currentIndex: 1,
@@ -37,85 +56,233 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       onSearchChanged: (v) => setState(() => _query = v),
       onSearchSubmit: () => setState(() => _query = _searchController.text),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Filters sidebar (desktop)
-          if (MediaQuery.of(context).size.width > 900)
+          // 1. Left Filters Sidebar (Desktop)
+          if (showDesktopFilter)
             Container(
-              width: 240,
-              color: Colors.white,
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Filters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                  const SizedBox(height: 16),
-                  _filterSection('Program', ['BSIT', 'BSCS', 'BSIS', 'BSECE', 'BSCpE', 'BSME']),
-                  const SizedBox(height: 16),
-                  _filterSection('Year', ['2024-2025', '2023-2024', '2022-2023']),
-                  const SizedBox(height: 16),
-                  _filterSection('Type', ['Thesis', 'Capstone']),
-                ],
+              width: 270,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(right: BorderSide(color: CScholarColors.borderLight)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filters',
+                          style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+                        ),
+                        const Icon(Icons.filter_list, size: 18, color: CScholarColors.textSecondary),
+                      ],
+                    ),
+                    const Divider(color: CScholarColors.borderLight, height: 24),
+
+                    // Program Select
+                    _filterDropdown(
+                      label: 'Program',
+                      value: _selectedProgram,
+                      items: const ['All Programs', 'BS Information Technology', 'BS Computer Science', 'BS Information Systems'],
+                      onChanged: (v) => setState(() => _selectedProgram = v!),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Academic Year Select
+                    _filterDropdown(
+                      label: 'Academic Year',
+                      value: _selectedYear,
+                      items: const ['All Years', '2024 - 2025', '2023 - 2024', '2022 - 2023', '2021 - 2022'],
+                      onChanged: (v) => setState(() => _selectedYear = v!),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Category Select
+                    _filterDropdown(
+                      label: 'Category',
+                      value: _selectedCategory,
+                      items: const ['All Categories', 'Mobile Application', 'Web-based System', 'Machine Learning / AI', 'IoT & Automation'],
+                      onChanged: (v) => setState(() => _selectedCategory = v!),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Research Type Select
+                    _filterDropdown(
+                      label: 'Research Type',
+                      value: _selectedType,
+                      items: const ['All Types', 'Capstone Project', 'Thesis', 'Applied Research'],
+                      onChanged: (v) => setState(() => _selectedType = v!),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Keywords Field
+                    Text(
+                      'Keywords',
+                      style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.textSecondary),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _keywordController,
+                      style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'Enter keyword...',
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Clear Filters Action
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _clearFilters,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: CScholarColors.textSecondary,
+                          side: const BorderSide(color: CScholarColors.borderLight),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                        ),
+                        child: Text(
+                          'Clear Filters',
+                          style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          // Main content
+
+          // 2. Results Area
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Repository', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                          Text('${theses.value?.length ?? 0} studies found', style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary)),
-                        ],
-                      ),
-                      // Semantic search toggle
+                      // Results Header Bar
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Semantic Search', style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary)),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: _isSemantic,
-                            onChanged: (v) => setState(() => _isSemantic = v),
-                            activeThumbColor: CScholarColors.primaryGreen,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                'Results',
+                                style: CScholarTextStyles.poppins(20, FontWeight.w800, CScholarColors.textPrimary),
+                              ),
+                              const SizedBox(width: 8),
+                              theses.maybeWhen(
+                                data: (list) => Text(
+                                  '(${list?.length ?? 0})',
+                                  style: CScholarTextStyles.inter(14, FontWeight.w600, CScholarColors.textMuted),
+                                ),
+                                orElse: () => const SizedBox.shrink(),
+                              ),
+                            ],
+                          ),
+
+                          Row(
+                            children: [
+                              // Semantic Switch
+                              Row(
+                                children: [
+                                  Text(
+                                    'Semantic Match',
+                                    style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Switch(
+                                    value: _isSemantic,
+                                    onChanged: (v) => setState(() => _isSemantic = v),
+                                    activeThumbColor: CScholarColors.primaryGreen,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 16),
+                              // Sort by Dropdown
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(CScholarRadius.md),
+                                  border: Border.all(color: CScholarColors.borderLight),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text('Sort: ', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+                                    DropdownButtonHideUnderline(
+                                      child: DropdownButton<String>(
+                                        value: _sortBy,
+                                        isDense: true,
+                                        style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textPrimary),
+                                        items: const [
+                                          DropdownMenuItem(value: 'Relevance', child: Text('Relevance')),
+                                          DropdownMenuItem(value: 'Latest', child: Text('Latest')),
+                                          DropdownMenuItem(value: 'Highest Similarity', child: Text('Highest Similarity')),
+                                          DropdownMenuItem(value: 'Most Viewed', child: Text('Most Viewed')),
+                                        ],
+                                        onChanged: (v) => setState(() => _sortBy = v!),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Results List
+                      theses.when(
+                        data: (list) {
+                          if (list == null || list.isEmpty) {
+                            return _noResultsFound();
+                          }
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: list.length,
+                            itemBuilder: (context, i) {
+                              final thesis = list[i];
+                              final isSaved = savedIds.contains(thesis.id);
+                              final similarity = _isSemantic
+                                  ? [0.96, 0.91, 0.87, 0.82, 0.78, 0.72][i % 6]
+                                  : null;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildResultCard(
+                                  thesis: thesis,
+                                  isSaved: isSaved,
+                                  similarityScore: similarity,
+                                  onBookmarkToggle: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40),
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        error: (err, _) => Center(child: Text('Error: $err')),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  // Results grid
-                  Expanded(
-                    child: theses.when(
-                      data: (list) {
-                        if (list == null || list.isEmpty) {
-                          return const Center(child: Text('No studies found'));
-                        }
-                        return GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 3 : 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.75,
-                          ),
-                          itemCount: list.length,
-                          itemBuilder: (ctx, i) => ThesisCard(
-                            thesis: list[i],
-                            similarityScore: _isSemantic ? [0.96, 0.91, 0.87, 0.82, 0.78][i % 5] : null,
-                          ),
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, _) => const Center(child: Text('Could not load studies')),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -124,22 +291,190 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
-  Widget _filterSection(String title, List<String> options) {
+  Widget _buildResultCard({
+    required dynamic thesis,
+    required bool isSaved,
+    required VoidCallback onBookmarkToggle,
+    double? similarityScore,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(CScholarRadius.xl),
+        border: Border.all(color: CScholarColors.borderLight),
+        boxShadow: CScholarShadows.card,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Academic Year & Degree Program Badge
+                Row(
+                  children: [
+                    Text(
+                      thesis.academicYear?.label ?? '2024 - 2025',
+                      style: CScholarTextStyles.inter(11.5, FontWeight.w600, CScholarColors.textMuted),
+                    ),
+                    Text(
+                      ' • ',
+                      style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.borderLight),
+                    ),
+                    Text(
+                      thesis.program?.name ?? 'BS Information Technology',
+                      style: CScholarTextStyles.inter(11.5, FontWeight.w600, const Color(0xFF0284C7)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Title
+                InkWell(
+                  onTap: () => context.go('/thesis/${thesis.id}'),
+                  child: Text(
+                    thesis.title,
+                    style: CScholarTextStyles.poppins(
+                      16,
+                      FontWeight.w700,
+                      CScholarColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // Authors
+                Text(
+                  'By: ${thesis.authors != null && thesis.authors.isNotEmpty ? thesis.authors.map((a) => "${a.firstName} ${a.lastName}").join(", ") : "Juan Dela Cruz, Maria Santos"}',
+                  style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+
+                // Abstract snippet
+                Text(
+                  thesis.abstract ?? 'A mobile application that helps students find classrooms and navigate within the campus using indoor positioning and maps.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.inter(12.5, FontWeight.w400, CScholarColors.textSecondary, height: 1.5),
+                ),
+                const SizedBox(height: 16),
+
+                // Actions: View Details & Bookmark
+                Row(
+                  children: [
+                    FilledButton(
+                      onPressed: () => context.go('/thesis/${thesis.id}'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: CScholarColors.primaryGreen,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                      ),
+                      child: Text(
+                        'View Details',
+                        style: CScholarTextStyles.inter(12.5, FontWeight.w600, Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      tooltip: isSaved ? 'Remove from Saved' : 'Save Study',
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                        size: 22,
+                        color: isSaved ? CScholarColors.primaryGreen : CScholarColors.textHint,
+                      ),
+                      onPressed: onBookmarkToggle,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Match / Similarity Badge
+          if (similarityScore != null) ...[
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: CScholarColors.primaryGreenVeryLight,
+                borderRadius: BorderRadius.circular(CScholarRadius.full),
+                border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: CScholarColors.primaryGreen,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${(similarityScore * 100).round()}% similar',
+                    style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.primaryGreen),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _filterDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
-        const SizedBox(height: 8),
-        ...options.map((o) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            children: [
-              Checkbox(value: false, onChanged: (_) {}, activeColor: CScholarColors.primaryGreen),
-              Text(o, style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary)),
-            ],
-          ),
-        )),
+        Text(
+          label,
+          style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.textSecondary),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          initialValue: value,
+          isDense: true,
+          style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textPrimary),
+          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+          onChanged: onChanged,
+        ),
       ],
+    );
+  }
+
+  Widget _noResultsFound() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off, size: 56, color: CScholarColors.textHint),
+            const SizedBox(height: 16),
+            Text(
+              'No studies found matching your filters',
+              style: CScholarTextStyles.poppins(16, FontWeight.w600, CScholarColors.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _clearFilters,
+              child: Text(
+                'Reset all filters',
+                style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.primaryGreen),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

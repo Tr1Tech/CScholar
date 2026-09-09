@@ -1,12 +1,8 @@
-// Admin Dashboard — Stitch design v2
-// Left sidebar + topbar + KPI cards + activity feed + quick actions
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
-import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
@@ -17,199 +13,162 @@ class AdminDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final stats = ref.watch(dashboardStatsProvider);
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 900;
-
-    if (!isWide) {
-      return _mobileLayout(context, ref, user, stats);
-    }
+    final isDesktop = size.width > 920;
 
     return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
+      backgroundColor: const Color(0xFFF8FAF9),
       body: Row(
         children: [
-          // Left sidebar
-          const AdminSidebar(currentPath: '/admin/dashboard'),
-          // Main content
+          if (isDesktop) const AdminSidebar(currentPath: '/admin/dashboard'),
           Expanded(
             child: Column(
               children: [
-                // Top bar
                 _topBar(context, ref, user),
-                // Scrollable content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Page title + actions
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Admin Dashboard', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                                const SizedBox(height: 4),
-                                const Text('Manage repository entries, user submissions, and access activity.', style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                FilledButton.icon(
-                                  onPressed: () => context.go('/admin/thesis/new'),
-                                  style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Add New Thesis'),
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton.icon(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(foregroundColor: CScholarColors.textPrimary, side: BorderSide(color: CScholarColors.dividerLight)),
-                                  icon: const Icon(Icons.download_outlined, size: 18),
-                                  label: const Text('Export Report'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        // KPI cards
-                        GridView.count(
-                          shrinkWrap: true,
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.6,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: [
-                            _kpiCard('${stats.value?['studies'] ?? '128'}', 'Studies', '+4 this week', Icons.menu_book_outlined, CScholarColors.primaryGreen),
-                            _kpiCard('${stats.value?['authors'] ?? '246'}', 'Authors', '+12 this mo.', Icons.people_outline, CScholarColors.orange),
-                            _kpiCard('${stats.value?['programs'] ?? '3'}', 'Programs', 'BSIT, BSCS, BSIS', Icons.account_balance_outlined, CScholarColors.gold),
-                            _kpiCard('${stats.value?['searches'] ?? '1,284'}', 'Searches', '+18% high', Icons.search_outlined, CScholarColors.info),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        // Two-column: Activity + Quick Actions
-                        Row(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                    child: Center(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Recent Activity (2/3)
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: CScholarColors.dividerLight),
-                                ),
-                                child: Column(
+                            // Header Title & Action Buttons
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Text('Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: CScholarColors.primaryGreen.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: const Text('Live audit', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: CScholarColors.primaryGreen)),
-                                            ),
-                                          ],
-                                        ),
-                                        TextButton(
-                                          onPressed: () {},
-                                          child: const Text('View full logs →', style: TextStyle(fontSize: 12, color: CScholarColors.primaryGreen)),
-                                        ),
-                                      ],
+                                    Text(
+                                      'Admin Dashboard',
+                                      style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary),
                                     ),
-                                    const SizedBox(height: 16),
-                                    _activityItem(Icons.add_circle_outline, CScholarColors.primaryGreen, 'New thesis added:', 'Campus Navigation and Room Locator', 'Author: Juan Dela Cruz • BS Information Technology', '2 hours ago'),
-                                    const Divider(height: 24),
-                                    _activityItem(Icons.person_add_outlined, CScholarColors.orange, 'User registered:', 'maria.santos@csu.edu.ph', 'Role: Student Researcher • Department of Computer Science', '4 hours ago'),
-                                    const Divider(height: 24),
-                                    _activityItem(Icons.edit_outlined, CScholarColors.info, 'Thesis updated:', 'AI-Based Attendance Monitoring', 'Metadata & abstract updated by adviser', '6 hours ago'),
-                                    const Divider(height: 24),
-                                    _activityItem(Icons.search_outlined, CScholarColors.facultyColor, 'New search:', '“machine learning”', 'Matched 14 published capstone records', '8 hours ago'),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Manage repository entries, user submissions, and access activity.',
+                                      style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            // Quick Actions (1/3)
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: CScholarColors.dividerLight),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Quick Management', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                                        const SizedBox(height: 16),
-                                        _quickAction(Icons.add_circle_outline, CScholarColors.primaryGreen, 'Add New Thesis', 'Upload PDF & register metadata', () => context.go('/admin/thesis/new')),
-                                        const SizedBox(height: 8),
-                                        _quickAction(Icons.people_outline, CScholarColors.orange, 'Manage Users', 'Review student approvals', () => context.go('/admin/users')),
-                                        const SizedBox(height: 8),
-                                        _quickAction(Icons.assessment_outlined, CScholarColors.gold, 'Export Reports', 'Download CSV/Excel data', () {}),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  // Repository status box
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [CScholarColors.sidebarDeep, CScholarColors.adminSidebar],
+                                Row(
+                                  children: [
+                                    FilledButton.icon(
+                                      onPressed: () => context.go('/admin/thesis/new'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: CScholarColors.primaryGreen,
+                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                                       ),
-                                      borderRadius: BorderRadius.circular(12),
+                                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                                      label: Text('Add New Thesis', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            const Text('CEIT Archive', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: CScholarColors.gold, letterSpacing: 1)),
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: const BoxDecoration(
-                                                color: CScholarColors.gold,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        const Text('CSU CEIT Repository is Online', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
-                                        const SizedBox(height: 4),
-                                        const Text('All services operational. Automated weekly indexing completed.', style: TextStyle(fontSize: 12, color: Colors.white70)),
-                                      ],
+                                    const SizedBox(width: 10),
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Generating CEIT repository audit export...')),
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: CScholarColors.textPrimary,
+                                        side: const BorderSide(color: CScholarColors.borderLight),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                                      ),
+                                      icon: const Icon(Icons.download_outlined, size: 18),
+                                      label: Text('Export Report', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // 4 KPI Summary Cards
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
+                                return GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: count,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: constraints.maxWidth > 900 ? 2.0 : 2.4,
+                                  children: [
+                                    _kpiCard(
+                                      label: 'STUDIES',
+                                      value: '${stats.value?['studies'] ?? '128'}',
+                                      trend: '+4 this week',
+                                      icon: Icons.article_outlined,
+                                      iconBg: const Color(0xFFDCFCE7),
+                                      iconColor: CScholarColors.primaryGreen,
+                                    ),
+                                    _kpiCard(
+                                      label: 'AUTHORS',
+                                      value: '${stats.value?['authors'] ?? '246'}',
+                                      trend: '+12 this mo.',
+                                      icon: Icons.people_outline,
+                                      iconBg: const Color(0xFFFEF3C7),
+                                      iconColor: CScholarColors.orange,
+                                    ),
+                                    _kpiCard(
+                                      label: 'PROGRAMS',
+                                      value: '${stats.value?['programs'] ?? '3'}',
+                                      trend: 'BSIT, BSCS, BSIS',
+                                      icon: Icons.school_outlined,
+                                      iconBg: const Color(0xFFFEF9C3),
+                                      iconColor: const Color(0xFFCA8A04),
+                                    ),
+                                    _kpiCard(
+                                      label: 'SEARCHES',
+                                      value: '${stats.value?['searches'] ?? '1,284'}',
+                                      trend: '+18% high',
+                                      icon: Icons.search,
+                                      iconBg: const Color(0xFFDBEAFE),
+                                      iconColor: const Color(0xFF2563EB),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // Content Layout: Left Recent Activity (2/3) & Right Quick Management (1/3)
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isWideContent = constraints.maxWidth > 860;
+
+                                final leftPanel = _recentActivityFeed();
+                                final rightPanel = _quickManagementPanel(context);
+
+                                if (isWideContent) {
+                                  return Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(flex: 7, child: leftPanel),
+                                      const SizedBox(width: 24),
+                                      Expanded(flex: 4, child: rightPanel),
+                                    ],
+                                  );
+                                } else {
+                                  return Column(
+                                    children: [
+                                      leftPanel,
+                                      const SizedBox(height: 24),
+                                      rightPanel,
+                                    ],
+                                  );
+                                }
+                              },
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -221,208 +180,353 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _topBar(BuildContext context, WidgetRef ref, User? user) {
+  Widget _topBar(BuildContext context, WidgetRef ref, dynamic user) {
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+        border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search thesis, authors, or keywords...',
-                  hintStyle: const TextStyle(color: CScholarColors.textHint, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, size: 20, color: CScholarColors.textHint),
-                  filled: true,
-                  fillColor: CScholarColors.backgroundLight,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: CScholarColors.dividerLight)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: CScholarColors.primaryGreen)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                ),
+          // Universal Search
+          Container(
+            width: 380,
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: TextField(
+              style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Search thesis, authors, or keywords...',
+                prefixIcon: const Icon(Icons.search, size: 20, color: CScholarColors.textHint),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CScholarRadius.full), borderSide: const BorderSide(color: CScholarColors.borderLight)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(CScholarRadius.full), borderSide: const BorderSide(color: CScholarColors.borderLight)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
             ),
           ),
           const Spacer(),
+          // Notification Bell
           IconButton(
+            tooltip: 'Live activity notifications',
             icon: Stack(
-              children: const [
-                Icon(Icons.notifications_outlined, size: 22, color: CScholarColors.textSecondary),
-                Positioned(top: 2, right: 2, child: CircleAvatar(radius: 4, backgroundColor: CScholarColors.orange)),
+              children: [
+                const Icon(Icons.notifications_none_rounded, size: 22, color: CScholarColors.textSecondary),
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(color: CScholarColors.orange, shape: BoxShape.circle),
+                  ),
+                ),
               ],
             ),
             onPressed: () {},
           ),
-          const SizedBox(width: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: CScholarColors.primaryGreenVeryLight,
-                child: Text(
-                  (user?.username ?? 'A')[0].toUpperCase(),
-                  style: const TextStyle(color: CScholarColors.primaryGreen, fontSize: 12, fontWeight: FontWeight.bold),
+          const SizedBox(width: 14),
+          // Admin Profile Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(CScholarRadius.full),
+              border: Border.all(color: CScholarColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: const Color(0xFFDCFCE7),
+                  child: Text(
+                    'AU',
+                    style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.primaryGreen),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(user?.username ?? 'Admin', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
-                  Text('Engr. Adviser', style: const TextStyle(fontSize: 11, color: CScholarColors.textSecondary)),
-                ],
-              ),
-            ],
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Admin User', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
+                    Text('Engr. Adviser', style: CScholarTextStyles.inter(10.5, FontWeight.w500, CScholarColors.textMuted)),
+                  ],
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.keyboard_arrow_down, size: 16, color: CScholarColors.textHint),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _kpiCard(String value, String label, String change, IconData icon, Color color) {
+  Widget _kpiCard({
+    required String label,
+    required String value,
+    required String trend,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CScholarColors.dividerLight),
+        borderRadius: BorderRadius.circular(CScholarRadius.xl),
+        border: Border.all(color: CScholarColors.borderLight),
+        boxShadow: CScholarShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: CScholarColors.textSecondary)),
+              Text(
+                label,
+                style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textMuted, letterSpacing: 0.5),
+              ),
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(CScholarRadius.md),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, color: iconColor, size: 20),
               ),
             ],
           ),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-          Text(change, style: const TextStyle(fontSize: 11, color: CScholarColors.primaryGreen, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                trend,
+                style: CScholarTextStyles.inter(11.5, FontWeight.w600, CScholarColors.primaryGreen),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _activityItem(IconData icon, Color color, String action, String title, String subtitle, String time) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 16, color: color),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _recentActivityFeed() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+        border: Border.all(color: CScholarColors.borderLight),
+        boxShadow: CScholarShadows.card,
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
-                  children: [
-                    TextSpan(text: '$action '),
-                    TextSpan(text: title, style: const TextStyle(fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
-                  ],
-                ),
+              Row(
+                children: [
+                  Text(
+                    'Recent Activity',
+                    style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: CScholarColors.primaryGreenVeryLight,
+                      borderRadius: BorderRadius.circular(CScholarRadius.full),
+                    ),
+                    child: Text('Live audit', style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen)),
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: CScholarColors.textHint)),
+              TextButton(
+                onPressed: () {},
+                child: Text('View full logs →', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+              ),
             ],
           ),
-        ),
-        Text(time, style: const TextStyle(fontSize: 11, color: CScholarColors.textHint)),
-      ],
+          const Divider(color: CScholarColors.borderLight, height: 20),
+          _activityItem(
+            icon: Icons.add_circle_outline,
+            iconBg: const Color(0xFFDCFCE7),
+            iconColor: CScholarColors.primaryGreen,
+            title: 'New thesis added: Campus Navigation and Room Locator',
+            subtitle: 'Author: Juan Dela Cruz • BS Information Technology',
+            time: '2 hours ago',
+          ),
+          const Divider(color: Color(0xFFF1F5F9), height: 16),
+          _activityItem(
+            icon: Icons.person_add_outlined,
+            iconBg: const Color(0xFFFEF3C7),
+            iconColor: CScholarColors.orange,
+            title: 'User registered: maria.santos@csu.edu.ph',
+            subtitle: 'Role: Student Researcher • Department of Computer Science',
+            time: '4 hours ago',
+          ),
+          const Divider(color: Color(0xFFF1F5F9), height: 16),
+          _activityItem(
+            icon: Icons.edit_note_outlined,
+            iconBg: const Color(0xFFDBEAFE),
+            iconColor: const Color(0xFF2563EB),
+            title: 'Thesis updated: AI-Based Attendance Monitoring',
+            subtitle: 'Metadata & abstract updated by adviser',
+            time: '6 hours ago',
+          ),
+          const Divider(color: Color(0xFFF1F5F9), height: 16),
+          _activityItem(
+            icon: Icons.search,
+            iconBg: const Color(0xFFF3E8FF),
+            iconColor: const Color(0xFF9333EA),
+            title: 'New search: “machine learning”',
+            subtitle: 'Matched 14 published capstone records',
+            time: '8 hours ago',
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _quickAction(IconData icon, Color color, String title, String subtitle, VoidCallback onTap) {
+  Widget _activityItem({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String time,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted)),
+              ],
+            ),
+          ),
+          Text(time, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textHint)),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickManagementPanel(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+        border: Border.all(color: CScholarColors.borderLight),
+        boxShadow: CScholarShadows.card,
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quick Management',
+            style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+          ),
+          const SizedBox(height: 16),
+          _managementTile(
+            context,
+            icon: Icons.add_circle_outline,
+            iconColor: CScholarColors.primaryGreen,
+            iconBg: const Color(0xFFDCFCE7),
+            title: 'Add New Thesis',
+            subtitle: 'Upload PDF & register metadata',
+            onTap: () => context.go('/admin/thesis/new'),
+          ),
+          const SizedBox(height: 10),
+          _managementTile(
+            context,
+            icon: Icons.people_alt_outlined,
+            iconColor: CScholarColors.orange,
+            iconBg: const Color(0xFFFEF3C7),
+            title: 'Manage Users',
+            subtitle: 'Review student approvals & roles',
+            onTap: () => context.go('/admin/users'),
+          ),
+          const SizedBox(height: 10),
+          _managementTile(
+            context,
+            icon: Icons.category_outlined,
+            iconColor: const Color(0xFF2563EB),
+            iconBg: const Color(0xFFDBEAFE),
+            title: 'Programs & Tags',
+            subtitle: 'Organize college departments',
+            onTap: () => context.go('/admin/programs'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _managementTile(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBg,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(CScholarRadius.lg),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: CScholarColors.dividerLight),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(CScholarRadius.lg),
+          border: Border.all(color: CScholarColors.borderLight),
         ),
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: color),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(CScholarRadius.md)),
+              child: Icon(icon, size: 20, color: iconColor),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary)),
-                  Text(subtitle, style: const TextStyle(fontSize: 11, color: CScholarColors.textHint)),
+                  Text(title, style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.textPrimary)),
+                  Text(subtitle, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textMuted)),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 18, color: CScholarColors.textHint),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _mobileLayout(BuildContext context, WidgetRef ref, User? user, AsyncValue<Map<String, int>> stats) {
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        title: const Text('Admin Dashboard', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.4,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _kpiCard('128', 'Studies', '+4 this week', Icons.menu_book_outlined, CScholarColors.primaryGreen),
-                _kpiCard('246', 'Authors', '+12 this mo.', Icons.people_outline, CScholarColors.orange),
-                _kpiCard('3', 'Programs', 'BSIT, BSCS, BSIS', Icons.account_balance_outlined, CScholarColors.gold),
-                _kpiCard('1,284', 'Searches', '+18% high', Icons.search_outlined, CScholarColors.info),
-              ],
-            ),
+            const Icon(Icons.arrow_forward_ios, size: 12, color: CScholarColors.textHint),
           ],
         ),
       ),

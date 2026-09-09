@@ -1,10 +1,9 @@
-// Login screen — Stitch design v2 (two-panel layout)
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -15,12 +14,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final bool _isLoading = false;
+  final _emailController = TextEditingController(text: 'student@csu.edu.ph');
+  final _passwordController = TextEditingController(text: 'pass123');
+  bool _isLoading = false;
   String? _error;
   bool _obscure = true;
-  String _selectedRole = 'student';
+  bool _rememberMe = true;
 
   @override
   void dispose() {
@@ -29,9 +28,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  void _fillDemo(String email) {
+    setState(() {
+      _emailController.text = email;
+      _passwordController.text = 'pass123';
+      _error = null;
+    });
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _error = null);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     final auth = ref.read(authProvider.notifier);
     final ok = await auth.login(
@@ -40,344 +50,377 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
 
     if (!mounted) return;
+    setState(() => _isLoading = false);
+
     if (ok) {
-      context.go('/student/dashboard');
+      final user = ref.read(currentUserProvider);
+      if (user?.role == 'admin') {
+        context.go('/admin/dashboard');
+      } else {
+        context.go('/student/dashboard');
+      }
     } else {
-      setState(() => _error = 'Invalid email or password.\n\nDemo credentials:\n• student@csu.edu.ph / pass123\n• faculty@csu.edu.ph / pass123\n• admin@csu.edu.ph / pass123');
+      setState(() => _error = 'Invalid credentials. Please click a demo role below.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 720;
+    final isDesktop = size.width > 860;
 
-    // Mobile: full screen form
-    if (!isWide) {
-      return _mobileLayout();
-    }
-
-    // Desktop: two-panel layout
     return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      body: Row(
-        children: [
-          // Left: branded panel
-          Expanded(
-            flex: 5,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [CScholarColors.sidebarDeep, CScholarColors.adminSidebar],
-                ),
-              ),
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(48),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Logo
-                      Row(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: CScholarColors.gold.withValues(alpha: 0.3)),
-                            ),
-                            child: const Icon(Icons.school, color: CScholarColors.gold, size: 28),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'CScholar',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              Text(
-                                'CEIT THESIS REPOSITORY',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 48),
-                      // Tagline
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: CScholarColors.gold.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: CScholarColors.gold.withValues(alpha: 0.3)),
-                        ),
-                        child: const Text(
-                          'CEIT Thesis & Capstone Repository',
-                          style: TextStyle(
-                            color: CScholarColors.gold,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Access a world of knowledge\nand research from the\nCEIT department.',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 18,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-                      // Stats row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: const [
-                          Column(
-                            children: [
-                              Text('1,248', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                              Text('Archived Studies', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text('3', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                              Text('CEIT Programs', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            ],
-                          ),
-                          Column(
-                            children: [
-                              Text('5+', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                              Text('Academic Years', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Right: login form
-          Expanded(
-            flex: 4,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(48),
-                child: _loginForm(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _mobileLayout() {
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
+      backgroundColor: const Color(0xFFF3F4F6),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: CScholarColors.primaryGreen,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.school, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'CScholar',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: CScholarColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'CEIT Repository',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: CScholarColors.textSecondary,
-                  letterSpacing: 1,
+          padding: const EdgeInsets.all(20),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 980),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              const SizedBox(height: 32),
-              _loginForm(),
-            ],
+              ],
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: isDesktop
+                ? IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(flex: 5, child: _leftBrandedPanel()),
+                        Expanded(flex: 7, child: _rightFormPanel()),
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      _leftBrandedPanel(isMobile: true),
+                      _rightFormPanel(),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  Widget _loginForm() {
+  Widget _leftBrandedPanel({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+      padding: EdgeInsets.all(isMobile ? 28 : 44),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF005A1E),
+            Color(0xFF00471B),
+            Color(0xFF043313),
+          ],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Logo & Identity
+          Column(
+            children: [
+              const CScholarLogo(
+                iconSize: 52,
+                isDark: true,
+                subtitle: 'CEIT THESIS REPOSITORY',
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Centralized institutional repository of engineering and technology theses, capstone projects, and scholarly works.',
+                textAlign: TextAlign.center,
+                style: CScholarTextStyles.inter(
+                  13.5,
+                  FontWeight.w400,
+                  const Color(0xFFD1FAE5),
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+
+          if (!isMobile) ...[
+            const SizedBox(height: 36),
+            // Value propositions
+            Column(
+              children: [
+                _featureItem(Icons.auto_awesome, 'Semantic Similarity Engine'),
+                const SizedBox(height: 14),
+                _featureItem(Icons.archive_outlined, 'Centralized CEIT Archive'),
+                const SizedBox(height: 14),
+                _featureItem(Icons.verified_user_outlined, 'Student & Faculty Research Access'),
+              ],
+            ),
+            const SizedBox(height: 36),
+          ],
+
+          // University affiliation footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(CScholarRadius.full),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.school, size: 16, color: CScholarColors.gold),
+                const SizedBox(width: 8),
+                Text(
+                  'CSU CEIT Campus Portal',
+                  style: CScholarTextStyles.inter(11, FontWeight.w600, const Color(0xFFD1FAE5)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _featureItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 16, color: CScholarColors.gold),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: CScholarTextStyles.inter(13, FontWeight.w500, Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _rightFormPanel() {
+    return Padding(
+      padding: const EdgeInsets.all(36),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Role selector
-            const Text(
-              'Sign in as',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: CScholarColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SegmentedButton<String>(
-              segments: [
-                const ButtonSegment(value: 'student', label: Text('Student'), icon: Icon(Icons.person)),
-                const ButtonSegment(value: 'faculty', label: Text('Faculty'), icon: Icon(Icons.person_outline)),
-                const ButtonSegment(value: 'admin', label: Text('Admin'), icon: Icon(Icons.admin_panel_settings)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Welcome Back',
+                  style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+                ),
+                TextButton(
+                  onPressed: () => context.go('/'),
+                  child: Text('Home', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary)),
+                ),
               ],
-              selected: {_selectedRole},
-              onSelectionChanged: (set) {
-                setState(() => _selectedRole = set.first);
-                // Auto-fill demo credentials
-                if (set.first == 'student') {
-                  _emailController.text = 'student@csu.edu.ph';
-                  _passwordController.text = 'pass123';
-                } else if (set.first == 'faculty') {
-                  _emailController.text = 'faculty@csu.edu.ph';
-                  _passwordController.text = 'pass123';
-                } else {
-                  _emailController.text = 'admin@csu.edu.ph';
-                  _passwordController.text = 'pass123';
-                }
-              },
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return CScholarColors.primaryGreen.withValues(alpha: 0.1);
-                  }
-                  return Colors.transparent;
-                }),
-              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Sign in to access your saved studies and repository tools',
+              style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textSecondary),
             ),
             const SizedBox(height: 20),
 
-            // Email
+            // Demo Account Switcher Pills
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'QUICK DEMO ACCOUNTS (CLICK TO AUTO-FILL):',
+                    style: CScholarTextStyles.inter(10, FontWeight.w700, CScholarColors.textMuted, letterSpacing: 0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _demoButton('Student', 'student@csu.edu.ph', CScholarColors.primaryGreen),
+                      _demoButton('Faculty', 'faculty@csu.edu.ph', const Color(0xFF9333EA)),
+                      _demoButton('Admin', 'admin@csu.edu.ph', CScholarColors.orange),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            if (_error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: CScholarColors.errorLight,
+                  borderRadius: BorderRadius.circular(CScholarRadius.md),
+                  border: Border.all(color: CScholarColors.error.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, size: 18, color: CScholarColors.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Email Field
+            Text(
+              'INSTITUTIONAL EMAIL',
+              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: CScholarColors.textPrimary),
-              decoration: InputDecoration(
-                labelText: 'Email address',
-                prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                filled: true,
-                fillColor: CScholarColors.backgroundLight,
+              validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid institutional email' : null,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.email_outlined, size: 18, color: CScholarColors.textHint),
+                hintText: 'e.g. juan.delacruz@csu.edu.ph',
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
             ),
+
             const SizedBox(height: 16),
 
-            // Password
+            // Password Field
+            Text(
+              'PASSWORD',
+              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
             TextFormField(
               controller: _passwordController,
               obscureText: _obscure,
-              style: const TextStyle(color: CScholarColors.textPrimary),
+              validator: (v) => (v == null || v.length < 4) ? 'Password must be at least 4 characters' : null,
               decoration: InputDecoration(
-                labelText: 'Password',
-                prefixIcon: const Icon(Icons.lock_outlined, size: 20),
+                prefixIcon: const Icon(Icons.lock_outline, size: 18, color: CScholarColors.textHint),
+                hintText: '••••••••',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, size: 20),
+                  icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: CScholarColors.textHint),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                filled: true,
-                fillColor: CScholarColors.backgroundLight,
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              onFieldSubmitted: (_) => _login(),
             ),
-            const SizedBox(height: 8),
 
-            // Error
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: CScholarColors.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: CScholarColors.error.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(fontSize: 13, color: CScholarColors.error, height: 1.4),
-                ),
-              ),
+            const SizedBox(height: 14),
 
-            // Sign In button
-            FilledButton(
-              onPressed: _isLoading ? null : _login,
-              style: FilledButton.styleFrom(
-                backgroundColor: CScholarColors.primaryGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            // Remember me & Forgot password
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Checkbox(
+                        value: _rememberMe,
+                        onChanged: (v) => setState(() => _rememberMe = v ?? true),
+                        activeColor: CScholarColors.primaryGreen,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Remember me', style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textSecondary)),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: Text('Forgot password?', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Sign In Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _login,
+                style: FilledButton.styleFrom(
+                  backgroundColor: CScholarColors.primaryGreen,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.lg)),
+                  elevation: 2,
+                ),
+                child: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text('Sign In', style: CScholarTextStyles.inter(15, FontWeight.w700, Colors.white)),
               ),
-              child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            ), // FilledButton
+            ),
+
+            const SizedBox(height: 20),
+
+            // Register Link
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Don't have an account?", style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textSecondary)),
+                  TextButton(
+                    onPressed: () => context.go('/register'),
+                    child: Text('Register here', style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.primaryGreen)),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ), // Column
-      ), // Form
-    ); // Container
+        ),
+      ),
+    );
+  }
+
+  Widget _demoButton(String role, String email, Color color) {
+    return InkWell(
+      onTap: () => _fillDemo(email),
+      borderRadius: BorderRadius.circular(CScholarRadius.sm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(CScholarRadius.sm),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          role,
+          style: CScholarTextStyles.inter(11.5, FontWeight.w700, color),
+        ),
+      ),
+    );
   }
 }

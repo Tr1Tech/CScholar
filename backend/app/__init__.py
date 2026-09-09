@@ -9,7 +9,7 @@ from flask import Flask
 
 from .config import Config
 from .extensions import cors, db
-from .routes import db_test_bp, health_bp
+from .routes import db_test_bp, health_bp, auth_bp
 
 
 def create_app(config_class=Config):
@@ -24,5 +24,6 @@ def create_app(config_class=Config):
     # Register route blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(db_test_bp)
+    app.register_blueprint(auth_bp)
 
     return app
