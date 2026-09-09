@@ -2,8 +2,6 @@
 
 from flask import Blueprint, jsonify
 from ..models import Program, AcademicYear, Category, Keyword, Author, Adviser
-from ..extensions import db
-from ..auth import login_required, admin_required
 
 meta_bp = Blueprint("meta", __name__)
 

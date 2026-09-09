@@ -5,9 +5,7 @@ import uuid
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 import pymupdf
-from ..models import ThesisFile, Thesis, ThesisEmbedding
-from ..extensions import db
-from ..auth import login_required, admin_required
+from ..auth import admin_required
 
 upload_bp = Blueprint("upload", __name__)
 

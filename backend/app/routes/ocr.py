@@ -1,7 +1,6 @@
 """OCR routes — extract text from scanned/image-based PDFs using Tesseract."""
 
 import os
-import uuid
 import subprocess
 import tempfile
 from flask import Blueprint, request, jsonify, current_app

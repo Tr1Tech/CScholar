@@ -1,9 +1,9 @@
 """Thesis routes — list, detail, create, update, delete."""
 
 from flask import Blueprint, request, jsonify
-from ..models import Thesis, Program, AcademicYear, Author, Adviser, Category, Keyword, ThesisFile, ThesisEmbedding
+from ..models import Thesis
 from ..extensions import db
-from ..auth import login_required, admin_required
+from ..auth import admin_required
 
 thesis_bp = Blueprint("thesis", __name__)
 
