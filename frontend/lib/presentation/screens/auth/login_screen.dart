@@ -14,7 +14,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'student@csu.edu.ph');
+  final _emailController = TextEditingController(text: '');
   final _passwordController = TextEditingController(text: 'pass123');
   bool _isLoading = false;
   String? _error;
@@ -263,9 +263,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _demoButton('Student', 'student@csu.edu.ph', CScholarColors.primaryGreen),
-                      _demoButton('Faculty', 'faculty@csu.edu.ph', const Color(0xFF9333EA)),
-                      _demoButton('Admin', 'admin@csu.edu.ph', CScholarColors.orange),
+                      _demoButton('Student', 'testuser2', CScholarColors.primaryGreen),
+                      _demoButton('Admin', 'admin1', CScholarColors.orange),
                     ],
                   ),
                 ],
