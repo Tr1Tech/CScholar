@@ -43,24 +43,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
 
-    final auth = ref.read(authProvider.notifier);
-    final ok = await auth.login(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+    try {
+      final auth = ref.read(authProvider.notifier);
+      final ok = await auth.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
 
-    if (ok) {
-      final user = ref.read(currentUserProvider);
-      if (user?.role == 'admin') {
-        context.go('/admin/dashboard');
+      if (ok) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) return;
+        final user = ref.read(currentUserProvider);
+        if (user?.role == 'admin') {
+          context.go('/admin/dashboard');
+        } else {
+          context.go('/student/dashboard');
+        }
       } else {
-        context.go('/student/dashboard');
+        setState(() => _error = 'Invalid credentials. Please click a demo role below.');
       }
-    } else {
-      setState(() => _error = 'Invalid credentials. Please click a demo role below.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = 'Error: ${e.toString()}';
+      });
     }
   }
 
