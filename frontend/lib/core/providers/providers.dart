@@ -142,19 +142,35 @@ class ThesisListParams {
 
 final thesisListProvider = FutureProvider.autoDispose
     .family<List<Thesis>?, ThesisListParams>((ref, params) async {
-  return ref.read(repositoryServiceProvider).getTheses(
-    query: params.query,
-    programId: params.programId,
-    academicYearId: params.academicYearId,
-    researchType: params.researchType,
-    status: params.status,
-    page: params.page,
-    pageSize: params.pageSize,
-  );
+  // Use real API
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/theses');
+    final List<dynamic> raw = data['theses'] as List<dynamic>;
+    return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    // Fallback to mock
+    return ref.read(repositoryServiceProvider).getTheses(
+      query: params.query,
+      programId: params.programId,
+      academicYearId: params.academicYearId,
+      researchType: params.researchType,
+      status: params.status,
+      page: params.page,
+      pageSize: params.pageSize,
+    );
+  }
 });
 
 final thesisProvider = FutureProvider.autoDispose.family<Thesis?, int>((ref, id) async {
-  return ref.read(repositoryServiceProvider).getThesisById(id);
+  // Use real API
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/theses/$id');
+    return Thesis.fromJson(data as Map<String, dynamic>);
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getThesisById(id);
+  }
 });
 
 // Alias for detail screen readability
@@ -189,23 +205,63 @@ final recommendedThesesProvider = FutureProvider.autoDispose
 });
 
 final programsProvider = FutureProvider.autoDispose<List<Program>>((ref) async {
-  return ref.read(repositoryServiceProvider).getPrograms();
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/programs');
+    final List<dynamic> raw = data as List<dynamic>;
+    return raw.map((e) => Program.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getPrograms();
+  }
 });
 
 final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((ref) async {
-  return ref.read(repositoryServiceProvider).getAcademicYears();
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/academic-years');
+    final List<dynamic> raw = data as List<dynamic>;
+    return raw.map((e) => AcademicYear.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getAcademicYears();
+  }
 });
 
 final categoriesProvider = FutureProvider.autoDispose<List<Category>>((ref) async {
-  return ref.read(repositoryServiceProvider).getCategories();
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/categories');
+    final List<dynamic> raw = data as List<dynamic>;
+    return raw.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getCategories();
+  }
 });
 
 final keywordsProvider = FutureProvider.autoDispose<List<Keyword>>((ref) async {
-  return ref.read(repositoryServiceProvider).getKeywords();
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/keywords');
+    final List<dynamic> raw = data as List<dynamic>;
+    return raw.map((e) => Keyword.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getKeywords();
+  }
 });
 
 final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, int>>((ref) async {
-  return ref.read(repositoryServiceProvider).getDashboardStats();
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/theses');
+    final List<dynamic> raw = data['theses'] as List<dynamic>;
+    return {
+      'studies': raw.length,
+      'programs': 3,
+      'years': 5,
+      'saved': 0,
+    };
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getDashboardStats();
+  }
 });
 
 // Simple state notifier for saved theses
