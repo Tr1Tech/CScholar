@@ -4,9 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/services/mock_repository_service.dart';
 import 'package:frontend/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─── API Service provider (production HTTP client) ───────────────────────────
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
+
+// ─── Auth API provider ────────────────────────────────────────────────────────
+final authApiProvider = Provider<AuthApi>((ref) => AuthApi(ref.read(apiServiceProvider)));
 
 // ─── Repository Service provider ──────────────────────────────────────────────
 final repositoryServiceProvider = Provider<RepositoryService>((ref) {
@@ -18,7 +22,7 @@ final authProvider =
     NotifierProvider<AuthNotifier, AsyncValue<User?>>(() => AuthNotifier());
 
 class AuthNotifier extends Notifier<AsyncValue<User?>> {
-  RepositoryService get _repository => ref.read(repositoryServiceProvider);
+  AuthApi get _authApi => ref.read(authApiProvider);
 
   @override
   AsyncValue<User?> build() => const AsyncValue.data(null);
@@ -32,9 +36,26 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
   Future<bool> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      final user = await _repository.login(email, password);
-      state = user != null ? AsyncValue.data(user) : const AsyncValue.data(null);
-      return user != null;
+      // Call real API
+      final token = await _authApi.login(email, password);
+      // Store token
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+      ref.read(apiServiceProvider).setToken(token);
+      // Get user profile
+      final userData = await _authApi.me();
+      final user = User(
+        id: userData['id'] as int,
+        username: userData['username'] as String,
+        email: userData['email'] as String,
+        passwordHash: '',
+        role: userData['role'] as String,
+        isActive: userData['is_active'] as bool? ?? true,
+        createdAt: DateTime.tryParse(userData['created_at'] as String? ?? '') ?? DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      state = AsyncValue.data(user);
+      return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       return false;
@@ -42,18 +63,49 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
   }
 
   Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    ref.read(apiServiceProvider).clearToken();
     state = const AsyncValue.data(null);
   }
 
   Future<bool> register(User user) async {
     state = const AsyncValue.loading();
     try {
-      final newUser = await _repository.register(user);
-      state = newUser != null ? AsyncValue.data(newUser) : const AsyncValue.data(null);
-      return newUser != null;
+      await _authApi.register({
+        'username': user.username,
+        'email': user.email,
+        'password': user.passwordHash,
+        'role': user.role,
+      });
+      return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
       return false;
+    }
+  }
+
+  Future<void> loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    if (token != null) {
+      ref.read(apiServiceProvider).setToken(token);
+      try {
+        final userData = await _authApi.me();
+        final user = User(
+          id: userData['id'] as int,
+          username: userData['username'] as String,
+          email: userData['email'] as String,
+          passwordHash: '',
+          role: userData['role'] as String,
+          isActive: userData['is_active'] as bool? ?? true,
+          createdAt: DateTime.tryParse(userData['created_at'] as String? ?? '') ?? DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        state = AsyncValue.data(user);
+      } catch (_) {
+        await prefs.remove('auth_token');
+      }
     }
   }
 }

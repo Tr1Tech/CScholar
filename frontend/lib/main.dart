@@ -24,7 +24,7 @@ class CScholarApp extends ConsumerWidget {
           seedColor: CScholarColors.primaryGreen,
           brightness: Brightness.light,
           primary: CScholarColors.primaryGreen,
-          surface: CScholarColors.cardBg,
+          surface: CScholarColors.surfaceWhite,
         ),
         scaffoldBackgroundColor: CScholarColors.backgroundLight,
         textTheme: GoogleFonts.interTextTheme(
@@ -43,14 +43,14 @@ class CScholarApp extends ConsumerWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: CScholarColors.inputBg,
+          fillColor: CScholarColors.surfaceLight,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
-            borderSide: const BorderSide(color: CScholarColors.borderLight),
+            borderSide: const BorderSide(color: CScholarColors.dividerLight),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
-            borderSide: const BorderSide(color: CScholarColors.borderLight),
+            borderSide: const BorderSide(color: CScholarColors.dividerLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
