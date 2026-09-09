@@ -8,3 +8,7 @@ python-dotenv==1.0.1
 Flask-SQLAlchemy==3.1.1   # ORM for PostgreSQL models
 psycopg[binary]==3.2.3    # PostgreSQL driver (sync; async not needed yet)
 pgvector==0.3.6          # pgvector Vector type for SQLAlchemy
+pymupdf==1.28.2          # PDF text extraction
+bcrypt==5.0.0            # Password hashing
+PyJWT==2.13.0            # JWT tokens
+sentence-transformers==5.0.0  # Embeddings (Phase 8)
