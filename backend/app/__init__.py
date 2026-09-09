@@ -9,7 +9,7 @@ from flask import Flask
 
 from .config import Config
 from .extensions import cors, db
-from .routes import db_test_bp, health_bp, auth_bp, thesis_bp, meta_bp, upload_bp
+from .routes import db_test_bp, health_bp, auth_bp, thesis_bp, meta_bp, upload_bp, ocr_bp
 
 
 def create_app(config_class=Config):
@@ -28,5 +28,6 @@ def create_app(config_class=Config):
     app.register_blueprint(thesis_bp)
     app.register_blueprint(meta_bp)
     app.register_blueprint(upload_bp)
+    app.register_blueprint(ocr_bp)
 
     return app
