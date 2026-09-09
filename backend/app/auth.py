@@ -61,7 +61,19 @@ def admin_required(fn):
     """Decorator that requires admin role."""
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
-        if not hasattr(request, "current_user") or request.current_user.role != "admin":
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return jsonify({"error": "Missing Bearer token"}), 401
+        token = auth.split(" ", 1)[1]
+        try:
+            payload = decode_token(token)
+        except Unauthorized:
+            return jsonify({"error": "Invalid or expired token"}), 401
+        user = User.query.get(payload["sub"])
+        if not user or not user.is_active:
+            return jsonify({"error": "User not found or inactive"}), 401
+        if user.role != "admin":
             return jsonify({"error": "Admin access required"}), 403
+        request.current_user = user
         return fn(*args, **kwargs)
     return wrapper
