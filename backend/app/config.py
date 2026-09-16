@@ -1,27 +1,9 @@
-"""Configuration loading for the CScholar backend.
-
-Secrets and environment-specific values are read from a .env file
-(or real environment variables). NEVER commit a real .env file.
-"""
+"""Configuration loading for the CScholar backend (raw psycopg2)."""
 
 import os
-
 from dotenv import load_dotenv
 
 load_dotenv()
-
-
-def _database_uri() -> str:
-    uri = os.getenv(
-        "DATABASE_URL",
-        "postgresql+psycopg://user:pass@localhost:5432/cscholar",
-    )
-    # Ensure search_path=ceit_repo so unqualified tables resolve correctly
-    if "ceit_repo" not in uri:
-        sep = "&" if "?" in uri else "?"
-        uri = f"{uri}{sep}options=-c%20search_path%3Dceit_repo"
-    uri = uri.replace("postgresql://", "postgresql+psycopg://", 1) if uri.startswith("postgresql://") else uri
-    return uri
 
 
 class Config:
@@ -31,12 +13,13 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
     FLASK_DEBUG = os.getenv("FLASK_DEBUG", "1") == "1"
 
-    SQLALCHEMY_DATABASE_URI = _database_uri()
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-    }
+    # Database (raw psycopg2 connection params)
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "5432")
+    DB_NAME = os.getenv("DB_NAME", "cscholar")
+    DB_USER = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "radj062406")
 
-    # AI/ML (used starting Phase 12)
+    # AI/ML
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "384"))

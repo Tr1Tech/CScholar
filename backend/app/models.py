@@ -1,170 +1,432 @@
-"""SQLAlchemy models for CScholar - matches db/schema.sql exactly.
-Schema: ceit_repo (set via DATABASE_URL search_path).
+"""Simple data access helpers — raw psycopg2 queries, no ORM.
+
+Functions return plain dicts or None.
 """
 
-from __future__ import annotations
-import datetime
-from typing import Optional, List
-from pgvector.sqlalchemy import Vector
-from .extensions import db
+from .extensions import get_conn, put_conn
 
-# --- 1. users ---
-class User(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False)
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
-# --- 2. programs ---
-class Program(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "programs"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    code = db.Column(db.String(20), unique=True, nullable=False)
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    theses = db.relationship("Thesis", back_populates="program")
+# ── Users ───────────────────────────────────────────────────────────────────
 
-# --- 3. academic_years ---
-class AcademicYear(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "academic_years"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(20), unique=True, nullable=False)
-    start_year = db.Column(db.Integer, nullable=False)
-    end_year = db.Column(db.Integer, nullable=False)
-    is_active = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    theses = db.relationship("Thesis", back_populates="academic_year")
+def get_user_by_id(user_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, username, email, password_hash, role, is_active, created_at, updated_at "
+                "FROM users WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "role": row[4],
+                "is_active": row[5],
+                "created_at": row[6],
+                "updated_at": row[7],
+            }
+    finally:
+        put_conn(conn)
 
-# --- 4. theses ---
-class Thesis(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "theses"
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(300), nullable=False)
-    abstract = db.Column(db.Text, nullable=False)
-    research_type = db.Column(db.String(20), nullable=False)
-    program_id = db.Column(db.Integer, db.ForeignKey("programs.id"), nullable=False)
-    academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id"), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default="draft")
-    creator_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    program = db.relationship("Program", back_populates="theses")
-    academic_year = db.relationship("AcademicYear", back_populates="theses")
 
-# --- association tables as Table objects ---
-thesis_authors = db.Table(
-    "thesis_authors",
-    db.Column("thesis_id", db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("author_id", db.Integer, db.ForeignKey("authors.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("order_index", db.Integer, nullable=False, default=1),
-)
-thesis_advisers = db.Table(
-    "thesis_advisers",
-    db.Column("thesis_id", db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("adviser_id", db.Integer, db.ForeignKey("advisers.id", ondelete="CASCADE"), primary_key=True),
-)
-thesis_categories = db.Table(
-    "thesis_categories",
-    db.Column("thesis_id", db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("category_id", db.Integer, db.ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True),
-)
-thesis_keywords = db.Table(
-    "thesis_keywords",
-    db.Column("thesis_id", db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("keyword_id", db.Integer, db.ForeignKey("keywords.id", ondelete="CASCADE"), primary_key=True),
-)
+def get_user_by_username(username):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, username, email, password_hash, role, is_active, created_at, updated_at "
+                "FROM users WHERE username = %s",
+                (username,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "role": row[4],
+                "is_active": row[5],
+                "created_at": row[6],
+                "updated_at": row[7],
+            }
+    finally:
+        put_conn(conn)
 
-# --- 5. authors ---
-class Author(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "authors"
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(80), nullable=False)
-    middle_name = db.Column(db.String(80))
-    last_name = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120))
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
-# --- 7. advisers ---
-class Adviser(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "advisers"
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(80), nullable=False)
-    middle_name = db.Column(db.String(80))
-    last_name = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120))
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+def get_user_by_email(email):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, username, email, password_hash, role, is_active, created_at, updated_at "
+                "FROM users WHERE email = %s",
+                (email.lower(),),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "username": row[1],
+                "email": row[2],
+                "password_hash": row[3],
+                "role": row[4],
+                "is_active": row[5],
+                "created_at": row[6],
+                "updated_at": row[7],
+            }
+    finally:
+        put_conn(conn)
 
-# --- 9. categories ---
-class Category(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "categories"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
-# --- 11. keywords ---
-class Keyword(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "keywords"
-    id = db.Column(db.Integer, primary_key=True)
-    term = db.Column(db.String(100), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+def find_user(login_id):
+    """Find user by username or email."""
+    user = get_user_by_username(login_id)
+    if not user:
+        user = get_user_by_email(login_id)
+    return user
 
-# --- 13. thesis_files ---
-class ThesisFile(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "thesis_files"
-    id = db.Column(db.Integer, primary_key=True)
-    thesis_id = db.Column(db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), nullable=False)
-    filename = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(512), nullable=False)
-    file_size = db.Column(db.BigInteger)
-    mime_type = db.Column(db.String(100))
-    uploaded_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
-# --- 14. thesis_embeddings ---
-class ThesisEmbedding(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "thesis_embeddings"
-    id = db.Column(db.Integer, primary_key=True)
-    thesis_id = db.Column(db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), nullable=False)
-    chunk_text = db.Column(db.Text, nullable=False)
-    embedding = db.Column(Vector(384))
-    model_name = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+def create_user(username, email, password_hash, role="student"):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO users (username, email, password_hash, role, is_active) "
+                "VALUES (%s, %s, %s, %s, TRUE) RETURNING id",
+                (username, email.lower(), password_hash, role),
+            )
+            user_id = cur.fetchone()[0]
+        conn.commit()
+        return get_user_by_id(user_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
 
-# --- 15. search_logs ---
-class SearchLog(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "search_logs"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    query = db.Column(db.Text)
-    filters = db.Column(db.JSON)
-    result_count = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
 
-# --- 16. recommendation_logs ---
-class RecommendationLog(db.Model):
-    __allow_unmapped__ = True
-    __tablename__ = "recommendation_logs"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    source_thesis_id = db.Column(db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), nullable=False)
-    recommended_thesis_id = db.Column(db.Integer, db.ForeignKey("theses.id", ondelete="CASCADE"), nullable=False)
-    similarity_score = db.Column(db.Float)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+def user_exists(username, email):
+    """Check if username or email already exists."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT username, email FROM users WHERE username = %s OR email = %s",
+                (username, email.lower()),
+            )
+            return cur.fetchall()
+    finally:
+        put_conn(conn)
+
+
+# ── Theses ─────────────────────────────────────────────────────────────────
+
+def serialize_thesis(row, detailed=False):
+    """Convert a DB row to a thesis dict."""
+    data = {
+        "id": row[0],
+        "title": row[1],
+        "abstract": row[2],
+        "research_type": row[3],
+        "program_id": row[4],
+        "program": {
+            "id": row[5],
+            "name": row[6],
+            "code": row[7],
+            "description": row[8],
+            "created_at": row[9].isoformat() if row[9] else None,
+        } if row[5] else None,
+        "academic_year_id": row[10],
+        "academic_year": {
+            "id": row[11],
+            "name": row[12],
+            "start_year": row[13],
+            "end_year": row[14],
+            "is_active": row[15],
+            "created_at": row[16].isoformat() if row[16] else None,
+        } if row[11] else None,
+        "status": row[17],
+        "creator_id": row[18],
+        "created_at": row[19].isoformat() if row[19] else None,
+        "updated_at": row[20].isoformat() if row[20] else None,
+    }
+    return data
+
+
+def get_thesis_by_id(thesis_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
+                "       p.id, p.name, p.code, p.description, p.created_at, "
+                "       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
+                "       t.status, t.creator_id, t.created_at, t.updated_at "
+                "FROM theses t "
+                "LEFT JOIN programs p ON t.program_id = p.id "
+                "LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
+                "WHERE t.id = %s",
+                (thesis_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return serialize_thesis(row, detailed=True)
+    finally:
+        put_conn(conn)
+
+
+def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, page=1, per_page=20):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            conditions = []
+            params = []
+            if q:
+                conditions.append("(t.title ILIKE %s OR t.abstract ILIKE %s)")
+                params.extend([f"%{q}%", f"%{q}%"])
+            if program_id:
+                conditions.append("t.program_id = %s")
+                params.append(program_id)
+            if year_id:
+                conditions.append("t.academic_year_id = %s")
+                params.append(year_id)
+            if research_type:
+                conditions.append("t.research_type = %s")
+                params.append(research_type)
+            if status:
+                conditions.append("t.status = %s")
+                params.append(status)
+
+            where = "WHERE " + " AND ".join(conditions) if conditions else ""
+            offset = (page - 1) * per_page
+
+            cur.execute(
+                f"SELECT COUNT(*) FROM theses t {where}",
+                params,
+            )
+            total = cur.fetchone()[0]
+
+            cur.execute(
+                f"SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
+                f"       p.id, p.name, p.code, p.description, p.created_at, "
+                f"       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
+                f"       t.status, t.creator_id, t.created_at, t.updated_at "
+                f"FROM theses t "
+                f"LEFT JOIN programs p ON t.program_id = p.id "
+                f"LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
+                f"{where} "
+                f"ORDER BY t.created_at DESC "
+                f"LIMIT %s OFFSET %s",
+                params + [per_page, offset],
+            )
+            rows = cur.fetchall()
+            theses = [serialize_thesis(row) for row in rows]
+
+            return {
+                "theses": theses,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": (total + per_page - 1) // per_page,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft"):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (title, abstract, research_type, program_id, academic_year_id, status, creator_id),
+            )
+            thesis_id = cur.fetchone()[0]
+        conn.commit()
+        return thesis_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_thesis(thesis_id, **kwargs):
+    allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return
+
+    set_clause = ", ".join(f"{k} = %s" for k in fields)
+    params = list(fields.values()) + [thesis_id]
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE theses SET {set_clause} WHERE id = %s",
+                params,
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_thesis(thesis_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM theses WHERE id = %s", (thesis_id,))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Meta lookups ───────────────────────────────────────────────────────────
+
+def list_programs():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, code, description, created_at FROM programs ORDER BY name")
+            return [
+                {"id": r[0], "name": r[1], "code": r[2], "description": r[3], "created_at": r[4].isoformat() if r[4] else None}
+                for r in cur.fetchall()
+            ]
+    finally:
+        put_conn(conn)
+
+
+def list_academic_years():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, start_year, end_year, is_active, created_at FROM academic_years ORDER BY start_year DESC")
+            return [
+                {"id": r[0], "name": r[1], "label": r[1], "start_year": r[2], "end_year": r[3], "is_active": r[4], "created_at": r[5].isoformat() if r[5] else None}
+                for r in cur.fetchall()
+            ]
+    finally:
+        put_conn(conn)
+
+
+def list_categories():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, description, created_at FROM categories ORDER BY name")
+            return [
+                {"id": r[0], "name": r[1], "description": r[2], "created_at": r[3].isoformat() if r[3] else None}
+                for r in cur.fetchall()
+            ]
+    finally:
+        put_conn(conn)
+
+
+def list_keywords():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, term FROM keywords ORDER BY term")
+            return [{"id": r[0], "term": r[1]} for r in cur.fetchall()]
+    finally:
+        put_conn(conn)
+
+
+def list_authors():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, first_name, last_name, email FROM authors ORDER BY last_name")
+            return [{"id": r[0], "first_name": r[1], "last_name": r[2], "email": r[3]} for r in cur.fetchall()]
+    finally:
+        put_conn(conn)
+
+
+def list_advisers():
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, first_name, last_name, email FROM advisers ORDER BY last_name")
+            return [{"id": r[0], "first_name": r[1], "last_name": r[2], "email": r[3]} for r in cur.fetchall()]
+    finally:
+        put_conn(conn)
+
+
+# ── Thesis Embeddings ──────────────────────────────────────────────────────
+
+def upsert_thesis_embedding(thesis_id, chunk_text, embedding_vector, model_name):
+    """Insert or update embedding for a thesis."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM thesis_embeddings WHERE thesis_id = %s",
+                (thesis_id,),
+            )
+            existing = cur.fetchone()
+            if existing:
+                cur.execute(
+                    "UPDATE thesis_embeddings SET embedding = %s::vector, chunk_text = %s, model_name = %s WHERE thesis_id = %s",
+                    (embedding_vector, chunk_text, model_name, thesis_id),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO thesis_embeddings (thesis_id, chunk_text, embedding, model_name) "
+                    "VALUES (%s, %s, %s::vector, %s)",
+                    (thesis_id, chunk_text, embedding_vector, model_name),
+                )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def semantic_search(query_vector, limit=10):
+    """Find theses by embedding cosine similarity."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, t.status, "
+                "       1 - (e.embedding <=> %s::vector) AS similarity "
+                "FROM thesis_embeddings e "
+                "JOIN theses t ON e.thesis_id = t.id "
+                "WHERE t.status = 'published' "
+                "ORDER BY e.embedding <=> %s::vector "
+                "LIMIT %s",
+                (query_vector, query_vector, limit),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "title": r[1],
+                    "abstract": r[2],
+                    "research_type": r[3],
+                    "program_id": r[4],
+                    "status": r[5],
+                    "similarity": float(r[6]),
+                }
+                for r in rows
+            ]
+    finally:
+        put_conn(conn)

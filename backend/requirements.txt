@@ -1,14 +1,14 @@
-# Phase 1 (current): only what is needed to boot the API.
-# This list grows as we reach later phases.
+# Phase 1: base
 Flask==3.0.3
 Flask-CORS==4.0.1
 python-dotenv==1.0.1
 
-# Phase 3 (database connection) — added in Phase 2 prep:
-Flask-SQLAlchemy==3.1.1   # ORM for PostgreSQL models
-psycopg[binary]==3.2.3    # PostgreSQL driver (sync; async not needed yet)
-pgvector==0.3.6          # pgvector Vector type for SQLAlchemy
-pymupdf==1.28.2          # PDF text extraction
-bcrypt==5.0.0            # Password hashing
-PyJWT==2.13.0            # JWT tokens
-sentence-transformers==5.0.0  # Embeddings (Phase 8)
+# Database: raw psycopg2 (no ORM)
+psycopg[binary]==3.2.3
+pgvector==0.3.6
+
+# File handling + AI
+pymupdf==1.28.2
+bcrypt==5.0.0
+PyJWT==2.13.0
+sentence-transformers==5.0.0
