@@ -30,7 +30,7 @@ class Program(db.Model):
     code = db.Column(db.String(20), unique=True, nullable=False)
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    theses: List[Thesis] = db.relationship("Thesis", back_populates="program")
+    theses = db.relationship("Thesis", back_populates="program")
 
 # --- 3. academic_years ---
 class AcademicYear(db.Model):
@@ -42,7 +42,7 @@ class AcademicYear(db.Model):
     end_year = db.Column(db.Integer, nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    theses: List[Thesis] = db.relationship("Thesis", back_populates="academic_year")
+    theses = db.relationship("Thesis", back_populates="academic_year")
 
 # --- 4. theses ---
 class Thesis(db.Model):
@@ -58,8 +58,8 @@ class Thesis(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
-    program: Optional[Program] = db.relationship("Program", back_populates="theses")
-    academic_year: Optional[AcademicYear] = db.relationship("AcademicYear", back_populates="theses")
+    program = db.relationship("Program", back_populates="theses")
+    academic_year = db.relationship("AcademicYear", back_populates="theses")
 
 # --- association tables as Table objects ---
 thesis_authors = db.Table(

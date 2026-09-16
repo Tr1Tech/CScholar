@@ -44,7 +44,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final useSemantic = _isSemantic && _query.trim().isNotEmpty;
     final theses = ref.watch(thesisListProvider(ThesisListParams(query: _query.isEmpty ? null : _query)));
+    final semantic = useSemantic ? ref.watch(semanticSearchProvider(_query.trim())) : const AsyncValue<List<SemanticResult>?>.data(null);
     final savedIds = ref.watch(savedThesisIdsProvider);
     final size = MediaQuery.of(context).size;
     final showDesktopFilter = size.width > 920;
@@ -243,7 +245,54 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Results List
+                      // Results List — semantic when toggle is on + query present.
+                      if (useSemantic)
+                        semantic.when(
+                          data: (results) {
+                            if (results == null) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(40),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            if (results.isEmpty) {
+                              return Column(
+                                children: [
+                                  _semanticUnavailableNote(),
+                                  _noResultsFound(),
+                                ],
+                              );
+                            }
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: results.length,
+                              itemBuilder: (context, i) {
+                                final r = results[i];
+                                final isSaved = savedIds.contains(r.thesis.id);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildResultCard(
+                                    thesis: r.thesis,
+                                    isSaved: isSaved,
+                                    similarityScore: r.similarity,
+                                    onBookmarkToggle: () => ref.read(savedThesisIdsProvider.notifier).toggle(r.thesis.id),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          loading: () => const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40),
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          error: (err, _) => Center(child: Text('Semantic search error: $err')),
+                        )
+                      else
                       theses.when(
                         data: (list) {
                           if (list == null || list.isEmpty) {
@@ -256,16 +305,13 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                             itemBuilder: (context, i) {
                               final thesis = list[i];
                               final isSaved = savedIds.contains(thesis.id);
-                              final similarity = _isSemantic
-                                  ? [0.96, 0.91, 0.87, 0.82, 0.78, 0.72][i % 6]
-                                  : null;
 
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: _buildResultCard(
                                   thesis: thesis,
                                   isSaved: isSaved,
-                                  similarityScore: similarity,
+                                  similarityScore: null,
                                   onBookmarkToggle: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
                                 ),
                               );
@@ -449,6 +495,30 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           onChanged: onChanged,
         ),
       ],
+    );
+  }
+
+  Widget _semanticUnavailableNote() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(CScholarRadius.md),
+        border: Border.all(color: const Color(0xFFFFE082)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 18, color: Color(0xFFF57F17)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Semantic index unavailable or empty — showing no AI matches. Generate embeddings for published theses first.',
+              style: CScholarTextStyles.inter(12, FontWeight.w500, const Color(0xFF7A5C00)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

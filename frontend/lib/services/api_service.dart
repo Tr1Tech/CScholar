@@ -125,6 +125,16 @@ class ThesisApi {
     final data = await _api.get('/api/theses/$thesisId/recommend');
     return data['theses'] as List<dynamic>;
   }
+
+  /// Phase 9: semantic search via pgvector embeddings.
+  /// Returns raw list with similarity scores: [{id, title, abstract, ..., similarity}]
+  Future<List<dynamic>> semanticSearch(String query, {int limit = 10}) async {
+    final data = await _api.post('/api/embeddings/search', {
+      'query': query,
+      'limit': limit,
+    });
+    return data['results'] as List<dynamic>;
+  }
 }
 
 // --- Upload (multipart for PDF) ---

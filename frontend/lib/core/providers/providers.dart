@@ -140,12 +140,33 @@ class ThesisListParams {
   });
 }
 
+// ─── Thesis API provider ─────────────────────────────────────────────────────
+final thesisApiProvider = Provider<ThesisApi>((ref) => ThesisApi(ref.read(apiServiceProvider)));
+
 final thesisListProvider = FutureProvider.autoDispose
     .family<List<Thesis>?, ThesisListParams>((ref, params) async {
   // Use real API
   final api = ref.read(apiServiceProvider);
   try {
-    final data = await api.get('/api/theses');
+    final queryParams = <String, String>{};
+    if (params.query != null && params.query!.isNotEmpty) {
+      queryParams['q'] = params.query!;
+    }
+    if (params.programId != null) {
+      queryParams['program_id'] = params.programId.toString();
+    }
+    if (params.academicYearId != null) {
+      queryParams['year_id'] = params.academicYearId.toString();
+    }
+    if (params.researchType != null) {
+      queryParams['research_type'] = params.researchType!;
+    }
+    if (params.status != null) {
+      queryParams['status'] = params.status!;
+    }
+    final qs = queryParams.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+    final endpoint = qs.isEmpty ? '/api/theses' : '/api/theses?$qs';
+    final data = await api.get(endpoint);
     final List<dynamic> raw = data['theses'] as List<dynamic>;
     return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
   } catch (_) {
@@ -159,6 +180,40 @@ final thesisListProvider = FutureProvider.autoDispose
       page: params.page,
       pageSize: params.pageSize,
     );
+  }
+});
+
+/// Phase 9: semantic search result with similarity score.
+class SemanticResult {
+  final Thesis thesis;
+  final double similarity;
+  const SemanticResult({required this.thesis, required this.similarity});
+}
+
+final semanticSearchProvider = FutureProvider.autoDispose
+    .family<List<SemanticResult>?, String>((ref, query) async {
+  if (query.trim().isEmpty) return null;
+  final thesisApi = ref.read(thesisApiProvider);
+  try {
+    final raw = await thesisApi.semanticSearch(query.trim(), limit: 10);
+    final out = <SemanticResult>[];
+    for (final e in raw) {
+      final m = e as Map<String, dynamic>;
+      try {
+        // Semantic endpoint returns a slim payload — hydrate via detail endpoint.
+        final detail = await ref.read(apiServiceProvider).get('/api/theses/${m['id']}');
+        out.add(SemanticResult(
+          thesis: Thesis.fromJson(detail as Map<String, dynamic>),
+          similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
+        ));
+      } catch (_) {
+        // Skip unhydratable rows instead of failing the whole search.
+        continue;
+      }
+    }
+    return out;
+  } catch (_) {
+    return null;
   }
 });
 
