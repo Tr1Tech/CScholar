@@ -138,6 +138,29 @@ class ThesisListParams {
     this.page,
     this.pageSize,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ThesisListParams &&
+          runtimeType == other.runtimeType &&
+          query == other.query &&
+          programId == other.programId &&
+          academicYearId == other.academicYearId &&
+          researchType == other.researchType &&
+          status == other.status &&
+          page == other.page &&
+          pageSize == other.pageSize;
+
+  @override
+  int get hashCode =>
+      query.hashCode ^
+      programId.hashCode ^
+      academicYearId.hashCode ^
+      researchType.hashCode ^
+      status.hashCode ^
+      page.hashCode ^
+      pageSize.hashCode;
 }
 
 // ─── Thesis API provider ─────────────────────────────────────────────────────
