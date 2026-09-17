@@ -61,6 +61,23 @@ def recommend_theses(id):
     }), 200
 
 
+@thesis_bp.route("/api/dashboard/stats", methods=["GET"])
+@admin_required
+def dashboard_stats():
+    """Get admin dashboard statistics."""
+    stats = db.get_dashboard_stats()
+    return jsonify(stats), 200
+
+
+@thesis_bp.route("/api/dashboard/recent-activity", methods=["GET"])
+@admin_required
+def dashboard_recent_activity():
+    """Get recent activity for the admin dashboard."""
+    limit = request.args.get("limit", 10, type=int)
+    activity = db.recent_activity(limit=limit)
+    return jsonify({"activity": activity}), 200
+
+
 @thesis_bp.route("/api/theses", methods=["POST"])
 @admin_required
 def create_thesis():

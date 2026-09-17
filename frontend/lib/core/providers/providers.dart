@@ -322,19 +322,37 @@ final keywordsProvider = FutureProvider.autoDispose<List<Keyword>>((ref) async {
   }
 });
 
-final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, int>>((ref) async {
+final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final api = ref.read(apiServiceProvider);
   try {
-    final data = await api.get('/api/theses');
-    final List<dynamic> raw = data['theses'] as List<dynamic>;
+    final data = await api.get('/api/dashboard/stats');
+    return Map<String, dynamic>.from(data as Map);
+  } catch (_) {
+    // Fallback to old behavior
+    final theses = await api.get('/api/theses');
+    final List<dynamic> raw = theses['theses'] as List<dynamic>;
     return {
       'studies': raw.length,
       'programs': 3,
-      'years': 5,
-      'saved': 0,
+      'users': 0,
+      'authors': 0,
+      'active_users': 0,
+      'active_programs': 3,
+      'searches': '0',
+      'studies_this_week': 0,
+      'search_growth': 0,
     };
+  }
+});
+
+final recentActivityProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/dashboard/recent-activity');
+    final List<dynamic> raw = data['activity'] as List<dynamic>;
+    return raw.cast<Map<String, dynamic>>();
   } catch (_) {
-    return ref.read(repositoryServiceProvider).getDashboardStats();
+    return [];
   }
 });
 

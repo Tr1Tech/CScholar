@@ -400,6 +400,70 @@ def upsert_thesis_embedding(thesis_id, chunk_text, embedding_vector, model_name)
         put_conn(conn)
 
 
+def get_dashboard_stats():
+    """Get admin dashboard statistics."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM theses")
+            total_theses = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM programs")
+            total_programs = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM users")
+            total_users = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM authors")
+            total_authors = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM users WHERE is_active = true")
+            active_users = cur.fetchone()[0]
+            return {
+                "studies": total_theses,
+                "programs": total_programs,
+                "users": total_users,
+                "authors": total_authors,
+                "active_users": active_users,
+                "studies_this_week": 0,
+                "active_programs": total_programs,
+                "searches": "0",
+                "search_growth": 0,
+            }
+    finally:
+        put_conn(conn)
+
+
+def recent_activity(limit=10):
+    """Get recent activity for the admin dashboard."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Get recent theses
+            cur.execute(
+                "SELECT t.id, t.title, t.created_at, "
+                "       p.name as program_name, "
+                "       'New thesis added' as activity_type, "
+                "       'Author: ' || COALESCE(a.first_name || ' ' || a.last_name, 'Unknown') as subtitle "
+                "FROM theses t "
+                "LEFT JOIN programs p ON t.program_id = p.id "
+                "LEFT JOIN thesis_authors ta ON t.id = ta.thesis_id "
+                "LEFT JOIN authors a ON ta.author_id = a.id "
+                "ORDER BY t.created_at DESC LIMIT %s",
+                (limit,),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "title": r[1],
+                    "created_at": r[2].isoformat() if r[2] else None,
+                    "program": r[3],
+                    "activity_type": r[4],
+                    "subtitle": r[5],
+                }
+                for r in rows
+            ]
+    finally:
+        put_conn(conn)
+
+
 def semantic_search(query_vector, limit=10):
     """Find theses by embedding cosine similarity."""
     conn = get_conn()
