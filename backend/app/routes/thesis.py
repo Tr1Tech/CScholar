@@ -15,6 +15,9 @@ def list_theses():
     year_id = request.args.get("year_id", type=int)
     research_type = request.args.get("research_type")
     status = request.args.get("status")
+    if not status:
+        status = ['published', 'approved']
+    
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
 

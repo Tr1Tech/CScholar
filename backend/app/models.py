@@ -203,8 +203,12 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 conditions.append("t.research_type = %s")
                 params.append(research_type)
             if status:
-                conditions.append("t.status = %s")
-                params.append(status)
+                if isinstance(status, list):
+                    conditions.append("t.status = ANY(%s)")
+                    params.append(status)
+                else:
+                    conditions.append("t.status = %s")
+                    params.append(status)
 
             where = "WHERE " + " AND ".join(conditions) if conditions else ""
             offset = (page - 1) * per_page
@@ -489,7 +493,7 @@ def semantic_search(query_vector, limit=10):
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
-                "WHERE t.status = 'published' "
+                "WHERE t.status IN ('published', 'approved') "
                 "ORDER BY e.embedding <=> %s::vector "
                 "LIMIT %s",
                 (query_vector, query_vector, limit),
@@ -620,7 +624,7 @@ def recommend_for_thesis(thesis_id, limit=5):
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
-                "WHERE t.status = 'published' AND t.id != %s "
+                "WHERE t.status IN ('published', 'approved') AND t.id != %s "
                 "ORDER BY e.embedding <=> %s::vector "
                 "LIMIT %s",
                 (source_embedding, thesis_id, source_embedding, limit),
