@@ -115,7 +115,7 @@ class AdminSidebar extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(CScholarRadius.md),
                 onTap: () {
                   ref.read(authProvider.notifier).logout();
-                  context.go('/');
+                  context.go('/login');
                 },
                 hoverColor: Colors.white.withValues(alpha: 0.1),
                 child: Padding(

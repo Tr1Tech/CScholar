@@ -59,6 +59,22 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   _sidebarItem(context, Icons.settings_outlined, 'Settings', '/faculty/settings'),
                   const Spacer(),
                   Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ListTile(
+                      leading: const Icon(Icons.logout, size: 20, color: Color(0xFFA7F3D0)),
+                      title: Text(
+                        'Log Out',
+                        style: CScholarTextStyles.inter(13, FontWeight.w500, const Color(0xFFA7F3D0)),
+                      ),
+                      dense: true,
+                      onTap: () {
+                        ref.read(authProvider.notifier).logout();
+                        context.go('/login');
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
                     padding: const EdgeInsets.all(20),
                     child: Row(
                       children: [

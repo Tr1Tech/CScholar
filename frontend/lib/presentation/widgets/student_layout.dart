@@ -145,7 +145,7 @@ class StudentLayout extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(CScholarRadius.md),
                 onTap: () {
                   ref.read(authProvider.notifier).logout();
-                  context.go('/');
+                  context.go('/login');
                 },
                 hoverColor: CScholarColors.sidebarHover,
                 child: Padding(
@@ -420,7 +420,7 @@ class StudentLayout extends ConsumerWidget {
                 title: Text('Log out', style: CScholarTextStyles.inter(14, FontWeight.w500, const Color(0xFFBBF7D0))),
                 onTap: () {
                   ref.read(authProvider.notifier).logout();
-                  context.go('/');
+                  context.go('/login');
                 },
               ),
             ],
