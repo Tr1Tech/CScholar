@@ -58,7 +58,7 @@ def login_required(fn):
             payload = decode_token(token)
         except Unauthorized:
             return jsonify({"error": "Invalid or expired token"}), 401
-        user = db.get_user_by_id(int(payload["sub"]))
+        user = get_user_by_id(int(payload["sub"]))
         if not user or not user["is_active"]:
             return jsonify({"error": "User not found or inactive"}), 401
         request.current_user = user
@@ -78,7 +78,7 @@ def admin_required(fn):
             payload = decode_token(token)
         except Unauthorized:
             return jsonify({"error": "Invalid or expired token"}), 401
-        user = db.get_user_by_id(int(payload["sub"]))
+        user = get_user_by_id(int(payload["sub"]))
         if not user or not user["is_active"]:
             return jsonify({"error": "User not found or inactive"}), 401
         if user["role"] != "admin":

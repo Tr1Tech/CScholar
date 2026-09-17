@@ -430,3 +430,46 @@ def semantic_search(query_vector, limit=10):
             ]
     finally:
         put_conn(conn)
+
+
+def recommend_for_thesis(thesis_id, limit=5):
+    """Find similar theses to a given thesis using its embedding."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Get the embedding of the source thesis
+            cur.execute(
+                "SELECT embedding FROM thesis_embeddings WHERE thesis_id = %s",
+                (thesis_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return []
+            source_embedding = row[0]
+
+            # Find similar theses (excluding the source itself)
+            cur.execute(
+                "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, t.status, "
+                "       1 - (e.embedding <=> %s::vector) AS similarity "
+                "FROM thesis_embeddings e "
+                "JOIN theses t ON e.thesis_id = t.id "
+                "WHERE t.status = 'published' AND t.id != %s "
+                "ORDER BY e.embedding <=> %s::vector "
+                "LIMIT %s",
+                (source_embedding, thesis_id, source_embedding, limit),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "title": r[1],
+                    "abstract": r[2],
+                    "research_type": r[3],
+                    "program_id": r[4],
+                    "status": r[5],
+                    "similarity": float(r[6]),
+                }
+                for r in rows
+            ]
+    finally:
+        put_conn(conn)

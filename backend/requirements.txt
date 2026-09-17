@@ -3,7 +3,7 @@ Flask==3.0.3
 Flask-CORS==4.0.1
 python-dotenv==1.0.1
 
-# Database: raw psycopg2 (no ORM)
+# Database: raw psycopg2
 psycopg[binary]==3.2.3
 pgvector==0.3.6
 

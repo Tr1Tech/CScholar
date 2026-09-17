@@ -1,7 +1,6 @@
-"""Connection pooling with raw psycopg (v3) — replaces Flask-SQLAlchemy."""
+"""Connection pooling with raw psycopg (v3)."""
 
 import os
-import psycopg
 import psycopg_pool
 
 _pool = None

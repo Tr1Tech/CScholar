@@ -255,8 +255,27 @@ final recentThesesProvider = FutureProvider.autoDispose<List<Thesis>>((ref) asyn
 });
 
 final recommendedThesesProvider = FutureProvider.autoDispose
-    .family<List<Thesis>, int>((ref, thesisId) async {
-  return ref.read(repositoryServiceProvider).getRecommendedTheses(thesisId, limit: 5);
+    .family<List<SemanticResult>, int>((ref, thesisId) async {
+  final api = ref.read(thesisApiProvider);
+  try {
+    final raw = await api.recommend(thesisId);
+    final out = <SemanticResult>[];
+    for (final e in raw) {
+      final m = e as Map<String, dynamic>;
+      try {
+        final detail = await ref.read(apiServiceProvider).get('/api/theses/${m['id']}');
+        out.add(SemanticResult(
+          thesis: Thesis.fromJson(detail as Map<String, dynamic>),
+          similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
+        ));
+      } catch (_) {
+        continue;
+      }
+    }
+    return out;
+  } catch (_) {
+    return [];
+  }
 });
 
 final programsProvider = FutureProvider.autoDispose<List<Program>>((ref) async {

@@ -224,13 +224,22 @@ class ThesisDetailScreen extends ConsumerWidget {
                               const SizedBox(height: 18),
                               recommendedAsync.when(
                                 data: (recs) {
-                                  final displayList = recs.isNotEmpty
-                                      ? recs.map((r) => {'title': r.title, 'sim': '78% similar', 'id': r.id}).toList()
-                                      : <Map<String, dynamic>>[
-                                          {'title': 'Indoor Positioning System for University Buildings', 'sim': '82% similar', 'id': 2},
-                                          {'title': 'Student Location Assistance System', 'sim': '70% similar', 'id': 3},
-                                          {'title': 'Campus Map and Directory Application', 'sim': '63% similar', 'id': 4},
-                                        ];
+                                  if (recs.isEmpty) {
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 24),
+                                        child: Text(
+                                          'No recommendations yet — generate embeddings for published theses first.',
+                                          style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  final displayList = recs.map((r) => {
+                                    'title': r.thesis.title,
+                                    'sim': '${(r.similarity * 100).round()}% similar',
+                                    'id': r.thesis.id,
+                                  }).toList();
 
                                   return Column(
                                     children: displayList.map((item) {

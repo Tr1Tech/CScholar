@@ -39,6 +39,28 @@ def get_thesis(id):
     return jsonify(thesis), 200
 
 
+@thesis_bp.route("/api/theses/<int:id>/recommend", methods=["GET"])
+def recommend_theses(id):
+    """Get recommended theses similar to the given thesis."""
+    from ..services.embeddings import embedding_service
+    
+    thesis = db.get_thesis_by_id(id)
+    if not thesis:
+        return jsonify({"error": "Thesis not found"}), 404
+
+    if not embedding_service.available:
+        return jsonify({"error": "Embedding service not available"}), 503
+
+    limit = request.args.get("limit", 5, type=int)
+    theses = db.recommend_for_thesis(id, limit=limit)
+
+    return jsonify({
+        "thesis_id": id,
+        "theses": theses,
+        "count": len(theses),
+    }), 200
+
+
 @thesis_bp.route("/api/theses", methods=["POST"])
 @admin_required
 def create_thesis():
