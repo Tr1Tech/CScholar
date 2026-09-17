@@ -40,6 +40,33 @@ def generate_embedding(thesis_id):
     }), 200
 
 
+@embedding_bp.route("/api/embeddings/generate-bulk", methods=["POST"])
+@admin_required
+def generate_bulk_embeddings():
+    """Generate embeddings for all published theses missing them."""
+    if not embedding_service.available:
+        return jsonify({"error": "Embedding service not available"}), 503
+    
+    theses = db.list_theses(status="published")
+    generated = 0
+    for t in theses["theses"]:
+        tid = t["id"]
+        existing = db.get_thesis_embedding(tid)
+        if not existing:
+            text = f"{t['title']}. {t['abstract']}"
+            vector = embedding_service.embed(text)
+            if vector is not None:
+                db.upsert_thesis_embedding(
+                    thesis_id=tid,
+                    chunk_text=text[:1000],
+                    embedding_vector=vector,
+                    model_name=embedding_service.model_name,
+                )
+                generated += 1
+    
+    return jsonify({"generated": generated, "total": len(theses["theses"])}), 200
+
+
 @embedding_bp.route("/api/embeddings/search", methods=["POST"])
 @login_required
 def search():

@@ -371,6 +371,21 @@ def list_advisers():
 
 # ── Thesis Embeddings ──────────────────────────────────────────────────────
 
+def get_thesis_embedding(thesis_id):
+    """Get existing embedding for a thesis, or None."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM thesis_embeddings WHERE thesis_id = %s",
+                (thesis_id,),
+            )
+            row = cur.fetchone()
+            return row is not None
+    finally:
+        put_conn(conn)
+
+
 def upsert_thesis_embedding(thesis_id, chunk_text, embedding_vector, model_name):
     """Insert or update embedding for a thesis."""
     conn = get_conn()

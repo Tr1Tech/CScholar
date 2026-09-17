@@ -119,6 +119,23 @@ def create_thesis():
         creator_id=request.current_user["id"],
         status=data.get("status", "draft"),
     )
+
+    # Auto-generate embedding if service is available (best-effort)
+    try:
+        from ..services.embeddings import embedding_service
+        if embedding_service.available:
+            text = f"{data['title']}. {data['abstract']}"
+            vector = embedding_service.embed(text)
+            if vector is not None:
+                db.upsert_thesis_embedding(
+                    thesis_id=thesis_id,
+                    chunk_text=text[:1000],
+                    embedding_vector=vector,
+                    model_name=embedding_service.model_name,
+                )
+    except Exception:
+        pass  # Never block thesis creation on embedding failure
+
     thesis = db.get_thesis_by_id(thesis_id)
     return jsonify(thesis), 201
 
