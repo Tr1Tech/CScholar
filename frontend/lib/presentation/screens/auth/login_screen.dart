@@ -273,8 +273,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _demoButton('Student', 'testuser2', CScholarColors.primaryGreen),
-                      _demoButton('Admin', 'admin1', CScholarColors.orange),
+                      _demoButton('Student', 'student@csu.edu.ph', CScholarColors.primaryGreen),
+                      _demoButton('Admin', 'admin@csu.edu.ph', CScholarColors.orange),
                     ],
                   ),
                 ],

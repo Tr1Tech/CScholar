@@ -19,11 +19,10 @@ INSERT INTO programs (name, code, description) VALUES
     ('BS Computer Science', 'BSCS', 'Bachelor of Science in Computer Science'),
     ('BS Information Systems', 'BSIS', 'Bachelor of Science in Information Systems');
 
--- ---- Sample users (passwords are placeholders; hash in Phase 4) ----
+-- ---- Sample users (passwords hashed with bcrypt) ----
 INSERT INTO users (username, email, password_hash, role, is_active) VALUES
-    ('admin.ceit', 'admin@ceit.csu.edu.ph', 'PLACEHOLDER_HASH', 'admin', TRUE),
-    ('jdelarmente', 'radj.delarmente@csu.edu.ph', 'PLACEHOLDER_HASH', 'student', TRUE),
-    ('prof.reyes', 'm.reyes@ceit.csu.edu.ph', 'PLACEHOLDER_HASH', 'faculty', TRUE);
+    ('admin1', 'admin@csu.edu.ph', '$2b$12$Rmhymh.tQ/fbl5K8wfDdfOuHithKtwHLBg1wkDbIGBFVYku6JZ2h.', 'admin', TRUE),
+    ('testuser2', 'student@csu.edu.ph', '$2b$12$/.IWBgqCLcdczXjFk0c7cefQKp8NMHWjeXb1A16lIRNneuQIzvoaO', 'student', TRUE);
 
 -- ---- Categories ----
 INSERT INTO categories (name, description) VALUES
