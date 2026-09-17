@@ -251,7 +251,14 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
 }
 
 final recentThesesProvider = FutureProvider.autoDispose<List<Thesis>>((ref) async {
-  return ref.read(repositoryServiceProvider).getRecentTheses(limit: 5);
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/theses');
+    final List<dynamic> raw = data['theses'] as List<dynamic>;
+    return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return ref.read(repositoryServiceProvider).getRecentTheses(limit: 5);
+  }
 });
 
 final recommendedThesesProvider = FutureProvider.autoDispose

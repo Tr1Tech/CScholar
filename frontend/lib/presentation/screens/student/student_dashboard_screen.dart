@@ -180,7 +180,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     final isMultiCol = constraints.maxWidth > 880;
 
                     final leftCol = _recentStudiesCard(recentTheses);
-                    final rightCol = _recommendedStudiesCard();
+                    final recommendedTheses = ref.watch(recommendedThesesProvider(1));
+                    final rightCol = _recommendedStudiesCard(recommendedTheses);
 
                     if (isMultiCol) {
                       return Row(
@@ -383,14 +384,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     );
   }
 
-  Widget _recommendedStudiesCard() {
-    final recommendations = [
-      {'title': 'Campus Navigation and Room Locator', 'program': 'BSIT', 'year': '2024 - 2025', 'match': '96%', 'id': 1},
-      {'title': 'Indoor Positioning System for University Buildings', 'program': 'BSCS', 'year': '2023 - 2024', 'match': '87%', 'id': 2},
-      {'title': 'AI-Based Attendance Monitoring System', 'program': 'BSIT', 'year': '2024 - 2025', 'match': '82%', 'id': 3},
-      {'title': 'Faculty Workload and Evaluation System', 'program': 'BSIS', 'year': '2023 - 2024', 'match': '78%', 'id': 4},
-    ];
-
+  Widget _recommendedStudiesCard(AsyncValue<List<SemanticResult>> recommended) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -423,67 +417,94 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           ),
           const Divider(color: CScholarColors.borderLight, height: 16),
           const SizedBox(height: 6),
-          ...recommendations.map((rec) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(CScholarRadius.md),
-                onTap: () => context.go('/thesis/${rec['id']}'),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    borderRadius: BorderRadius.circular(CScholarRadius.md),
-                    border: Border.all(color: const Color(0xFFF1F5F9)),
+          recommended.when(
+            data: (recs) {
+              if (recs.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'No recommendations — generate embeddings first.',
+                      style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
+                );
+              }
+              return Column(
+                children: recs.take(4).map((r) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(CScholarRadius.md),
+                      onTap: () => context.go('/thesis/${r.thesis.id}'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(CScholarRadius.md),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
-                        child: const Icon(Icons.auto_awesome, size: 18, color: Color(0xFFD97706)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              rec['title'] as String,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                              ),
+                              child: const Icon(Icons.auto_awesome, size: 18, color: Color(0xFFD97706)),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${rec['program']} • ${rec['year']}',
-                              style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    r.thesis.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${r.thesis.program?.name ?? 'CEIT'} • ${(r.similarity * 100).round()}% match',
+                                    style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: CScholarColors.primaryGreenVeryLight,
+                                borderRadius: BorderRadius.circular(CScholarRadius.full),
+                                border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                '${(r.similarity * 100).round()}%',
+                                style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: CScholarColors.primaryGreenVeryLight,
-                          borderRadius: BorderRadius.circular(CScholarRadius.full),
-                          border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          rec['match'] as String,
-                          style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+            error: (_, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'Recommendations unavailable',
+                  style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
                 ),
               ),
-            );
-          }),
+            ),
+          ),
         ],
       ),
     );
