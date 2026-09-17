@@ -496,6 +496,94 @@ def semantic_search(query_vector, limit=10):
         put_conn(conn)
 
 
+def get_faculty_stats(user_id):
+    """Get faculty-specific dashboard statistics."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            # Count theses where this user is an adviser
+            cur.execute(
+                "SELECT COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "WHERE ta.adviser_id = %s",
+                (user_id,),
+            )
+            total_theses = cur.fetchone()[0]
+
+            # Count distinct advisees (authors of advised theses)
+            cur.execute(
+                "SELECT COUNT(DISTINCT ta2.author_id) FROM thesis_advisers tadv "
+                "JOIN thesis_authors ta2 ON tadv.thesis_id = ta2.thesis_id "
+                "WHERE tadv.adviser_id = %s",
+                (user_id,),
+            )
+            total_advisees = cur.fetchone()[0] or 0
+
+            # Count published theses
+            cur.execute(
+                "SELECT COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "WHERE ta.adviser_id = %s AND t.status = 'published'",
+                (user_id,),
+            )
+            published = cur.fetchone()[0]
+
+            # Active projects (theses with status != 'published')
+            cur.execute(
+                "SELECT COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "WHERE ta.adviser_id = %s AND t.status != 'published'",
+                (user_id,),
+            )
+            active_projects = cur.fetchone()[0]
+
+            return {
+                "theses": total_theses,
+                "advisees": total_advisees,
+                "published": published,
+                "active_projects": active_projects,
+                "programs": 3,
+                "pending_reviews": active_projects,
+                "completed_reviews": published,
+            }
+    finally:
+        put_conn(conn)
+
+
+def get_faculty_activity(user_id, limit=10):
+    """Get activity for a faculty's advisees."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT t.id, t.title, t.created_at, t.status, "
+                "       p.name as program_name, "
+                "       'Thesis update: ' || t.title as activity_type, "
+                "       'Status: ' || t.status || ' • Program: ' || p.name as subtitle "
+                "FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN programs p ON t.program_id = p.id "
+                "WHERE ta.adviser_id = %s "
+                "ORDER BY t.updated_at DESC LIMIT %s",
+                (user_id, limit),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "id": r[0],
+                    "title": r[1],
+                    "created_at": r[2].isoformat() if r[2] else None,
+                    "status": r[3],
+                    "program": r[4],
+                    "activity_type": r[5],
+                    "subtitle": r[6],
+                }
+                for r in rows
+            ]
+    finally:
+        put_conn(conn)
+
+
 def recommend_for_thesis(thesis_id, limit=5):
     """Find similar theses to a given thesis using its embedding."""
     conn = get_conn()

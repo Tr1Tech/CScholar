@@ -18,6 +18,7 @@ import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -41,16 +42,23 @@ final appRouter = Provider<GoRouter>((ref) {
 
       // Signed in: don't let them sit on login/register/landing
       if (loggingIn) {
-        return role == 'admin' ? '/admin/dashboard' : '/student/dashboard';
-      }
-
-      // Student trying to access admin routes: bounce to student dashboard
-      if (role != 'admin' && loc.startsWith('/admin')) {
+        if (role == 'admin') return '/admin/dashboard';
+        if (role == 'faculty') return '/faculty/dashboard';
         return '/student/dashboard';
       }
 
-      // Admin trying to access student routes: bounce to admin dashboard
-      if (role == 'admin' && (loc.startsWith('/student') || loc == '/repository' || loc == '/saved' || loc == '/profile')) {
+      // Student trying to access admin/faculty routes
+      if (role != 'admin' && role != 'faculty' && (loc.startsWith('/admin') || loc.startsWith('/faculty'))) {
+        return '/student/dashboard';
+      }
+
+      // Faculty trying to access admin routes
+      if (role == 'faculty' && loc.startsWith('/admin')) {
+        return '/faculty/dashboard';
+      }
+
+      // Admin trying to access student/faculty routes
+      if (role == 'admin' && (loc.startsWith('/student') || loc.startsWith('/faculty') || loc == '/repository' || loc == '/saved' || loc == '/profile')) {
         return '/admin/dashboard';
       }
 
@@ -159,6 +167,33 @@ final appRouter = Provider<GoRouter>((ref) {
             ),
           ),
         ),
+      ),
+
+      // Faculty routes
+      GoRoute(
+        path: '/faculty/dashboard',
+        builder: (context, state) => const FacultyDashboardScreen(),
+        redirect: (context, state) {
+          final role = GoRouterState.of(context).extra as String?;
+          if (role == 'admin') return '/admin/dashboard';
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/faculty/theses',
+        builder: (context, state) => const FacultyDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/students',
+        builder: (context, state) => const FacultyDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/analytics',
+        builder: (context, state) => const FacultyDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/settings',
+        builder: (context, state) => const FacultyDashboardScreen(),
       ),
     ],
   );

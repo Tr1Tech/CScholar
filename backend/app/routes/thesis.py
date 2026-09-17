@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 from .. import models as db
-from ..auth import admin_required
+from ..auth import login_required, admin_required
 
 thesis_bp = Blueprint("thesis", __name__)
 
@@ -70,11 +70,30 @@ def dashboard_stats():
 
 
 @thesis_bp.route("/api/dashboard/recent-activity", methods=["GET"])
-@admin_required
+@login_required
 def dashboard_recent_activity():
-    """Get recent activity for the admin dashboard."""
+    """Get recent activity for dashboards."""
     limit = request.args.get("limit", 10, type=int)
     activity = db.recent_activity(limit=limit)
+    return jsonify({"activity": activity}), 200
+
+
+@thesis_bp.route("/api/faculty/dashboard", methods=["GET"])
+@login_required
+def faculty_dashboard():
+    """Get faculty-specific dashboard data."""
+    user_id = request.current_user["id"]
+    stats = db.get_faculty_stats(user_id)
+    return jsonify(stats), 200
+
+
+@thesis_bp.route("/api/faculty/activity", methods=["GET"])
+@login_required
+def faculty_activity():
+    """Get activity for the current faculty's advisees."""
+    user_id = request.current_user["id"]
+    limit = request.args.get("limit", 10, type=int)
+    activity = db.get_faculty_activity(user_id, limit=limit)
     return jsonify({"activity": activity}), 200
 
 

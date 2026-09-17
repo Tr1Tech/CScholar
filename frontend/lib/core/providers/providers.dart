@@ -356,6 +356,35 @@ final recentActivityProvider = FutureProvider.autoDispose<List<Map<String, dynam
   }
 });
 
+final facultyStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/faculty/dashboard');
+    return Map<String, dynamic>.from(data as Map);
+  } catch (_) {
+    return {
+      'theses': 0,
+      'advisees': 0,
+      'published': 0,
+      'active_projects': 0,
+      'programs': 3,
+      'pending_reviews': 0,
+      'completed_reviews': 0,
+    };
+  }
+});
+
+final facultyActivityProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/faculty/activity');
+    final List<dynamic> raw = data['activity'] as List<dynamic>;
+    return raw.cast<Map<String, dynamic>>();
+  } catch (_) {
+    return [];
+  }
+});
+
 // Simple state notifier for saved theses
 final savedThesesProvider =
     NotifierProvider<SavedThesesNotifier, List<Thesis>>(() => SavedThesesNotifier());
