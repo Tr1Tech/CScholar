@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/services/api_service.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -25,6 +27,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   String _adviser = 'Engr. Roberto Garcia';
   String _category = 'Mobile Application';
   String? _uploadedFileName;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -35,12 +38,121 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Thesis manuscript registered and indexed successfully!')),
+    if (_isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+
+    final api = ref.read(thesisApiProvider);
+    final payload = ThesisFormPayload(
+      title: _titleCtrl.text.trim(),
+      abstract_: _abstractCtrl.text.trim(),
+      programId: _programIdFor(_program),
+      academicYearId: _yearIdFor(_year),
+      researchTypeId: _researchTypeIdFor(_researchType),
+      authorIds: _authorIdsFor(_authorsCtrl.text.trim()),
+      adviserId: _adviserIdFor(_adviser),
+      categoryIds: _categoryIdsFor(_category),
+      keywordTerms: _keywordsCtrl.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      pdfUrl: _uploadedFileName,
     );
-    context.go('/admin/dashboard');
+
+    try {
+      if (widget.thesisId != null) {
+        await api.update(widget.thesisId!, payload);
+      } else {
+        await api.create(payload);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thesis manuscript registered and indexed successfully!')),
+      );
+      context.go('/admin/dashboard');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  int _programIdFor(String program) {
+    switch (program) {
+      case 'BS Computer Science':
+        return 2;
+      case 'BS Information Systems':
+        return 3;
+      case 'BS Information Technology':
+      default:
+        return 1;
+    }
+  }
+
+  int _yearIdFor(String year) {
+    switch (year) {
+      case '2023 - 2024':
+        return 2;
+      case '2022 - 2023':
+        return 3;
+      case '2024 - 2025':
+      default:
+        return 1;
+    }
+  }
+
+  int _researchTypeIdFor(String type) {
+    switch (type) {
+      case 'Capstone Project':
+        return 2;
+      case 'Thesis':
+        return 3;
+      case 'Applied Research':
+      default:
+        return 1;
+    }
+  }
+
+  int _adviserIdFor(String adviser) {
+    switch (adviser) {
+      case 'Dr. Alan Turing':
+        return 2;
+      case 'Prof. Clara Santos, MIT':
+        return 3;
+      case 'Engr. Roberto Garcia':
+      default:
+        return 1;
+    }
+  }
+
+  List<int> _authorIdsFor(String authors) {
+    // Map comma-separated author names to IDs (placeholder: assign ID 1 to first author, etc.)
+    // In production, this would resolve via a search/lookup API.
+    final names = authors.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return List.generate(names.length, (i) => i + 1);
+  }
+
+  List<int> _categoryIdsFor(String category) {
+    switch (category) {
+      case 'Machine Learning / AI':
+        return [2];
+      case 'Web-based System':
+        return [3];
+      case 'IoT & Automation':
+        return [4];
+      case 'Mobile Application':
+      default:
+        return [1];
+    }
   }
 
   @override
@@ -419,14 +531,23 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                         ),
                                         const SizedBox(width: 12),
                                         FilledButton.icon(
-                                          onPressed: _submit,
+                                          onPressed: _isSubmitting ? null : _submit,
                                           style: FilledButton.styleFrom(
                                             backgroundColor: CScholarColors.primaryGreen,
                                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                                           ),
-                                          icon: const Icon(Icons.check, size: 18),
-                                          label: Text('Submit Thesis / Capstone', style: CScholarTextStyles.inter(13.5, FontWeight.w700, Colors.white)),
+                                          icon: _isSubmitting
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                                )
+                                              : const Icon(Icons.check, size: 18),
+                                          label: Text(
+                                            _isSubmitting ? 'Submitting...' : 'Submit Thesis / Capstone',
+                                            style: CScholarTextStyles.inter(13.5, FontWeight.w700, Colors.white),
+                                          ),
                                         ),
                                       ],
                                     ),

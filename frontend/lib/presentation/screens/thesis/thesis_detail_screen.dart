@@ -42,12 +42,12 @@ class ThesisDetailScreen extends ConsumerWidget {
 
           final authorsStr = thesis.authors != null && thesis.authors!.isNotEmpty
               ? thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', ')
-              : 'Juan Dela Cruz, Maria Santos';
+              : 'No authors listed';
           final programStr = thesis.program?.name ?? 'BS Information Technology';
           final yearStr = thesis.academicYear?.label ?? '2024 - 2025';
           final adviserStr = thesis.advisers != null && thesis.advisers!.isNotEmpty
               ? thesis.advisers!.first.fullName
-              : 'Engr. Roberto Garcia';
+              : 'No adviser assigned';
 
           return SingleChildScrollView(
             child: Column(
@@ -166,7 +166,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                           Text(
                             thesis.abstract.isNotEmpty
                                 ? thesis.abstract
-                                : 'This study presents a mobile application that helps students find classrooms and navigate within the campus using indoor positioning and interactive maps. The system utilizes GPS, Wi-Fi, and Bluetooth low-energy (BLE) beacons to provide accurate location tracking and real-time step-by-step navigation to various buildings, laboratories, and rooms across the university campus.',
+                                : 'Abstract not available for this thesis.',
                             textAlign: TextAlign.justify,
                             style: CScholarTextStyles.inter(
                               14.5,
@@ -196,12 +196,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                 ? thesis.keywords!
                                     .map((k) => _keywordChip(k.term))
                                     .toList()
-                                : [
-                                    _keywordChip('campus navigation'),
-                                    _keywordChip('indoor positioning'),
-                                    _keywordChip('mobile application'),
-                                    _keywordChip('GPS'),
-                                  ],
+                                : <Widget>[],
                           ),
 
                           const SizedBox(height: 40),

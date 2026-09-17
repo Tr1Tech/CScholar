@@ -141,7 +141,7 @@ class AdminThesisManagementScreen extends ConsumerWidget {
     );
   }
 
-  void _deleteThesis(BuildContext context, WidgetRef ref, Thesis thesis) {
+  Future<void> _deleteThesis(BuildContext context, WidgetRef ref, Thesis thesis) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -150,10 +150,19 @@ class AdminThesisManagementScreen extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
-            onPressed: () {
-              ref.read(repositoryServiceProvider).deleteThesis(thesis.id);
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thesis deleted')));
+              try {
+                await ref.read(thesisApiProvider).delete(thesis.id);
+                ref.invalidate(thesisListProvider(const ThesisListParams()));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thesis deleted')));
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete thesis: $e')));
+                }
+              }
             },
             style: FilledButton.styleFrom(backgroundColor: CScholarColors.error),
             child: const Text('Delete'),
