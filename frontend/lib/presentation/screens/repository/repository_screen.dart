@@ -571,6 +571,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             return DropdownButtonFormField<T>(
               initialValue: value,
               isDense: true,
+              isExpanded: true,
               style: CScholarTextStyles.inter(
                   13, FontWeight.w400, CScholarColors.textPrimary),
               items: menuItems,
@@ -618,6 +619,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         DropdownButtonFormField<T>(
           initialValue: value,
           isDense: true,
+          isExpanded: true,
           style: CScholarTextStyles.inter(
               13, FontWeight.w400, CScholarColors.textPrimary),
           items: items.entries
