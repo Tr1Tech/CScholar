@@ -17,15 +17,14 @@ def register():
     username = data.get("username", "").strip()
     email = data.get("email", "").strip()
     password = data.get("password", "")
-    role = data.get("role", "student")
+    # Public registration must never be able to grant elevated access.
+    # Faculty and administrator accounts are provisioned by an administrator.
+    role = "student"
 
     if not username or not email or not password:
         return jsonify({"error": "Username, email, and password are required"}), 400
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
-    if role not in ("student", "faculty", "admin"):
-        return jsonify({"error": "Invalid role"}), 400
-
     # Check duplicates
     existing = db.user_exists(username, email)
     if existing:

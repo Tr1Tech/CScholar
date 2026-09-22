@@ -11,7 +11,8 @@
 --   psql -U postgres -d cscholar -f seed.sql
 -- =============================================================
 
--- 0. Point all objects at the ceit_repo schema.
+-- 0. Create and point all objects at the ceit_repo schema.
+CREATE SCHEMA IF NOT EXISTS ceit_repo;
 SET search_path TO ceit_repo;
 
 -- Enable the pgvector extension (must be installed in Postgres first)
@@ -109,7 +110,7 @@ CREATE TABLE categories (
 
 -- 10. thesis_categories (N:N) ---------------------------------
 CREATE TABLE thesis_categories (
-    thesis_id   INTEGER NOT NULL REFERENCES theses(id) ON DELETE CASCADE,
+    thesis_id   INTEGER NOT NULL UNIQUE REFERENCES theses(id) ON DELETE CASCADE,
     category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     PRIMARY KEY (thesis_id, category_id)
 );

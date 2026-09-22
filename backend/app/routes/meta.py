@@ -34,3 +34,8 @@ def list_authors():
 @meta_bp.route("/api/advisers", methods=["GET"])
 def list_advisers():
     return jsonify(db.list_advisers()), 200
+
+
+@meta_bp.route("/api/research-types", methods=["GET"])
+def list_research_types():
+    return jsonify(["Thesis", "Capstone"]), 200

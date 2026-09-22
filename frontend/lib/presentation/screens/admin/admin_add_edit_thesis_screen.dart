@@ -22,8 +22,8 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   final _keywordsCtrl = TextEditingController();
 
   String _program = 'BS Information Technology';
-  String _year = '2024 - 2025';
-  String _researchType = 'Applied Research';
+  String _year = '2025 - 2026';
+  String _researchType = 'Capstone';
   String _adviser = 'Engr. Roberto Garcia';
   String _category = 'Mobile Application';
   String? _uploadedFileName;
@@ -50,7 +50,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       abstract_: _abstractCtrl.text.trim(),
       programId: _programIdFor(_program),
       academicYearId: _yearIdFor(_year),
-      researchTypeId: _researchTypeIdFor(_researchType),
+      researchType: _researchType,
       authorIds: _authorIdsFor(_authorsCtrl.text.trim()),
       adviserId: _adviserIdFor(_adviser),
       categoryIds: _categoryIdsFor(_category),
@@ -104,19 +104,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return 2;
       case '2022 - 2023':
         return 3;
-      case '2024 - 2025':
-      default:
-        return 1;
-    }
-  }
-
-  int _researchTypeIdFor(String type) {
-    switch (type) {
-      case 'Capstone Project':
-        return 2;
-      case 'Thesis':
-        return 3;
-      case 'Applied Research':
+      case '2025 - 2026':
       default:
         return 1;
     }
@@ -346,9 +334,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                               DropdownButtonFormField<String>(
                                                 initialValue: _year,
                                                 items: const [
-                                                  DropdownMenuItem(value: '2024 - 2025', child: Text('2024 - 2025')),
-                                                  DropdownMenuItem(value: '2023 - 2024', child: Text('2023 - 2024')),
-                                                  DropdownMenuItem(value: '2022 - 2023', child: Text('2022 - 2023')),
+                                                  DropdownMenuItem(value: '2025 - 2026', child: Text('2025 - 2026')),
                                                 ],
                                                 onChanged: (v) => setState(() => _year = v!),
                                               ),
@@ -372,8 +358,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                               DropdownButtonFormField<String>(
                                                 initialValue: _researchType,
                                                 items: const [
-                                                  DropdownMenuItem(value: 'Applied Research', child: Text('Applied Research')),
-                                                  DropdownMenuItem(value: 'Capstone Project', child: Text('Capstone Project')),
+                                                  DropdownMenuItem(value: 'Capstone', child: Text('Capstone')),
                                                   DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
                                                 ],
                                                 onChanged: (v) => setState(() => _researchType = v!),

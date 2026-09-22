@@ -7,6 +7,17 @@ from ..auth import login_required, admin_required
 thesis_bp = Blueprint("thesis", __name__)
 
 
+def _pagination_args():
+    """Return validated pagination parameters or an error response."""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    if page is None or page < 1:
+        return None, jsonify({"error": "page must be a positive integer"}), 400
+    if per_page is None or not 1 <= per_page <= 100:
+        return None, jsonify({"error": "per_page must be between 1 and 100"}), 400
+    return (page, per_page), None, None
+
+
 @thesis_bp.route("/api/theses", methods=["GET"])
 def list_theses():
     """List theses with optional filters."""
@@ -18,8 +29,10 @@ def list_theses():
     if not status:
         status = ['published', 'approved']
     
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+    pagination, error, status_code = _pagination_args()
+    if error:
+        return error, status_code
+    page, per_page = pagination
 
     result = db.list_theses(
         q=q,
@@ -55,6 +68,8 @@ def recommend_theses(id):
         return jsonify({"error": "Embedding service not available"}), 503
 
     limit = request.args.get("limit", 5, type=int)
+    if limit is None or not 1 <= limit <= 20:
+        return jsonify({"error": "limit must be between 1 and 20"}), 400
     theses = db.recommend_for_thesis(id, limit=limit)
 
     return jsonify({
@@ -85,8 +100,9 @@ def dashboard_recent_activity():
 @login_required
 def faculty_dashboard():
     """Get faculty-specific dashboard data."""
-    user_id = request.current_user["id"]
-    stats = db.get_faculty_stats(user_id)
+    if request.current_user["role"] != "faculty":
+        return jsonify({"error": "Faculty access required"}), 403
+    stats = db.get_faculty_stats(request.current_user["email"])
     return jsonify(stats), 200
 
 
@@ -94,9 +110,12 @@ def faculty_dashboard():
 @login_required
 def faculty_activity():
     """Get activity for the current faculty's advisees."""
-    user_id = request.current_user["id"]
     limit = request.args.get("limit", 10, type=int)
-    activity = db.get_faculty_activity(user_id, limit=limit)
+    if request.current_user["role"] != "faculty":
+        return jsonify({"error": "Faculty access required"}), 403
+    if limit is None or not 1 <= limit <= 100:
+        return jsonify({"error": "limit must be between 1 and 100"}), 400
+    activity = db.get_faculty_activity(request.current_user["email"], limit=limit)
     return jsonify({"activity": activity}), 200
 
 
@@ -121,6 +140,10 @@ def create_thesis():
         academic_year_id=data["academic_year_id"],
         creator_id=request.current_user["id"],
         status=data.get("status", "draft"),
+        author_ids=data.get("author_ids"),
+        adviser_id=data.get("adviser_id"),
+        category_ids=data.get("category_ids"),
+        keyword_terms=data.get("keyword_terms"),
     )
 
     # Auto-generate embedding if service is available (best-effort)

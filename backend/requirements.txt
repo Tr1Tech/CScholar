@@ -4,7 +4,8 @@ Flask-CORS==4.0.1
 python-dotenv==1.0.1
 
 # Database: raw psycopg2
-psycopg[binary]==3.2.3
+psycopg[binary]==3.2.10
+psycopg-pool==3.2.6
 pgvector==0.3.6
 
 # File handling + AI

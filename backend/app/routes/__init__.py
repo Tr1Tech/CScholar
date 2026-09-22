@@ -8,3 +8,4 @@ from .meta import meta_bp
 from .upload import upload_bp
 from .ocr import ocr_bp
 from .embedding import embedding_bp
+from .swagger import swagger_bp

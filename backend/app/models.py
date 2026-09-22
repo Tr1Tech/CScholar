@@ -161,6 +161,123 @@ def serialize_thesis(row, detailed=False):
     return data
 
 
+def _load_thesis_relations(cur, thesis_id):
+    """Load authors, advisers, categories, and keywords for one thesis."""
+    thesis_id = int(thesis_id)
+    cur.execute(
+        "SELECT a.id, a.first_name, a.middle_name, a.last_name, a.email, a.created_at "
+        "FROM thesis_authors ta JOIN authors a ON ta.author_id = a.id "
+        "WHERE ta.thesis_id = %s ORDER BY ta.order_index",
+        (thesis_id,),
+    )
+    authors = [
+        {
+            "id": r[0],
+            "first_name": r[1],
+            "middle_name": r[2],
+            "last_name": r[3],
+            "email": r[4],
+            "created_at": r[5].isoformat() if r[5] else None,
+        }
+        for r in cur.fetchall()
+    ]
+
+    cur.execute(
+        "SELECT a.id, a.first_name, a.middle_name, a.last_name, a.email, a.created_at "
+        "FROM thesis_advisers ta JOIN advisers a ON ta.adviser_id = a.id "
+        "WHERE ta.thesis_id = %s",
+        (thesis_id,),
+    )
+    advisers = [
+        {
+            "id": r[0],
+            "first_name": r[1],
+            "middle_name": r[2],
+            "last_name": r[3],
+            "email": r[4],
+            "created_at": r[5].isoformat() if r[5] else None,
+        }
+        for r in cur.fetchall()
+    ]
+
+    cur.execute(
+        "SELECT c.id, c.name, c.description, c.created_at "
+        "FROM thesis_categories tc JOIN categories c ON tc.category_id = c.id "
+        "WHERE tc.thesis_id = %s",
+        (thesis_id,),
+    )
+    categories = [
+        {
+            "id": r[0],
+            "name": r[1],
+            "description": r[2],
+            "created_at": r[3].isoformat() if r[3] else None,
+        }
+        for r in cur.fetchall()
+    ]
+
+    cur.execute(
+        "SELECT k.id, k.term, k.created_at "
+        "FROM thesis_keywords tk JOIN keywords k ON tk.keyword_id = k.id "
+        "WHERE tk.thesis_id = %s",
+        (thesis_id,),
+    )
+    keywords = [
+        {
+            "id": r[0],
+            "term": r[1],
+            "created_at": r[2].isoformat() if r[2] else None,
+        }
+        for r in cur.fetchall()
+    ]
+
+    return {"authors": authors, "advisers": advisers, "categories": categories, "keywords": keywords}
+
+
+def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None):
+    """Replace author/adviser/category/keyword links for a thesis."""
+    if author_ids is not None:
+        cur.execute("DELETE FROM thesis_authors WHERE thesis_id = %s", (thesis_id,))
+        for idx, aid in enumerate(author_ids, start=1):
+            cur.execute(
+                "INSERT INTO thesis_authors (thesis_id, author_id, order_index) VALUES (%s, %s, %s) "
+                "ON CONFLICT (thesis_id, author_id) DO UPDATE SET order_index = EXCLUDED.order_index",
+                (thesis_id, int(aid), idx),
+            )
+
+    if adviser_id is not None:
+        cur.execute("DELETE FROM thesis_advisers WHERE thesis_id = %s", (thesis_id,))
+        cur.execute(
+            "INSERT INTO thesis_advisers (thesis_id, adviser_id) VALUES (%s, %s) "
+            "ON CONFLICT (thesis_id, adviser_id) DO NOTHING",
+            (thesis_id, int(adviser_id)),
+        )
+
+    if category_ids is not None:
+        cur.execute("DELETE FROM thesis_categories WHERE thesis_id = %s", (thesis_id,))
+        for cid in category_ids:
+            cur.execute(
+                "INSERT INTO thesis_categories (thesis_id, category_id) VALUES (%s, %s) "
+                "ON CONFLICT (thesis_id, category_id) DO NOTHING",
+                (thesis_id, int(cid)),
+            )
+
+    if keyword_terms is not None:
+        cur.execute("DELETE FROM thesis_keywords WHERE thesis_id = %s", (thesis_id,))
+        for term in keyword_terms:
+            term = str(term).strip()
+            if not term:
+                continue
+            cur.execute("INSERT INTO keywords (term) VALUES (%s) ON CONFLICT (term) DO NOTHING", (term,))
+            cur.execute("SELECT id FROM keywords WHERE term = %s", (term,))
+            kid = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO thesis_keywords (thesis_id, keyword_id) VALUES (%s, %s) "
+                "ON CONFLICT (thesis_id, keyword_id) DO NOTHING",
+                (thesis_id, kid),
+            )
+
+
 def get_thesis_by_id(thesis_id):
     conn = get_conn()
     try:
@@ -179,7 +296,9 @@ def get_thesis_by_id(thesis_id):
             row = cur.fetchone()
             if not row:
                 return None
-            return serialize_thesis(row, detailed=True)
+            data = serialize_thesis(row, detailed=True)
+            data.update(_load_thesis_relations(cur, thesis_id))
+            return data
     finally:
         put_conn(conn)
 
@@ -235,6 +354,11 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
             rows = cur.fetchall()
             theses = [serialize_thesis(row) for row in rows]
 
+            thesis_ids = [t["id"] for t in theses]
+            if thesis_ids:
+                for t in theses:
+                    t.update(_load_thesis_relations(cur, t["id"]))
+
             return {
                 "theses": theses,
                 "total": total,
@@ -246,7 +370,8 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
         put_conn(conn)
 
 
-def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft"):
+def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft",
+                  author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -256,6 +381,13 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
                 (title, abstract, research_type, program_id, academic_year_id, status, creator_id),
             )
             thesis_id = cur.fetchone()[0]
+            _persist_thesis_relations(
+                cur, thesis_id,
+                author_ids=author_ids,
+                adviser_id=adviser_id,
+                category_ids=category_ids,
+                keyword_terms=keyword_terms,
+            )
         conn.commit()
         return thesis_id
     except Exception:
@@ -268,18 +400,26 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
 def update_thesis(thesis_id, **kwargs):
     allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status"}
     fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
-    if not fields:
-        return
 
-    set_clause = ", ".join(f"{k} = %s" for k in fields)
-    params = list(fields.values()) + [thesis_id]
+    author_ids = kwargs.get("author_ids") if isinstance(kwargs.get("author_ids"), list) else None
+    adviser_id = kwargs.get("adviser_id")
+    category_ids = kwargs.get("category_ids") if isinstance(kwargs.get("category_ids"), list) else None
+    keyword_terms = kwargs.get("keyword_terms") if isinstance(kwargs.get("keyword_terms"), list) else None
 
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                f"UPDATE theses SET {set_clause} WHERE id = %s",
-                params,
+            if fields:
+                set_clause = ", ".join(f"{k} = %s" for k in fields)
+                params = list(fields.values()) + [thesis_id]
+                cur.execute(f"UPDATE theses SET {set_clause} WHERE id = %s", params)
+
+            _persist_thesis_relations(
+                cur, thesis_id,
+                author_ids=author_ids,
+                adviser_id=adviser_id,
+                category_ids=category_ids,
+                keyword_terms=keyword_terms,
             )
         conn.commit()
     except Exception:
@@ -515,7 +655,7 @@ def semantic_search(query_vector, limit=10):
         put_conn(conn)
 
 
-def get_faculty_stats(user_id):
+def get_faculty_stats(email):
     """Get faculty-specific dashboard statistics."""
     conn = get_conn()
     try:
@@ -524,8 +664,9 @@ def get_faculty_stats(user_id):
             cur.execute(
                 "SELECT COUNT(*) FROM theses t "
                 "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
-                "WHERE ta.adviser_id = %s",
-                (user_id,),
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s)",
+                (email,),
             )
             total_theses = cur.fetchone()[0]
 
@@ -533,8 +674,9 @@ def get_faculty_stats(user_id):
             cur.execute(
                 "SELECT COUNT(DISTINCT ta2.author_id) FROM thesis_advisers tadv "
                 "JOIN thesis_authors ta2 ON tadv.thesis_id = ta2.thesis_id "
-                "WHERE tadv.adviser_id = %s",
-                (user_id,),
+                "JOIN advisers a ON tadv.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s)",
+                (email,),
             )
             total_advisees = cur.fetchone()[0] or 0
 
@@ -542,8 +684,9 @@ def get_faculty_stats(user_id):
             cur.execute(
                 "SELECT COUNT(*) FROM theses t "
                 "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
-                "WHERE ta.adviser_id = %s AND t.status = 'published'",
-                (user_id,),
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s) AND t.status = 'published'",
+                (email,),
             )
             published = cur.fetchone()[0]
 
@@ -551,8 +694,9 @@ def get_faculty_stats(user_id):
             cur.execute(
                 "SELECT COUNT(*) FROM theses t "
                 "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
-                "WHERE ta.adviser_id = %s AND t.status != 'published'",
-                (user_id,),
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s) AND t.status != 'published'",
+                (email,),
             )
             active_projects = cur.fetchone()[0]
 
@@ -569,7 +713,7 @@ def get_faculty_stats(user_id):
         put_conn(conn)
 
 
-def get_faculty_activity(user_id, limit=10):
+def get_faculty_activity(email, limit=10):
     """Get activity for a faculty's advisees."""
     conn = get_conn()
     try:
@@ -582,9 +726,10 @@ def get_faculty_activity(user_id, limit=10):
                 "FROM theses t "
                 "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
                 "JOIN programs p ON t.program_id = p.id "
-                "WHERE ta.adviser_id = %s "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s) "
                 "ORDER BY t.updated_at DESC LIMIT %s",
-                (user_id, limit),
+                (email, limit),
             )
             rows = cur.fetchall()
             return [

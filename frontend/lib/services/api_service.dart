@@ -186,7 +186,7 @@ class ThesisFormPayload {
   final String abstract_;
   final int programId;
   final int academicYearId;
-  final int researchTypeId;
+  final String researchType;
   final List<int> authorIds;
   final int? adviserId;
   final List<int> categoryIds;
@@ -198,7 +198,7 @@ class ThesisFormPayload {
     required this.abstract_,
     required this.programId,
     required this.academicYearId,
-    required this.researchTypeId,
+    required this.researchType,
     required this.authorIds,
     this.adviserId,
     required this.categoryIds,
@@ -211,7 +211,7 @@ class ThesisFormPayload {
     'abstract': abstract_,
     'program_id': programId,
     'academic_year_id': academicYearId,
-    'research_type_id': researchTypeId,
+    'research_type': researchType,
     'author_ids': authorIds,
     if (adviserId != null) 'adviser_id': adviserId,
     'category_ids': categoryIds,
