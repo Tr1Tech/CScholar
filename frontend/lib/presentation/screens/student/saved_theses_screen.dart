@@ -56,7 +56,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                       ),
                       icon: const Icon(Icons.search, size: 18),
-                      label: Text('Discover More', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                      label: Text('Find More', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
                     ),
                   ],
                 ),

@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 from .. import models as db
-from ..auth import hash_password, verify_password, create_token, login_required
+from ..auth import hash_password, verify_password, create_token, login_required, admin_required
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -77,6 +77,23 @@ def login():
             "role": user["role"],
         },
     }), 200
+
+
+@auth_bp.route("/api/users/<int:user_id>/role", methods=["PUT"])
+@admin_required
+def update_user_role(user_id):
+    """Update a user's role (admin only)."""
+    data = request.get_json()
+    if not data or "role" not in data:
+        return jsonify({"error": "role is required"}), 400
+    new_role = data["role"]
+    if new_role not in ("student", "faculty", "admin"):
+        return jsonify({"error": "Invalid role"}), 400
+    user = db.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    db.update_user_role(user_id, new_role)
+    return jsonify({"message": "Role updated", "user_id": user_id, "role": new_role}), 200
 
 
 @auth_bp.route("/api/auth/me", methods=["GET"])

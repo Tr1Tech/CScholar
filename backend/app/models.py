@@ -113,6 +113,20 @@ def create_user(username, email, password_hash, role="student"):
         put_conn(conn)
 
 
+def update_user_role(user_id, new_role):
+    """Update a user's role."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
 def user_exists(username, email):
     """Check if username or email already exists."""
     conn = get_conn()

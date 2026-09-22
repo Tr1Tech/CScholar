@@ -167,7 +167,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
                       // Display Headline
                       Text(
-                        'Discover research that\nmatches your ideas.',
+                        'Find research that\nmatches your ideas.',
                         style: CScholarTextStyles.poppins(
                           isWide ? 46 : 32,
                           FontWeight.w800,
@@ -183,7 +183,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 640),
                         child: Text(
-                          'Search CEIT thesis and capstone projects using keywords or natural-language questions with intelligent semantic similarity.',
+                          'Search CEIT thesis and capstone projects with keywords or plain-language questions, ranked by semantic similarity.',
                           style: CScholarTextStyles.inter(
                             isWide ? 17 : 14.5,
                             FontWeight.w400,
@@ -296,7 +296,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Explore top-rated and recently published capstone works from CEIT students',
+                                  'Browse top-rated and recently published capstone works by CEIT students',
                                   style: CScholarTextStyles.inter(14, FontWeight.w400, CScholarColors.textSecondary),
                                 ),
                               ],
