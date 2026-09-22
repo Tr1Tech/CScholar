@@ -253,7 +253,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         validator: (v) => (v == null || v.isEmpty) ? 'Enter your full name' : null,
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.person_outline, size: 18, color: CScholarColors.textHint),
-                          hintText: 'Juan Dela Cruz',
+                          hintText: 'Enter your full name',
                         ),
                       ),
                     ],

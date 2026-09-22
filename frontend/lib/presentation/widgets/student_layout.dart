@@ -316,7 +316,7 @@ class StudentLayout extends ConsumerWidget {
                         radius: 17,
                         backgroundColor: const Color(0xFF047857),
                         child: Text(
-                          _initials(user?.username ?? 'Juan Dela Cruz'),
+                          _initials(user?.username ?? ''),
                           style: CScholarTextStyles.poppins(
                             12,
                             FontWeight.w700,
@@ -330,7 +330,7 @@ class StudentLayout extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            user?.username ?? 'Juan Dela Cruz',
+                            user?.username ?? '',
                             style: CScholarTextStyles.inter(
                               13,
                               FontWeight.w600,
@@ -381,7 +381,7 @@ class StudentLayout extends ConsumerWidget {
                 radius: 16,
                 backgroundColor: const Color(0xFF047857),
                 child: Text(
-                  _initials(user?.username ?? 'Juan Dela Cruz'),
+                  _initials(user?.username ?? ''),
                   style: CScholarTextStyles.poppins(11, FontWeight.bold, CScholarColors.gold),
                 ),
               ),

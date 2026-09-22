@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminUserManagementScreen extends ConsumerWidget {
@@ -92,50 +94,90 @@ class AdminUserManagementScreen extends ConsumerWidget {
   }
 
   Widget _userTable(BuildContext context, WidgetRef ref) {
-    final users = _mockUsers;
-    return DataTable(
-      headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
-      columns: const [
-        DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Program', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-        DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-      ],
-      rows: users.map((u) => DataRow(
-        cells: [
-          DataCell(Text(u['name'] as String, style: const TextStyle(fontWeight: FontWeight.w500))),
-          DataCell(Text(u['email'] as String, style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary))),
-          DataCell(_roleChip(u['role'] as String)),
-          DataCell(Text(u['program'] as String, style: const TextStyle(fontSize: 13))),
-          DataCell(_statusChip(u['isActive'] as bool)),
-          DataCell(Row(
+    final usersAsync = ref.watch(usersProvider);
+    return usersAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => Padding(
+        padding: const EdgeInsets.all(48),
+        child: Center(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              OutlinedButton(
-                onPressed: () => _showRoleDialog(context, u),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: CScholarColors.info,
-                  side: const BorderSide(color: CScholarColors.info),
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: const Text('Change Role', style: TextStyle(fontSize: 11)),
+              Icon(Icons.error_outline, color: CScholarColors.error, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                'Failed to load users',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: CScholarColors.textPrimary),
               ),
-              const SizedBox(width: 6),
-              IconButton(
-                onPressed: () {},
-                style: IconButton.styleFrom(
-                  foregroundColor: (u['isActive'] as bool) ? CScholarColors.error : CScholarColors.success,
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: Icon((u['isActive'] as bool) ? Icons.block : Icons.check_circle_outline, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                err.toString(),
+                style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(usersProvider),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Retry'),
               ),
             ],
-          )),
-        ],
-      )).toList(),
+          ),
+        ),
+      ),
+      data: (users) {
+        if (users.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(48),
+            child: Center(child: Text('No users found', style: TextStyle(color: CScholarColors.textSecondary))),
+          );
+        }
+        return DataTable(
+          headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
+          columns: const [
+            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          rows: users.map((u) => DataRow(
+            cells: [
+              DataCell(Text(u.username, style: const TextStyle(fontWeight: FontWeight.w500))),
+              DataCell(Text(u.email, style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary))),
+              DataCell(_roleChip(u.role)),
+              DataCell(_statusChip(u.isActive)),
+              DataCell(Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => _showRoleDialog(context, u),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: CScholarColors.info,
+                      side: const BorderSide(color: CScholarColors.info),
+                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text('Change Role', style: TextStyle(fontSize: 11)),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    onPressed: () {},
+                    style: IconButton.styleFrom(
+                      foregroundColor: u.isActive ? CScholarColors.error : CScholarColors.success,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: Icon(u.isActive ? Icons.block : Icons.check_circle_outline, size: 20),
+                  ),
+                ],
+              )),
+            ],
+          )).toList(),
+        );
+      },
     );
   }
 
@@ -143,10 +185,12 @@ class AdminUserManagementScreen extends ConsumerWidget {
     Color bg;
     Color fg;
     switch (role) {
+      case 'admin':
       case 'Admin':
         bg = CScholarColors.error.withValues(alpha: 0.1);
         fg = CScholarColors.error;
         break;
+      case 'faculty':
       case 'Faculty':
         bg = const Color(0xFF7B1FA2).withValues(alpha: 0.1);
         fg = const Color(0xFF7B1FA2);
@@ -217,24 +261,24 @@ class AdminUserManagementScreen extends ConsumerWidget {
     );
   }
 
-  void _showRoleDialog(BuildContext context, Map<String, dynamic> user) {
+  void _showRoleDialog(BuildContext context, User user) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Change Role — ${user['name']}'),
+        title: Text('Change Role — ${user.username}'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Select a new role:', style: TextStyle(fontSize: 14)),
           const SizedBox(height: 16),
           ...['Student', 'Faculty', 'Admin'].map((r) => ListTile(
             leading: Icon(
               r == 'Admin' ? Icons.admin_panel_settings : r == 'Faculty' ? Icons.school : Icons.person,
-              color: r == user['role'] ? CScholarColors.primaryGreen : CScholarColors.textSecondary,
+              color: r == user.role ? CScholarColors.primaryGreen : CScholarColors.textSecondary,
             ),
             title: Text(r),
-            trailing: r == user['role'] ? const Icon(Icons.check, color: CScholarColors.primaryGreen) : null,
+            trailing: r == user.role ? const Icon(Icons.check, color: CScholarColors.primaryGreen) : null,
             onTap: () {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${user['name']} role changed to $r'), backgroundColor: CScholarColors.success));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${user.username} role changed to $r'), backgroundColor: CScholarColors.success));
             },
           )),
         ]),
@@ -262,13 +306,3 @@ class AdminUserManagementScreen extends ConsumerWidget {
     );
   }
 }
-
-// Mock data — replace with real API when connecting backend
-final _mockUsers = [
-  {'id': 1, 'name': 'Maria Clara Santos', 'email': 'maria.c.santos@csu.edu', 'role': 'Student', 'program': 'BSIT', 'isActive': true},
-  {'id': 2, 'name': 'Juanito Cruz', 'email': 'juan.cruz@csu.edu', 'role': 'Faculty', 'program': 'BSCpE', 'isActive': true},
-  {'id': 3, 'name': 'Admin User', 'email': 'admin@csu.edu', 'role': 'Admin', 'program': '—', 'isActive': true},
-  {'id': 4, 'name': 'Ana Mae Bathan', 'email': 'ana.bathan@csu.edu', 'role': 'Student', 'program': 'BSECE', 'isActive': true},
-  {'id': 5, 'name': 'Pedro Penduko', 'email': 'pedro.penduko@csu.edu', 'role': 'Faculty', 'program': 'BSME', 'isActive': false},
-  {'id': 6, 'name': 'Liza Mae Duran', 'email': 'liza.duran@csu.edu', 'role': 'Student', 'program': 'BSIT', 'isActive': true},
-];

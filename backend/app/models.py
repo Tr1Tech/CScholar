@@ -141,6 +141,30 @@ def user_exists(username, email):
         put_conn(conn)
 
 
+def get_all_users():
+    """Return all users with id, username, email, role, is_active, created_at."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, username, email, role, is_active, created_at "
+                "FROM users ORDER BY created_at DESC"
+            )
+            return [
+                {
+                    "id": row[0],
+                    "username": row[1],
+                    "email": row[2],
+                    "role": row[3],
+                    "is_active": row[4],
+                    "created_at": row[5].isoformat() if row[5] else None,
+                }
+                for row in cur.fetchall()
+            ]
+    finally:
+        put_conn(conn)
+
+
 # ── Theses ─────────────────────────────────────────────────────────────────
 
 def serialize_thesis(row, detailed=False):

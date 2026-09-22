@@ -73,6 +73,34 @@ SWAGGER_JSON = {
                 "responses": {"200": {"description": "User profile"}, "401": {"description": "Unauthorized"}},
             }
         },
+        "/api/users": {
+            "get": {
+                "summary": "List all users (admin only)",
+                "security": [{"bearerAuth": []}],
+                "responses": {"200": {"description": "List of users"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/users/{user_id}/role": {
+            "put": {
+                "summary": "Update user role (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "role": {"type": "string", "enum": ["student", "faculty", "admin"]},
+                                },
+                                "required": ["role"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Role updated"}, "404": {"description": "User not found"}},
+            }
+        },
         "/api/programs": {
             "get": {
                 "summary": "List CEIT programs",

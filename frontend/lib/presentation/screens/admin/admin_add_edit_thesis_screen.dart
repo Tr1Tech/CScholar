@@ -24,7 +24,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   String _program = 'BS Information Technology';
   String _year = '2025 - 2026';
   String _researchType = 'Capstone';
-  String _adviser = 'Engr. Roberto Garcia';
+  String _adviser = '';
   String _category = 'Mobile Application';
   String? _uploadedFileName;
   bool _isSubmitting = false;
@@ -111,15 +111,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   }
 
   int _adviserIdFor(String adviser) {
-    switch (adviser) {
-      case 'Dr. Alan Turing':
-        return 2;
-      case 'Prof. Clara Santos, MIT':
-        return 3;
-      case 'Engr. Roberto Garcia':
-      default:
-        return 1;
-    }
+    // In production, adviser is resolved via API search.
+    // Return 0 for "unselected / resolve server-side."
+    return 0;
   }
 
   List<int> _authorIdsFor(String authors) {
@@ -374,13 +368,11 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                               _fieldLabel('FACULTY ADVISER', isRequired: true),
                                               const SizedBox(height: 6),
                                               DropdownButtonFormField<String>(
-                                                initialValue: _adviser,
-                                                items: const [
-                                                  DropdownMenuItem(value: 'Engr. Roberto Garcia', child: Text('Engr. Roberto Garcia')),
-                                                  DropdownMenuItem(value: 'Dr. Alan Turing', child: Text('Dr. Alan Turing')),
-                                                  DropdownMenuItem(value: 'Prof. Clara Santos, MIT', child: Text('Prof. Clara Santos, MIT')),
-                                                ],
-                                                onChanged: (v) => setState(() => _adviser = v!),
+                                                initialValue: _adviser.isEmpty ? null : _adviser,
+                                                items: const [],
+                                                onChanged: (v) => setState(() => _adviser = v ?? ''),
+                                                hint: Text('Select or search for faculty adviser',
+                                                    style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textHint)),
                                               ),
                                             ],
                                           ),
@@ -397,7 +389,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                       controller: _authorsCtrl,
                                       validator: (v) => (v == null || v.isEmpty) ? 'Please specify authors' : null,
                                       decoration: const InputDecoration(
-                                        hintText: 'e.g. Juan Dela Cruz, Maria Santos',
+                                        hintText: 'e.g. Author One, Author Two',
                                       ),
                                     ),
 

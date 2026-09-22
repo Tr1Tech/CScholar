@@ -127,7 +127,7 @@ class ProfileScreen extends ConsumerWidget {
                           radius: 44,
                           backgroundColor: const Color(0xFFD1FAE5),
                           child: Text(
-                            _initials(user?.username ?? 'Juan Dela Cruz'),
+                            _initials(user?.username ?? ''),
                             style: CScholarTextStyles.poppins(
                               28,
                               FontWeight.w800,
@@ -160,7 +160,7 @@ class ProfileScreen extends ConsumerWidget {
                           Row(
                             children: [
                               Text(
-                                user?.username ?? 'Juan Dela Cruz',
+                                user?.username ?? '',
                                 style: CScholarTextStyles.poppins(20, FontWeight.w700, CScholarColors.textPrimary),
                               ),
                               const SizedBox(width: 10),
@@ -241,49 +241,20 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       children: [
         // Saved Studies Widget
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            border: Border.all(color: CScholarColors.borderLight),
-            boxShadow: CScholarShadows.card,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Saved Studies',
-                    style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
-                  ),
-                  Text(
-                    '${savedIds.isNotEmpty ? savedIds.length : 12} saved',
-                    style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
-                  ),
-                ],
+        Consumer(
+          builder: (context, ref, _) {
+            final saved = ref.watch(savedThesesProvider);
+            return Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(CScholarRadius.xl),
+                border: Border.all(color: CScholarColors.borderLight),
+                boxShadow: CScholarShadows.card,
               ),
-              const SizedBox(height: 14),
-              _savedMiniItem('Campus Navigation and Room Locator', 'BSIT', () => context.go('/thesis/1')),
-              const SizedBox(height: 8),
-              _savedMiniItem('Indoor Positioning System', 'BSCS', () => context.go('/thesis/2')),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => context.go('/saved'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: CScholarColors.primaryGreen,
-                    side: const BorderSide(color: CScholarColors.primaryGreen),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  child: Text('View All Saved', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
-                ),
-              ),
-            ],
-          ),
+              child: _savedStudiesList(saved, context, savedIds),
+            );
+          },
         ),
 
         const SizedBox(height: 20),
@@ -305,12 +276,59 @@ class ProfileScreen extends ConsumerWidget {
                 style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
               ),
               const SizedBox(height: 12),
-              _searchHistoryItem('campus navigation', '14 matches'),
-              const SizedBox(height: 8),
-              _searchHistoryItem('machine learning face detection', '8 matches'),
-              const SizedBox(height: 8),
-              _searchHistoryItem('IoT smart agriculture', '19 matches'),
+              const Text(
+                'No recent searches',
+                style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+              ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _savedStudiesList(List<dynamic> saved, BuildContext context, Set<int> savedIds) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Saved Studies',
+              style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
+            ),
+            Text(
+              '${saved.length} saved',
+              style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (saved.isEmpty && savedIds.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'No saved studies',
+              style: TextStyle(color: CScholarColors.textSecondary, fontSize: 13),
+            ),
+          )
+        else
+          ...saved.take(3).map<Widget>((t) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _savedMiniItem(t.title, t.program?.code ?? '', () => context.go('/thesis/${t.id}')),
+          )),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => context.go('/saved'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: CScholarColors.primaryGreen,
+              side: const BorderSide(color: CScholarColors.primaryGreen),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+            ),
+            child: Text('View All Saved', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
           ),
         ),
       ],
@@ -390,19 +408,6 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _searchHistoryItem(String query, String resultCount) {
-    return Row(
-      children: [
-        const Icon(Icons.history, size: 16, color: CScholarColors.textHint),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text('“$query”', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textPrimary)),
-        ),
-        Text(resultCount, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textMuted)),
-      ],
     );
   }
 

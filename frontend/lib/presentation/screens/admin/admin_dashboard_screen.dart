@@ -251,8 +251,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Admin User', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
-                    Text('Engr. Adviser', style: CScholarTextStyles.inter(10.5, FontWeight.w500, CScholarColors.textMuted)),
+                    Text(user?.username ?? 'Admin', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
+                    Text('Administrator', style: CScholarTextStyles.inter(10.5, FontWeight.w500, CScholarColors.textMuted)),
                   ],
                 ),
                 const SizedBox(width: 4),
@@ -325,15 +325,80 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   Widget _recentActivityFeed() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
+    return Consumer(
+      builder: (context, ref, _) {
+        final activityAsync = ref.watch(recentActivityProvider);
+        return activityAsync.when(
+          loading: () => Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+              border: Border.all(color: CScholarColors.borderLight),
+              boxShadow: CScholarShadows.card,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Recent Activity',
+                          style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: CScholarColors.primaryGreenVeryLight,
+                            borderRadius: BorderRadius.circular(CScholarRadius.full),
+                          ),
+                          child: Text('Live audit', style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen)),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: Text('View full logs →', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+                    ),
+                  ],
+                ),
+                const Divider(color: CScholarColors.borderLight, height: 20),
+                const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())),
+              ],
+            ),
+          ),
+          error: (_, __) => Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+              border: Border.all(color: CScholarColors.borderLight),
+              boxShadow: CScholarShadows.card,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: _activityList([]),
+          ),
+          data: (items) => Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+              border: Border.all(color: CScholarColors.borderLight),
+              boxShadow: CScholarShadows.card,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: _activityList(items),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _activityList(List<Map<String, dynamic>> items) {
+    if (items.isEmpty) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -363,44 +428,85 @@ class AdminDashboardScreen extends ConsumerWidget {
             ],
           ),
           const Divider(color: CScholarColors.borderLight, height: 20),
-          _activityItem(
-            icon: Icons.add_circle_outline,
-            iconBg: const Color(0xFFDCFCE7),
-            iconColor: CScholarColors.primaryGreen,
-            title: 'New thesis added: Campus Navigation and Room Locator',
-            subtitle: 'Author: Juan Dela Cruz • BS Information Technology',
-            time: '2 hours ago',
-          ),
-          const Divider(color: Color(0xFFF1F5F9), height: 16),
-          _activityItem(
-            icon: Icons.person_add_outlined,
-            iconBg: const Color(0xFFFEF3C7),
-            iconColor: CScholarColors.orange,
-            title: 'User registered: maria.santos@csu.edu.ph',
-            subtitle: 'Role: Student Researcher • Department of Computer Science',
-            time: '4 hours ago',
-          ),
-          const Divider(color: Color(0xFFF1F5F9), height: 16),
-          _activityItem(
-            icon: Icons.edit_note_outlined,
-            iconBg: const Color(0xFFDBEAFE),
-            iconColor: const Color(0xFF2563EB),
-            title: 'Thesis updated: AI-Based Attendance Monitoring',
-            subtitle: 'Metadata & abstract updated by adviser',
-            time: '6 hours ago',
-          ),
-          const Divider(color: Color(0xFFF1F5F9), height: 16),
-          _activityItem(
-            icon: Icons.search,
-            iconBg: const Color(0xFFF3E8FF),
-            iconColor: const Color(0xFF9333EA),
-            title: 'New search: “machine learning”',
-            subtitle: 'Matched 14 published capstone records',
-            time: '8 hours ago',
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: Text('No recent activity', style: TextStyle(color: CScholarColors.textSecondary))),
           ),
         ],
-      ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: CScholarColors.primaryGreenVeryLight,
+                    borderRadius: BorderRadius.circular(CScholarRadius.full),
+                  ),
+                  child: Text('Live audit', style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen)),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () {},
+              child: Text('View full logs →', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+            ),
+          ],
+        ),
+        const Divider(color: CScholarColors.borderLight, height: 20),
+        ...items.asMap().entries.expand((entry) {
+          final idx = entry.key;
+          final item = entry.value;
+          final widgets = <Widget>[];
+          if (idx > 0) {
+            widgets.add(const Divider(color: Color(0xFFF1F5F9), height: 16));
+          }
+          widgets.add(_activityItem(
+            icon: _iconFor(item['icon'] as String? ?? 'info'),
+            iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
+            iconColor: _colorFor(item['icon_color'] as String? ?? '#6B7280'),
+            title: item['title'] as String? ?? '',
+            subtitle: item['subtitle'] as String? ?? '',
+            time: item['time'] as String? ?? '',
+          ));
+          return widgets;
+        }),
+      ],
     );
+  }
+
+  IconData _iconFor(String name) {
+    switch (name) {
+      case 'add':
+        return Icons.add_circle_outline;
+      case 'person_add':
+        return Icons.person_add_outlined;
+      case 'edit':
+        return Icons.edit_note_outlined;
+      case 'search':
+        return Icons.search;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  Color _colorFor(String hex) {
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return CScholarColors.textSecondary;
+    }
   }
 
   Widget _activityItem({

@@ -415,6 +415,17 @@ final facultyActivityProvider = FutureProvider.autoDispose<List<Map<String, dyna
   }
 });
 
+final usersProvider = FutureProvider.autoDispose<List<User>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  try {
+    final data = await api.get('/api/users');
+    final List<dynamic> raw = data as List<dynamic>;
+    return raw.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
 // Simple state notifier for saved theses
 final savedThesesProvider =
     NotifierProvider<SavedThesesNotifier, List<Thesis>>(() => SavedThesesNotifier());

@@ -418,9 +418,15 @@ class FacultyDashboardScreen extends ConsumerWidget {
         children: [
           Text('My Advisees', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
           const Divider(color: CScholarColors.borderLight, height: 20),
-          _adviseeItem('Maria Santos', 'BSIT', 'Active Project'),
-          _adviseeItem('John Cruz', 'BSCS', 'Writing Phase'),
-          _adviseeItem('Anna Lopez', 'BSIT', 'Data Collection'),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Text(
+                'No advisees found',
+                style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+              ),
+            ),
+          ),
           const SizedBox(height: 8),
           Center(
             child: TextButton(
@@ -469,36 +475,4 @@ class FacultyDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _adviseeItem(String name, String program, String status) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFFFEF3C7),
-            child: Text(name.split(' ').map((n) => n[0]).take(2).join(), style: CScholarTextStyles.inter(11, FontWeight.w700, const Color(0xFFD97706))),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
-                Text(program, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textMuted)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(CScholarRadius.full),
-            ),
-            child: Text(status, style: CScholarTextStyles.inter(11, FontWeight.w600, CScholarColors.primaryGreen)),
-          ),
-        ],
-      ),
-    );
-  }
 }
