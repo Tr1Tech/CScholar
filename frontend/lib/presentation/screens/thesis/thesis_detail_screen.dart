@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/config.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
+import 'dart:html' as html;
 
 class ThesisDetailScreen extends ConsumerWidget {
   final int thesisId;
@@ -374,16 +376,11 @@ class ThesisDetailScreen extends ConsumerWidget {
           runSpacing: 10,
           children: [
             FilledButton.icon(
-              onPressed: thesis.file == null
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No manuscript file is attached to this record.')),
-                      );
-                    }
+              onPressed: thesis.pdfUrl == null
+                  ? null
                   : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Opening ${thesis.file!.originalFilename}...')),
-                      );
+                      final pdfUrl = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}/pdf';
+                      _openPdfInNewTab(pdfUrl);
                     },
               style: FilledButton.styleFrom(
                 backgroundColor: CScholarColors.primaryGreen,
@@ -391,7 +388,10 @@ class ThesisDetailScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
               ),
               icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
-              label: Text('View PDF', style: CScholarTextStyles.inter(13.5, FontWeight.w600, Colors.white)),
+              label: Text(
+                thesis.pdfUrl == null ? 'No PDF' : 'View PDF',
+                style: CScholarTextStyles.inter(13.5, FontWeight.w600, Colors.white),
+              ),
             ),
             OutlinedButton.icon(
               onPressed: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
@@ -458,5 +458,9 @@ class ThesisDetailScreen extends ConsumerWidget {
         style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.primaryGreen),
       ),
     );
+  }
+
+  void _openPdfInNewTab(String url) {
+    html.window.open(url, '_blank');
   }
 }

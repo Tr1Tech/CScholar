@@ -1,6 +1,6 @@
 """Authentication routes — register, login, current user."""
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory, current_app, os as flask_os
 from .. import models as db
 from ..auth import hash_password, verify_password, create_token, login_required, admin_required
 
@@ -118,3 +118,35 @@ def me():
         "created_at": user["created_at"].isoformat() if user["created_at"] else None,
         "updated_at": user["updated_at"].isoformat() if user["updated_at"] else None,
     }), 200
+
+
+@auth_bp.route("/api/theses/<int:thesis_id>/pdf", methods=["GET"])
+@login_required
+def get_thesis_pdf(thesis_id):
+    """Return the PDF file for a thesis."""
+    thesis = db.get_thesis_by_id(thesis_id)
+    if not thesis:
+        return jsonify({"error": "Thesis not found"}), 404
+
+    pdf_url = thesis.get("pdf_url")
+    if not pdf_url:
+        return jsonify({"error": "No PDF attached to this thesis"}), 404
+
+    # pdf_url is stored as /api/uploads/<filename>, map to uploads directory
+    # Strip the /api/uploads/ prefix to get the filename
+    prefix = "/api/uploads/"
+    if not pdf_url.startswith(prefix):
+        return jsonify({"error": "Invalid pdf_url format"}), 500
+
+    filename = pdf_url[len(prefix):]
+    upload_dir = flask_os.path.join(current_app.root_path, "uploads")
+
+    # Security: ensure filename doesn't traverse directories
+    if ".." in filename or filename.startswith("/"):
+        return jsonify({"error": "Invalid filename"}), 400
+
+    file_path = flask_os.path.join(upload_dir, filename)
+    if not flask_os.path.exists(file_path):
+        return jsonify({"error": "PDF file not found on server"}), 404
+
+    return send_from_directory(upload_dir, filename, mimetype="application/pdf", as_attachment=False)

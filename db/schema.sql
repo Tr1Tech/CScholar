@@ -62,7 +62,8 @@ CREATE TABLE theses (
                         CHECK (status IN ('draft', 'approved', 'published', 'archived')),
     creator_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    pdf_url          VARCHAR(500)
 );
 
 -- 5. authors --------------------------------------------------

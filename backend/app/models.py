@@ -195,6 +195,7 @@ def serialize_thesis(row, detailed=False):
         "creator_id": row[18],
         "created_at": row[19].isoformat() if row[19] else None,
         "updated_at": row[20].isoformat() if row[20] else None,
+        "pdf_url": row[21] if len(row) > 21 else None,
     }
     return data
 
@@ -324,7 +325,7 @@ def get_thesis_by_id(thesis_id):
                 "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
                 "       p.id, p.name, p.code, p.description, p.created_at, "
                 "       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
-                "       t.status, t.creator_id, t.created_at, t.updated_at "
+                "       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url "
                 "FROM theses t "
                 "LEFT JOIN programs p ON t.program_id = p.id "
                 "LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
@@ -407,7 +408,7 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 f"SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
                 f"       p.id, p.name, p.code, p.description, p.created_at, "
                 f"       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
-                f"       t.status, t.creator_id, t.created_at, t.updated_at "
+                f"       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url "
                 f"FROM theses t "
                 f"LEFT JOIN programs p ON t.program_id = p.id "
                 f"LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
@@ -436,14 +437,14 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
 
 
 def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft",
-                  author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None):
+                  author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None, pdf_url=None):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
-                (title, abstract, research_type, program_id, academic_year_id, status, creator_id),
+                "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url),
             )
             thesis_id = cur.fetchone()[0]
             _persist_thesis_relations(
@@ -463,7 +464,7 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
 
 
 def update_thesis(thesis_id, **kwargs):
-    allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status"}
+    allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status", "pdf_url"}
     fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
     author_ids = kwargs.get("author_ids") if isinstance(kwargs.get("author_ids"), list) else None

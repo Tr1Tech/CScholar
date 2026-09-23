@@ -445,6 +445,7 @@ class Thesis {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? publishedAt;
+  final String? pdfUrl;
 
   // Relations (optional, loaded when needed)
   final Program? program;
@@ -468,6 +469,7 @@ class Thesis {
     required this.createdAt,
     required this.updatedAt,
     this.publishedAt,
+    this.pdfUrl,
     this.program,
     this.academicYear,
     this.authors,
@@ -508,6 +510,7 @@ class Thesis {
     embedding: json['embedding'] != null
         ? ThesisEmbedding.fromJson(json['embedding'] as Map<String, dynamic>)
         : null,
+    pdfUrl: json['pdf_url'] as String?,
   );
 
   Map<String, dynamic> toJson() => {

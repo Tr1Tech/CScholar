@@ -6,6 +6,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
+import 'package:file_picker/file_picker.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
   final int? thesisId;
@@ -29,8 +30,12 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   Category? _category;
   final Set<int> _authorIds = {};
   bool _isSubmitting = false;
+  bool _isUploadingPdf = false;
 
   String? _submitError;
+  String? _pdfFileName;
+  int? _pdfFileSize;
+  String? _pdfUrl;
 
   @override
   void dispose() {
@@ -70,6 +75,11 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       if (thesis.authors != null) {
         _authorIds.addAll(thesis.authors!.map((a) => a.id));
       }
+      _pdfUrl = thesis.pdfUrl;
+      if (_pdfUrl != null) {
+        // Extract filename from pdf_url
+        _pdfFileName = _pdfUrl!.split('/').last;
+      }
     });
   }
 
@@ -106,6 +116,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
+      pdfUrl: _pdfUrl,
     );
 
     try {
@@ -384,6 +395,11 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                       ],
                                     ),
 
+                                    // PDF Upload Section
+                                    _fieldLabel('PDF MANUSCRIPT', isRequired: false),
+                                    const SizedBox(height: 6),
+                                    _pdfUploadSection(),
+
                                     const SizedBox(height: 28),
 
                                     if (_submitError != null)
@@ -470,6 +486,140 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
           const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
+  }
+
+  Widget _pdfUploadSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(CScholarRadius.lg),
+        border: Border.all(color: CScholarColors.borderLight),
+      ),
+      child: _pdfUrl != null
+          ? Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: CScholarColors.primaryGreenVeryLight,
+                    borderRadius: BorderRadius.circular(CScholarRadius.md),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf, size: 24, color: CScholarColors.primaryGreen),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _pdfFileName ?? 'PDF uploaded',
+                        style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _pdfFileSize != null
+                            ? '${(_pdfFileSize! / 1024).toStringAsFixed(1)} KB'
+                            : 'File attached',
+                        style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _pdfUrl = null;
+                      _pdfFileName = null;
+                      _pdfFileSize = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close, size: 20, color: CScholarColors.textMuted),
+                  tooltip: 'Remove PDF',
+                ),
+              ],
+            )
+          : Column(
+              children: [
+                Icon(Icons.cloud_upload_outlined, size: 36, color: CScholarColors.textHint),
+                const SizedBox(height: 8),
+                Text(
+                  'Upload PDF manuscript (optional)',
+                  style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Max 50MB. PDF will be stored and linked to this thesis.',
+                  style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textHint),
+                ),
+                const SizedBox(height: 12),
+                _isUploadingPdf
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : FilledButton.icon(
+                        onPressed: _pickAndUploadPdf,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: CScholarColors.primaryGreen,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(CScholarRadius.md),
+                          ),
+                        ),
+                        icon: const Icon(Icons.upload_file, size: 16),
+                        label: Text(
+                          'Choose PDF',
+                          style: CScholarTextStyles.inter(12.5, FontWeight.w600, Colors.white),
+                        ),
+                      ),
+              ],
+            ),
+    );
+  }
+
+  Future<void> _pickAndUploadPdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    if (file.bytes == null || file.bytes!.isEmpty) return;
+
+    setState(() => _isUploadingPdf = true);
+
+    try {
+      final api = ref.read(uploadApiProvider);
+      final response = await api.uploadPdf(
+        file.bytes!,
+        file.name,
+        thesisId: widget.thesisId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _pdfUrl = response.pdfUrl;
+        _pdfFileName = file.name;
+        _pdfFileSize = file.bytes!.length;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF uploaded successfully!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload PDF: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingPdf = false);
+    }
   }
 
   Widget _formLoading() {

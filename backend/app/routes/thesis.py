@@ -150,6 +150,7 @@ def create_thesis():
         adviser_id=data.get("adviser_id"),
         category_ids=data.get("category_ids"),
         keyword_terms=data.get("keyword_terms"),
+        pdf_url=data.get("pdf_url"),
     )
 
     # Auto-generate embedding if service is available (best-effort)

@@ -159,10 +159,14 @@ class UploadApi {
   UploadApi(this._api);
 
   // Step 1: Upload PDF → backend extracts text + generates embedding
-  Future<UploadPreview> uploadPdf(List<int> pdfBytes, String filename) async {
+  // Optionally pass thesisId to associate the PDF with a thesis record
+  Future<UploadPreview> uploadPdf(List<int> pdfBytes, String filename, {int? thesisId}) async {
     final uri = Uri.parse('${_api.baseUrl}/api/upload/pdf');
     final request = http.MultipartRequest('POST', uri);
     if (_api._token != null) request.headers['Authorization'] = 'Bearer ${_api._token}';
+    if (thesisId != null) {
+      request.fields['thesis_id'] = thesisId.toString();
+    }
     request.files.add(http.MultipartFile.fromBytes('file', pdfBytes, filename: filename));
 
     final streamed = await request.send();
@@ -182,17 +186,20 @@ class UploadPreview {
   final String extractedText;
   final String suggestedTitle;
   final List<String> suggestedKeywords;
+  final String? pdfUrl;
 
   UploadPreview({
     required this.extractedText,
     required this.suggestedTitle,
     required this.suggestedKeywords,
+    this.pdfUrl,
   });
 
   factory UploadPreview.fromJson(Map<String, dynamic> json) => UploadPreview(
     extractedText: json['extracted_text'] as String? ?? '',
     suggestedTitle: json['suggested_title'] as String? ?? '',
     suggestedKeywords: (json['suggested_keywords'] as List<dynamic>?)?.cast<String>() ?? [],
+    pdfUrl: json['pdf_url'] as String?,
   );
 }
 

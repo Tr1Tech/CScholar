@@ -1,11 +1,12 @@
-"""PDF upload routes — extract text with PyMuPDF."""
+"""PDF upload routes — extract text with PyMuPDF, associate with thesis."""
 
 import os
 import uuid
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 import pymupdf
-from ..auth import admin_required
+from ..auth import admin_required, login_required
+from .. import models as db
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -20,7 +21,11 @@ def allowed_file(filename):
 @upload_bp.route("/api/upload/pdf", methods=["POST"])
 @admin_required
 def upload_pdf():
-    """Upload PDF, extract text with PyMuPDF, return preview."""
+    """Upload PDF, extract text with PyMuPDF, return preview.
+    
+    Accepts optional thesis_id via form data to associate the uploaded
+    PDF with a thesis record (stores relative path in pdf_url column).
+    """
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -34,6 +39,13 @@ def upload_pdf():
     file_bytes = file.read()
     if len(file_bytes) > MAX_FILE_SIZE:
         return jsonify({"error": "File too large (max 50MB)"}), 400
+
+    # Parse thesis_id if provided
+    thesis_id = request.form.get("thesis_id", type=int)
+    if thesis_id is not None:
+        existing = db.get_thesis_by_id(thesis_id)
+        if not existing:
+            return jsonify({"error": "Thesis not found"}), 404
 
     try:
         doc = pymupdf.open(stream=file_bytes, filetype="pdf")
@@ -58,6 +70,16 @@ def upload_pdf():
     with open(file_path, "wb") as f:
         f.write(file_bytes)
 
+    # Build relative URL for storage
+    pdf_url = f"/api/uploads/{unique_name}"
+
+    # Associate with thesis record if thesis_id was provided
+    if thesis_id is not None:
+        try:
+            db.update_thesis(thesis_id, pdf_url=pdf_url)
+        except Exception as e:
+            return jsonify({"error": f"Failed to update thesis record: {str(e)}"}), 500
+
     return jsonify({
         "message": "PDF uploaded and parsed successfully",
         "filename": filename,
@@ -66,4 +88,5 @@ def upload_pdf():
         "page_count": page_count,
         "extracted_text": text[:5000],
         "text_length": len(text),
+        "pdf_url": pdf_url,
     }), 200
