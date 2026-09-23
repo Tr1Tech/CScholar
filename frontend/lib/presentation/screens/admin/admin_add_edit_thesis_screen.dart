@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/services/api_service.dart';
@@ -32,11 +31,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   bool _isSubmitting = false;
 
   String? _submitError;
-
-  // PDF upload + preview state
-  PlatformFile? _selectedPdf;
-  bool _isExtracting = false;
-  String _extractedText = '';
 
   @override
   void dispose() {
@@ -245,11 +239,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                   ),
                                 ],
                               ),
-
-                              const SizedBox(height: 24),
-
-                              // PDF Upload + Preview Section
-                              _pdfUploadSection(),
 
                               const SizedBox(height: 24),
 
@@ -480,124 +469,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         if (isRequired)
           const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
-    );
-  }
-
-  // ─── PDF Upload + Preview ───────────────────────────────────────────────────
-
-  Future<void> _pickAndParsePdf() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty) return;
-
-    final file = result.files.first;
-    setState(() {
-      _selectedPdf = file;
-      _isExtracting = true;
-      _extractedText = '';
-    });
-
-    try {
-      final api = ref.read(uploadApiProvider);
-      final preview = await api.uploadPdf(file.bytes!, file.name);
-      if (!mounted) return;
-      setState(() {
-        _extractedText = preview.extractedText;
-        _isExtracting = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _extractedText = 'Failed to extract text: $e';
-        _isExtracting = false;
-      });
-    }
-  }
-
-  Widget _pdfUploadSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _fieldLabel('UPLOAD PDF (OPTIONAL)', isRequired: false),
-          const SizedBox(height: 4),
-          Text(
-            'Upload a PDF to extract its text. The extracted text is shown below for you to read and manually copy into the form fields.',
-            style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textMuted),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              OutlinedButton.icon(
-                onPressed: _isExtracting ? null : _pickAndParsePdf,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: CScholarColors.primaryGreen,
-                  side: const BorderSide(color: CScholarColors.primaryGreen),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                ),
-                icon: _isExtracting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: CScholarColors.primaryGreen),
-                      )
-                    : const Icon(Icons.upload_file, size: 18),
-                label: Text(
-                  _isExtracting ? 'Extracting...' : 'Choose PDF',
-                  style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.primaryGreen),
-                ),
-              ),
-              if (_selectedPdf != null) ...[
-                const SizedBox(width: 14),
-                Icon(Icons.insert_drive_file, size: 18, color: CScholarColors.textMuted),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    _selectedPdf!.name,
-                    style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.textSecondary),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          if (_extractedText.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Extracted Text Preview',
-              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 300),
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: CScholarColors.inputBg,
-                borderRadius: BorderRadius.circular(CScholarRadius.md),
-                border: Border.all(color: CScholarColors.borderLight),
-              ),
-              child: SingleChildScrollView(
-                child: SelectableText(
-                  _extractedText,
-                  style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textPrimary),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 
