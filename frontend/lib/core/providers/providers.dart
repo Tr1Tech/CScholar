@@ -181,6 +181,11 @@ class ThesisListParams {
       pageSize.hashCode;
 }
 
+// ─── Upload API provider ────────────────────────────────────────────────────
+final uploadApiProvider = Provider<UploadApi>(
+  (ref) => UploadApi(ref.read(apiServiceProvider)),
+);
+
 // ─── Thesis API provider ─────────────────────────────────────────────────────
 final thesisApiProvider = Provider<ThesisApi>(
   (ref) => ThesisApi(ref.read(apiServiceProvider)),

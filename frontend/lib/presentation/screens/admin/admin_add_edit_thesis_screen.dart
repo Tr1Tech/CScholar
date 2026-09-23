@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
@@ -32,9 +30,13 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   Category? _category;
   final Set<int> _authorIds = {};
   bool _isSubmitting = false;
-  bool _isParsing = false;
 
   String? _submitError;
+
+  // PDF upload + preview state
+  PlatformFile? _selectedPdf;
+  bool _isExtracting = false;
+  String _extractedText = '';
 
   @override
   void dispose() {
@@ -95,111 +97,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       setState(() => _submitError = 'Error: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _parsePdf() async {
-    if (_isParsing) return;
-
-    // Pick a PDF file
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
-
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    if (file.bytes == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to read the selected file.')),
-      );
-      return;
-    }
-
-    setState(() => _isParsing = true);
-
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final token = apiService.token;
-      final baseUrl = apiService.baseUrl;
-
-      final uri = Uri.parse('$baseUrl/api/upload/parse');
-      final request = http.MultipartRequest('POST', uri);
-      if (token != null) request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
-
-      final streamed = await request.send();
-      final res = await http.Response.fromStream(streamed);
-
-      if (res.statusCode >= 400) {
-        throw Exception('Server returned ${res.statusCode}: ${res.body}');
-      }
-
-      final data = jsonDecode(res.body);
-      final metadata = data['metadata'] as Map<String, dynamic>? ?? {};
-
-      // Match program by name against the programs list
-      String? parsedProgram = metadata['program'] as String?;
-      Program? matchedProgram;
-      if (parsedProgram != null) {
-        final programsAsync = ref.read(programsProvider);
-        final programsData = programsAsync.value;
-        if (programsData != null) {
-          final programs = programsData;
-          matchedProgram = programs.cast<Program?>().firstWhere(
-            (p) => p!.name.toLowerCase().contains(parsedProgram.toLowerCase()) ||
-                   parsedProgram.toLowerCase().contains(p.name.toLowerCase()),
-            orElse: () => null,
-          );
-        }
-      }
-
-      // Match year by label against the academic years list
-      String? parsedYear = metadata['year']?.toString();
-      AcademicYear? matchedYear;
-      if (parsedYear != null) {
-        final yearsAsync = ref.read(academicYearsProvider);
-        final yearsData = yearsAsync.value;
-        if (yearsData != null) {
-          final years = yearsData;
-          matchedYear = years.cast<AcademicYear?>().firstWhere(
-            (y) => y!.label.toLowerCase().contains(parsedYear.toLowerCase()) ||
-                   parsedYear.toLowerCase().contains(y.label.toLowerCase()),
-            orElse: () => null,
-          );
-        }
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        if (metadata['title'] != null) _titleCtrl.text = metadata['title'].toString();
-        if (metadata['abstract'] != null) _abstractCtrl.text = metadata['abstract'].toString();
-        if (metadata['keywords'] != null) {
-          final keywords = metadata['keywords'];
-          if (keywords is List) {
-            _keywordsCtrl.text = keywords.map((e) => e.toString()).join(', ');
-          } else {
-            _keywordsCtrl.text = keywords.toString();
-          }
-        }
-        if (matchedProgram != null) _program = matchedProgram;
-        if (matchedYear != null) _year = matchedYear;
-        if (metadata['research_type'] != null) _researchType = metadata['research_type'].toString();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF parsed successfully! Form auto-filled.')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Parse error: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isParsing = false);
     }
   }
 
@@ -316,32 +213,10 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                 ],
                               ),
 
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 24),
 
-                              // Auto-parse from PDF button
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: _isParsing ? null : _parsePdf,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: CScholarColors.primaryGreen,
-                                    side: BorderSide(color: CScholarColors.primaryGreen.withValues(alpha: 0.5)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                  ),
-                                  icon: _isParsing
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(strokeWidth: 2, color: CScholarColors.primaryGreen),
-                                        )
-                                      : const Icon(Icons.auto_awesome, size: 18),
-                                  label: Text(
-                                    _isParsing ? 'Parsing PDF...' : 'Auto-parse from PDF',
-                                    style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.primaryGreen),
-                                  ),
-                                ),
-                              ),
+                              // PDF Upload + Preview Section
+                              _pdfUploadSection(),
 
                               const SizedBox(height: 24),
 
@@ -572,6 +447,124 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         if (isRequired)
           const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
+    );
+  }
+
+  // ─── PDF Upload + Preview ───────────────────────────────────────────────────
+
+  Future<void> _pickAndParsePdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.first;
+    setState(() {
+      _selectedPdf = file;
+      _isExtracting = true;
+      _extractedText = '';
+    });
+
+    try {
+      final api = ref.read(uploadApiProvider);
+      final preview = await api.uploadPdf(file.bytes!, file.name);
+      if (!mounted) return;
+      setState(() {
+        _extractedText = preview.extractedText;
+        _isExtracting = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _extractedText = 'Failed to extract text: $e';
+        _isExtracting = false;
+      });
+    }
+  }
+
+  Widget _pdfUploadSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+        border: Border.all(color: CScholarColors.borderLight),
+        boxShadow: CScholarShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _fieldLabel('UPLOAD PDF (OPTIONAL)', isRequired: false),
+          const SizedBox(height: 4),
+          Text(
+            'Upload a PDF to extract its text. The extracted text is shown below for you to read and manually copy into the form fields.',
+            style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textMuted),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _isExtracting ? null : _pickAndParsePdf,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: CScholarColors.primaryGreen,
+                  side: const BorderSide(color: CScholarColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                ),
+                icon: _isExtracting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: CScholarColors.primaryGreen),
+                      )
+                    : const Icon(Icons.upload_file, size: 18),
+                label: Text(
+                  _isExtracting ? 'Extracting...' : 'Choose PDF',
+                  style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.primaryGreen),
+                ),
+              ),
+              if (_selectedPdf != null) ...[
+                const SizedBox(width: 14),
+                Icon(Icons.insert_drive_file, size: 18, color: CScholarColors.textMuted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _selectedPdf!.name,
+                    style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.textSecondary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (_extractedText.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Extracted Text Preview',
+              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 300),
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: CScholarColors.inputBg,
+                borderRadius: BorderRadius.circular(CScholarRadius.md),
+                border: Border.all(color: CScholarColors.borderLight),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  _extractedText,
+                  style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textPrimary),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
