@@ -579,6 +579,477 @@ def list_advisers():
         put_conn(conn)
 
 
+# ── Authors CRUD ───────────────────────────────────────────────────────────
+
+def get_author_by_id(author_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, first_name, middle_name, last_name, email, created_at "
+                "FROM authors WHERE id = %s",
+                (author_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "first_name": row[1],
+                "middle_name": row[2],
+                "last_name": row[3],
+                "email": row[4],
+                "created_at": row[5].isoformat() if row[5] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_author(first_name, last_name, email, middle_name=None):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO authors (first_name, middle_name, last_name, email) "
+                "VALUES (%s, %s, %s, %s) RETURNING id",
+                (first_name, middle_name, last_name, email),
+            )
+            author_id = cur.fetchone()[0]
+        conn.commit()
+        return get_author_by_id(author_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_author(author_id, **kwargs):
+    allowed = {"first_name", "middle_name", "last_name", "email"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_author_by_id(author_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [author_id]
+            cur.execute(f"UPDATE authors SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_author_by_id(author_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_author(author_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM authors WHERE id = %s", (author_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Advisers CRUD ──────────────────────────────────────────────────────────
+
+def get_adviser_by_id(adviser_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, first_name, middle_name, last_name, email, created_at "
+                "FROM advisers WHERE id = %s",
+                (adviser_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "first_name": row[1],
+                "middle_name": row[2],
+                "last_name": row[3],
+                "email": row[4],
+                "created_at": row[5].isoformat() if row[5] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_adviser(first_name, last_name, email, middle_name=None):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO advisers (first_name, middle_name, last_name, email) "
+                "VALUES (%s, %s, %s, %s) RETURNING id",
+                (first_name, middle_name, last_name, email),
+            )
+            adviser_id = cur.fetchone()[0]
+        conn.commit()
+        return get_adviser_by_id(adviser_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_adviser(adviser_id, **kwargs):
+    allowed = {"first_name", "middle_name", "last_name", "email"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_adviser_by_id(adviser_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [adviser_id]
+            cur.execute(f"UPDATE advisers SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_adviser_by_id(adviser_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_adviser(adviser_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM advisers WHERE id = %s", (adviser_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Categories CRUD ────────────────────────────────────────────────────────
+
+def get_category_by_id(category_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, description, created_at FROM categories WHERE id = %s",
+                (category_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "name": row[1],
+                "description": row[2],
+                "created_at": row[3].isoformat() if row[3] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_category(name, description=None):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO categories (name, description) VALUES (%s, %s) RETURNING id",
+                (name, description),
+            )
+            category_id = cur.fetchone()[0]
+        conn.commit()
+        return get_category_by_id(category_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_category(category_id, **kwargs):
+    allowed = {"name", "description"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_category_by_id(category_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [category_id]
+            cur.execute(f"UPDATE categories SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_category_by_id(category_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_category(category_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM categories WHERE id = %s", (category_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Keywords CRUD ──────────────────────────────────────────────────────────
+
+def get_keyword_by_id(keyword_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, term, created_at FROM keywords WHERE id = %s", (keyword_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "term": row[1],
+                "created_at": row[2].isoformat() if row[2] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_keyword(term):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO keywords (term) VALUES (%s) ON CONFLICT (term) DO UPDATE SET term = EXCLUDED.term RETURNING id",
+                (term,),
+            )
+            keyword_id = cur.fetchone()[0]
+        conn.commit()
+        return get_keyword_by_id(keyword_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_keyword(keyword_id, **kwargs):
+    allowed = {"term"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_keyword_by_id(keyword_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [keyword_id]
+            cur.execute(f"UPDATE keywords SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_keyword_by_id(keyword_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_keyword(keyword_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM keywords WHERE id = %s", (keyword_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Programs CRUD ─────────────────────────────────────────────────────────
+
+def get_program_by_id(program_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, code, description, created_at FROM programs WHERE id = %s",
+                (program_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "name": row[1],
+                "code": row[2],
+                "description": row[3],
+                "created_at": row[4].isoformat() if row[4] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_program(name, code=None, description=None):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO programs (name, code, description) VALUES (%s, %s, %s) RETURNING id",
+                (name, code, description),
+            )
+            program_id = cur.fetchone()[0]
+        conn.commit()
+        return get_program_by_id(program_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_program(program_id, **kwargs):
+    allowed = {"name", "code", "description"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_program_by_id(program_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [program_id]
+            cur.execute(f"UPDATE programs SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_program_by_id(program_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_program(program_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM programs WHERE id = %s", (program_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+# ── Academic Years CRUD ───────────────────────────────────────────────────
+
+def get_academic_year_by_id(year_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, name, start_year, end_year, is_active, created_at "
+                "FROM academic_years WHERE id = %s",
+                (year_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "name": row[1],
+                "start_year": row[2],
+                "end_year": row[3],
+                "is_active": row[4],
+                "created_at": row[5].isoformat() if row[5] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def create_academic_year(name, start_year=None, end_year=None, is_active=True):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO academic_years (name, start_year, end_year, is_active) "
+                "VALUES (%s, %s, %s, %s) RETURNING id",
+                (name, start_year, end_year, is_active),
+            )
+            year_id = cur.fetchone()[0]
+        conn.commit()
+        return get_academic_year_by_id(year_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def update_academic_year(year_id, **kwargs):
+    allowed = {"name", "start_year", "end_year", "is_active"}
+    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    if not fields:
+        return get_academic_year_by_id(year_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [year_id]
+            cur.execute(f"UPDATE academic_years SET {set_clause} WHERE id = %s", params)
+        conn.commit()
+        return get_academic_year_by_id(year_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_academic_year(year_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM academic_years WHERE id = %s", (year_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted > 0
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
 # ── Thesis Embeddings ──────────────────────────────────────────────────────
 
 def get_thesis_embedding(thesis_id):

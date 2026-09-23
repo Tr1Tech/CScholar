@@ -61,7 +61,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       _titleCtrl.text = thesis.title;
       _abstractCtrl.text = thesis.abstract;
       _keywordsCtrl.text =
-          thesis.keywords?.map((k) => k.term).join(', ') ?? '';
+          thesis.keywords?.map((k) => k.term).join('; ') ?? '';
       _program = thesis.program;
       _year = thesis.academicYear;
       _researchType = thesis.researchType;
@@ -112,7 +112,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       adviserId: _adviser?.id,
       categoryIds: [_category!.id],
       keywordTerms: _keywordsCtrl.text
-          .split(',')
+          .split(RegExp(r'[,;]'))
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
@@ -386,7 +386,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                               TextFormField(
                                                 controller: _keywordsCtrl,
                                                 decoration: const InputDecoration(
-                                                  hintText: 'comma, separated, keywords',
+                                                  hintText: 'semicolon; separated; keywords',
                                                 ),
                                               ),
                                             ],

@@ -105,36 +105,324 @@ SWAGGER_JSON = {
             "get": {
                 "summary": "List CEIT programs",
                 "responses": {"200": {"description": "List of programs"}},
+            },
+            "post": {
+                "summary": "Create a program (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "code": {"type": "string"},
+                                    "description": {"type": "string"},
+                                },
+                                "required": ["name"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Program created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/programs/{id}": {
+            "put": {
+                "summary": "Update a program (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "code": {"type": "string"},
+                                    "description": {"type": "string"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Program updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete a program (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Program deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/academic-years": {
             "get": {
                 "summary": "List academic years",
                 "responses": {"200": {"description": "List of academic years"}},
+            },
+            "post": {
+                "summary": "Create an academic year (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "start_year": {"type": "integer"},
+                                    "end_year": {"type": "integer"},
+                                    "is_active": {"type": "boolean", "default": True},
+                                },
+                                "required": ["name"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Academic year created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/academic-years/{id}": {
+            "put": {
+                "summary": "Update an academic year (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "start_year": {"type": "integer"},
+                                    "end_year": {"type": "integer"},
+                                    "is_active": {"type": "boolean"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Academic year updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete an academic year (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Academic year deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/categories": {
             "get": {
                 "summary": "List research categories",
                 "responses": {"200": {"description": "List of categories"}},
+            },
+            "post": {
+                "summary": "Create a category (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "description": {"type": "string"},
+                                },
+                                "required": ["name"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Category created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/categories/{id}": {
+            "put": {
+                "summary": "Update a category (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "description": {"type": "string"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Category updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete a category (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Category deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/keywords": {
             "get": {
                 "summary": "List research keywords",
                 "responses": {"200": {"description": "List of keywords"}},
+            },
+            "post": {
+                "summary": "Create a keyword (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "term": {"type": "string"},
+                                },
+                                "required": ["term"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Keyword created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/keywords/{id}": {
+            "put": {
+                "summary": "Update a keyword (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "term": {"type": "string"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Keyword updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete a keyword (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Keyword deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/authors": {
             "get": {
                 "summary": "List student authors",
                 "responses": {"200": {"description": "List of authors"}},
+            },
+            "post": {
+                "summary": "Create an author (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "first_name": {"type": "string"},
+                                    "last_name": {"type": "string"},
+                                    "email": {"type": "string"},
+                                    "middle_name": {"type": "string"},
+                                },
+                                "required": ["first_name", "last_name"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Author created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/authors/{id}": {
+            "put": {
+                "summary": "Update an author (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "first_name": {"type": "string"},
+                                    "last_name": {"type": "string"},
+                                    "email": {"type": "string"},
+                                    "middle_name": {"type": "string"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Author updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete an author (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Author deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/advisers": {
             "get": {
                 "summary": "List faculty advisers",
                 "responses": {"200": {"description": "List of advisers"}},
+            },
+            "post": {
+                "summary": "Create an adviser (admin only)",
+                "security": [{"bearerAuth": []}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "first_name": {"type": "string"},
+                                    "last_name": {"type": "string"},
+                                    "email": {"type": "string"},
+                                    "middle_name": {"type": "string"},
+                                },
+                                "required": ["first_name", "last_name"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"201": {"description": "Adviser created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
+            }
+        },
+        "/api/advisers/{id}": {
+            "put": {
+                "summary": "Update an adviser (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "first_name": {"type": "string"},
+                                    "last_name": {"type": "string"},
+                                    "email": {"type": "string"},
+                                    "middle_name": {"type": "string"},
+                                },
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Adviser updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
+            },
+            "delete": {
+                "summary": "Delete an adviser (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "responses": {"200": {"description": "Adviser deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/theses": {

@@ -1,6 +1,8 @@
 """Authentication routes — register, login, current user."""
 
-from flask import Blueprint, request, jsonify, send_from_directory, current_app, os as flask_os
+import os
+
+from flask import Blueprint, request, jsonify, send_from_directory, current_app
 from .. import models as db
 from ..auth import hash_password, verify_password, create_token, login_required, admin_required
 
@@ -139,14 +141,14 @@ def get_thesis_pdf(thesis_id):
         return jsonify({"error": "Invalid pdf_url format"}), 500
 
     filename = pdf_url[len(prefix):]
-    upload_dir = flask_os.path.join(current_app.root_path, "uploads")
+    upload_dir = os.path.join(current_app.root_path, "uploads")
 
     # Security: ensure filename doesn't traverse directories
     if ".." in filename or filename.startswith("/"):
         return jsonify({"error": "Invalid filename"}), 400
 
-    file_path = flask_os.path.join(upload_dir, filename)
-    if not flask_os.path.exists(file_path):
+    file_path = os.path.join(upload_dir, filename)
+    if not os.path.exists(file_path):
         return jsonify({"error": "PDF file not found on server"}), 404
 
     return send_from_directory(upload_dir, filename, mimetype="application/pdf", as_attachment=False)
