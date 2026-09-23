@@ -46,6 +46,39 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.thesisId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadThesis());
+    }
+  }
+
+  Future<void> _loadThesis() async {
+    final thesisAsync = await ref.read(thesisDetailProvider(widget.thesisId!).future);
+    if (!mounted || thesisAsync == null) return;
+    final thesis = thesisAsync;
+    setState(() {
+      _titleCtrl.text = thesis.title;
+      _abstractCtrl.text = thesis.abstract;
+      _keywordsCtrl.text =
+          thesis.keywords?.map((k) => k.term).join(', ') ?? '';
+      _program = thesis.program;
+      _year = thesis.academicYear;
+      _researchType = thesis.researchType;
+      _adviser = thesis.advisers?.isNotEmpty == true
+          ? thesis.advisers!.first
+          : null;
+      _category = thesis.categories?.isNotEmpty == true
+          ? thesis.categories!.first
+          : null;
+      _authorIds.clear();
+      if (thesis.authors != null) {
+        _authorIds.addAll(thesis.authors!.map((a) => a.id));
+      }
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSubmitting) return;
