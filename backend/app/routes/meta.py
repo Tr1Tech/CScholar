@@ -179,42 +179,7 @@ def delete_category(category_id):
 
 # ── Keywords CRUD ──────────────────────────────────────────────────────────
 
-@meta_bp.route("/api/keywords", methods=["POST"])
-@admin_required
-def create_keyword():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body required"}), 400
-    term = data.get("term")
-    if not term:
-        return jsonify({"error": "term is required"}), 400
-    keyword = db.create_keyword(term=term)
-    return jsonify(keyword), 201
 
-
-@meta_bp.route("/api/keywords/<int:keyword_id>", methods=["PUT"])
-@admin_required
-def update_keyword(keyword_id):
-    existing = db.get_keyword_by_id(keyword_id)
-    if not existing:
-        return jsonify({"error": "Keyword not found"}), 404
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body required"}), 400
-    allowed = {"term"}
-    updates = {k: v for k, v in data.items() if k in allowed}
-    keyword = db.update_keyword(keyword_id, **updates)
-    return jsonify(keyword), 200
-
-
-@meta_bp.route("/api/keywords/<int:keyword_id>", methods=["DELETE"])
-@admin_required
-def delete_keyword(keyword_id):
-    existing = db.get_keyword_by_id(keyword_id)
-    if not existing:
-        return jsonify({"error": "Keyword not found"}), 404
-    db.delete_keyword(keyword_id)
-    return jsonify({"message": "Keyword deleted", "id": keyword_id}), 200
 
 
 # ── Programs CRUD ─────────────────────────────────────────────────────────

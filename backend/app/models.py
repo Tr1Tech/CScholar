@@ -820,75 +820,7 @@ def delete_category(category_id):
 
 # ── Keywords CRUD ──────────────────────────────────────────────────────────
 
-def get_keyword_by_id(keyword_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, term, created_at FROM keywords WHERE id = %s", (keyword_id,))
-            row = cur.fetchone()
-            if not row:
-                return None
-            return {
-                "id": row[0],
-                "term": row[1],
-                "created_at": row[2].isoformat() if row[2] else None,
-            }
-    finally:
-        put_conn(conn)
 
-
-def create_keyword(term):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO keywords (term) VALUES (%s) ON CONFLICT (term) DO UPDATE SET term = EXCLUDED.term RETURNING id",
-                (term,),
-            )
-            keyword_id = cur.fetchone()[0]
-        conn.commit()
-        return get_keyword_by_id(keyword_id)
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        put_conn(conn)
-
-
-def update_keyword(keyword_id, **kwargs):
-    allowed = {"term"}
-    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
-    if not fields:
-        return get_keyword_by_id(keyword_id)
-
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            set_clause = ", ".join(f"{k} = %s" for k in fields)
-            params = list(fields.values()) + [keyword_id]
-            cur.execute(f"UPDATE keywords SET {set_clause} WHERE id = %s", params)
-        conn.commit()
-        return get_keyword_by_id(keyword_id)
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        put_conn(conn)
-
-
-def delete_keyword(keyword_id):
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM keywords WHERE id = %s", (keyword_id,))
-            deleted = cur.rowcount
-        conn.commit()
-        return deleted > 0
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        put_conn(conn)
 
 
 # ── Programs CRUD ─────────────────────────────────────────────────────────

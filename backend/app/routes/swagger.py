@@ -265,52 +265,8 @@ SWAGGER_JSON = {
         },
         "/api/keywords": {
             "get": {
-                "summary": "List research keywords",
+                "summary": "List research keywords (auto-generated from thesis submissions)",
                 "responses": {"200": {"description": "List of keywords"}},
-            },
-            "post": {
-                "summary": "Create a keyword (admin only)",
-                "security": [{"bearerAuth": []}],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "term": {"type": "string"},
-                                },
-                                "required": ["term"],
-                            }
-                        }
-                    }
-                },
-                "responses": {"201": {"description": "Keyword created"}, "400": {"description": "Invalid input"}, "403": {"description": "Admin only"}},
-            }
-        },
-        "/api/keywords/{id}": {
-            "put": {
-                "summary": "Update a keyword (admin only)",
-                "security": [{"bearerAuth": []}],
-                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "term": {"type": "string"},
-                                },
-                            }
-                        }
-                    }
-                },
-                "responses": {"200": {"description": "Keyword updated"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
-            },
-            "delete": {
-                "summary": "Delete a keyword (admin only)",
-                "security": [{"bearerAuth": []}],
-                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
-                "responses": {"200": {"description": "Keyword deleted"}, "404": {"description": "Not found"}, "403": {"description": "Admin only"}},
             }
         },
         "/api/authors": {
