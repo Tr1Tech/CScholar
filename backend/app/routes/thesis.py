@@ -29,8 +29,11 @@ def list_theses():
     sort_by = request.args.get("sort_by")
     research_type = request.args.get("research_type")
     status = request.args.get("status")
-    if not status:
+    show_all = request.args.get("show_all", "false").lower() == "true"
+    if not status and not show_all:
         status = ['published', 'approved']
+    elif show_all:
+        status = None  # show all statuses
     
     pagination, error, status_code = _pagination_args()
     if error:
@@ -50,6 +53,24 @@ def list_theses():
         per_page=per_page,
     )
     return jsonify(result), 200
+
+
+@thesis_bp.route("/api/theses/<int:id>/status", methods=["PUT"])
+@admin_required
+def update_thesis_status(id):
+    """Update a thesis status (admin only)."""
+    thesis = db.get_thesis_by_id(id)
+    if not thesis:
+        return jsonify({"error": "Thesis not found"}), 404
+    data = request.get_json()
+    if not data or "status" not in data:
+        return jsonify({"error": "status is required"}), 400
+    new_status = data["status"]
+    if new_status not in ("draft", "approved", "published", "archived"):
+        return jsonify({"error": "Invalid status"}), 400
+    db.update_thesis_status(id, new_status)
+    thesis = db.get_thesis_by_id(id)
+    return jsonify(thesis), 200
 
 
 @thesis_bp.route("/api/theses/<int:id>", methods=["GET"])

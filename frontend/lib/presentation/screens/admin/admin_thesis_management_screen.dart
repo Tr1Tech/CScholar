@@ -30,7 +30,7 @@ class _AdminThesisManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    final theses = ref.watch(thesisListProvider(const ThesisListParams()));
+    final theses = ref.watch(thesisListProvider(const ThesisListParams(showAll: true)));
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
 
@@ -100,6 +100,19 @@ class _AdminThesisManagementScreenState
                                 DataCell(Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // Status dropdown
+                                    PopupMenuButton<String>(
+                                      tooltip: "Change status",
+                                      icon: const Icon(Icons.edit_note_outlined, size: 18, color: CScholarColors.textSecondary),
+                                      onSelected: (s) => _changeStatus(context, ref, t, s),
+                                      itemBuilder: (_) => [
+                                        const PopupMenuItem(value: 'draft', child: Text('Set Draft')),
+                                        const PopupMenuItem(value: 'approved', child: Text('Approve')),
+                                        const PopupMenuItem(value: 'published', child: Text('Publish')),
+                                        const PopupMenuItem(value: 'archived', child: Text('Archive')),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 4),
                                     TextButton(
                                       onPressed: () => context.go('/thesis/${t.id}'),
                                       child: const Text('View', style: TextStyle(fontSize: 12)),
@@ -138,11 +151,14 @@ class _AdminThesisManagementScreenState
       case 'published':
         color = CScholarColors.primaryGreen;
         break;
-      case 'pending':
+      case 'approved':
+        color = CScholarColors.info;
+        break;
+      case 'draft':
         color = CScholarColors.orange;
         break;
-      case 'rejected':
-        color = CScholarColors.error;
+      case 'archived':
+        color = CScholarColors.textSecondary;
         break;
       default:
         color = CScholarColors.textSecondary;
@@ -155,6 +171,22 @@ class _AdminThesisManagementScreenState
       ),
       child: Text(status.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
     );
+  }
+
+  Future<void> _changeStatus(BuildContext context, WidgetRef ref, Thesis thesis, String newStatus) async {
+    try {
+      await ref.read(thesisApiProvider).updateStatus(thesis.id, newStatus);
+      ref.invalidate(thesisListProvider(const ThesisListParams()));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Thesis status changed to $newStatus')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
   }
 
   Future<void> _deleteThesis(BuildContext context, WidgetRef ref, Thesis thesis) async {

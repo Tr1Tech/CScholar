@@ -317,6 +317,20 @@ def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, 
             )
 
 
+def update_thesis_status(thesis_id, status):
+    """Update a thesis status."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE theses SET status = %s WHERE id = %s", (status, thesis_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
 def get_thesis_by_id(thesis_id):
     conn = get_conn()
     try:

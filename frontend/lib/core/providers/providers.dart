@@ -135,6 +135,7 @@ class ThesisListParams {
   final String? sortBy;
   final String? researchType;
   final String? status;
+  final bool showAll;
   final int? page;
   final int? pageSize;
 
@@ -147,6 +148,7 @@ class ThesisListParams {
     this.sortBy,
     this.researchType,
     this.status,
+    this.showAll = false,
     this.page,
     this.pageSize,
   });
@@ -164,6 +166,7 @@ class ThesisListParams {
           sortBy == other.sortBy &&
           researchType == other.researchType &&
           status == other.status &&
+          showAll == other.showAll &&
           page == other.page &&
           pageSize == other.pageSize;
 
@@ -177,6 +180,7 @@ class ThesisListParams {
       sortBy.hashCode ^
       researchType.hashCode ^
       status.hashCode ^
+      showAll.hashCode ^
       page.hashCode ^
       pageSize.hashCode;
 }
@@ -218,6 +222,9 @@ final thesisListProvider = FutureProvider.autoDispose
       }
       if (params.status != null) {
         queryParams['status'] = params.status!;
+      }
+      if (params.showAll) {
+        queryParams['show_all'] = 'true';
       }
       final qs = queryParams.entries
           .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')

@@ -132,6 +132,10 @@ class ThesisApi {
     await _api.put('/api/theses/$id', payload.toJson());
   }
 
+  Future<Map<String, dynamic>> updateStatus(int id, String status) async {
+    return await _api.put('/api/theses/$id/status', {'status': status});
+  }
+
   Future<void> delete(int id) async {
     await _api.delete('/api/theses/$id');
   }
@@ -214,6 +218,7 @@ class ThesisFormPayload {
   final List<int> categoryIds;
   final List<String> keywordTerms;
   final String? pdfUrl;
+  final String? status;
 
   ThesisFormPayload({
     required this.title,
@@ -226,6 +231,7 @@ class ThesisFormPayload {
     required this.categoryIds,
     required this.keywordTerms,
     this.pdfUrl,
+    this.status,
   });
 
   Map<String, dynamic> toJson() => {
@@ -239,6 +245,7 @@ class ThesisFormPayload {
     'category_ids': categoryIds,
     'keyword_terms': keywordTerms,
     if (pdfUrl != null) 'pdf_url': pdfUrl,
+    if (status != null) 'status': status,
   };
 }
 

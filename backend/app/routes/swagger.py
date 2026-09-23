@@ -197,6 +197,28 @@ SWAGGER_JSON = {
                 "responses": {"200": {"description": "List of similar theses with similarity scores"}},
             }
         },
+        "/api/theses/{id}/status": {
+            "put": {
+                "tags": ["Theses"],
+                "summary": "Update thesis status (admin only)",
+                "security": [{"bearerAuth": []}],
+                "parameters": [{"name": "id", "in": "path", "required": True, "schema": {"type": "integer"}}],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "status": {"type": "string", "enum": ["draft", "approved", "published", "archived"]},
+                                },
+                                "required": ["status"],
+                            }
+                        }
+                    }
+                },
+                "responses": {"200": {"description": "Status updated"}, "404": {"description": "Not found"}, "400": {"description": "Invalid status"}},
+            }
+        },
         # ── Metadata ──────────────────────────────────────────────────────────
         "/api/programs": {
             "get": {

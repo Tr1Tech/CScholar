@@ -117,6 +117,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
           .where((e) => e.isNotEmpty)
           .toList(),
       pdfUrl: _pdfUrl,
+      // Repository searches intentionally exclude drafts. Admin-created
+      // studies should be visible to repository users immediately.
+      status: widget.thesisId == null ? 'published' : null,
     );
 
     try {
