@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/services/api_service.dart';
+import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -18,22 +19,23 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _abstractCtrl = TextEditingController();
-  final _authorsCtrl = TextEditingController();
   final _keywordsCtrl = TextEditingController();
 
-  String _program = 'BS Information Technology';
-  String _year = '2025 - 2026';
-  String _researchType = 'Capstone';
-  String _adviser = '';
-  String _category = 'Mobile Application';
-  String? _uploadedFileName;
+  // All option lists are loaded from the database; IDs submitted are real DB IDs.
+  Program? _program;
+  AcademicYear? _year;
+  String? _researchType;
+  Adviser? _adviser;
+  Category? _category;
+  final Set<int> _authorIds = {};
   bool _isSubmitting = false;
+
+  String? _submitError;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _abstractCtrl.dispose();
-    _authorsCtrl.dispose();
     _keywordsCtrl.dispose();
     super.dispose();
   }
@@ -41,25 +43,36 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isSubmitting) return;
+    if (_program == null ||
+        _year == null ||
+        _researchType == null ||
+        _category == null ||
+        _authorIds.isEmpty) {
+      setState(() => _submitError =
+          'Please select a program, academic year, research type, category, and at least one author.');
+      return;
+    }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
 
     final api = ref.read(thesisApiProvider);
     final payload = ThesisFormPayload(
       title: _titleCtrl.text.trim(),
       abstract_: _abstractCtrl.text.trim(),
-      programId: _programIdFor(_program),
-      academicYearId: _yearIdFor(_year),
-      researchType: _researchType,
-      authorIds: _authorIdsFor(_authorsCtrl.text.trim()),
-      adviserId: _adviserIdFor(_adviser),
-      categoryIds: _categoryIdsFor(_category),
+      programId: _program!.id,
+      academicYearId: _year!.id,
+      researchType: _researchType!,
+      authorIds: _authorIds.toList(),
+      adviserId: _adviser?.id,
+      categoryIds: [_category!.id],
       keywordTerms: _keywordsCtrl.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
-      pdfUrl: _uploadedFileName,
     );
 
     try {
@@ -70,70 +83,14 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thesis manuscript registered and indexed successfully!')),
+        const SnackBar(content: Text('Thesis registered successfully!')),
       );
       context.go('/admin/dashboard');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
+      setState(() => _submitError = 'Error: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  int _programIdFor(String program) {
-    switch (program) {
-      case 'BS Computer Science':
-        return 2;
-      case 'BS Information Systems':
-        return 3;
-      case 'BS Information Technology':
-      default:
-        return 1;
-    }
-  }
-
-  int _yearIdFor(String year) {
-    switch (year) {
-      case '2023 - 2024':
-        return 2;
-      case '2022 - 2023':
-        return 3;
-      case '2025 - 2026':
-      default:
-        return 1;
-    }
-  }
-
-  int _adviserIdFor(String adviser) {
-    // In production, adviser is resolved via API search.
-    // Return 0 for "unselected / resolve server-side."
-    return 0;
-  }
-
-  List<int> _authorIdsFor(String authors) {
-    // Map comma-separated author names to IDs (placeholder: assign ID 1 to first author, etc.)
-    // In production, this would resolve via a search/lookup API.
-    final names = authors.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    return List.generate(names.length, (i) => i + 1);
-  }
-
-  List<int> _categoryIdsFor(String category) {
-    switch (category) {
-      case 'Machine Learning / AI':
-        return [2];
-      case 'Web-based System':
-        return [3];
-      case 'IoT & Automation':
-        return [4];
-      case 'Mobile Application':
-      default:
-        return [1];
     }
   }
 
@@ -297,7 +254,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
 
                                     const SizedBox(height: 24),
 
-                                    // Grid 1: Academic Classification
+                                    // Grid 1: Academic Classification (options from the database)
                                     Row(
                                       children: [
                                         Expanded(
@@ -306,15 +263,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             children: [
                                               _fieldLabel('ACADEMIC PROGRAM', isRequired: true),
                                               const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                initialValue: _program,
-                                                items: const [
-                                                  DropdownMenuItem(value: 'BS Information Technology', child: Text('BS Information Technology (BSIT)')),
-                                                  DropdownMenuItem(value: 'BS Computer Science', child: Text('BS Computer Science (BSCS)')),
-                                                  DropdownMenuItem(value: 'BS Information Systems', child: Text('BS Information Systems (BSIS)')),
-                                                ],
-                                                onChanged: (v) => setState(() => _program = v!),
-                                              ),
+                                              _programDropdown(),
                                             ],
                                           ),
                                         ),
@@ -325,13 +274,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             children: [
                                               _fieldLabel('ACADEMIC YEAR', isRequired: true),
                                               const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                initialValue: _year,
-                                                items: const [
-                                                  DropdownMenuItem(value: '2025 - 2026', child: Text('2025 - 2026')),
-                                                ],
-                                                onChanged: (v) => setState(() => _year = v!),
-                                              ),
+                                              _academicYearDropdown(),
                                             ],
                                           ),
                                         ),
@@ -340,7 +283,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
 
                                     const SizedBox(height: 20),
 
-                                    // Grid 2: Research Type & Adviser
+                                    // Grid 2: Research Type & Adviser (options from the database)
                                     Row(
                                       children: [
                                         Expanded(
@@ -349,14 +292,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             children: [
                                               _fieldLabel('RESEARCH TYPE', isRequired: true),
                                               const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                initialValue: _researchType,
-                                                items: const [
-                                                  DropdownMenuItem(value: 'Capstone', child: Text('Capstone')),
-                                                  DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
-                                                ],
-                                                onChanged: (v) => setState(() => _researchType = v!),
-                                              ),
+                                              _researchTypeDropdown(),
                                             ],
                                           ),
                                         ),
@@ -365,15 +301,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              _fieldLabel('FACULTY ADVISER', isRequired: true),
+                                              _fieldLabel('ADVISER', isRequired: false),
                                               const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                initialValue: _adviser.isEmpty ? null : _adviser,
-                                                items: const [],
-                                                onChanged: (v) => setState(() => _adviser = v ?? ''),
-                                                hint: Text('Select or search for faculty adviser',
-                                                    style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textHint)),
-                                              ),
+                                              _adviserDropdown(),
                                             ],
                                           ),
                                         ),
@@ -382,16 +312,10 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
 
                                     const SizedBox(height: 20),
 
-                                    // Authors Input
+                                    // Authors (selected from the database)
                                     _fieldLabel('AUTHORS', isRequired: true),
                                     const SizedBox(height: 6),
-                                    TextFormField(
-                                      controller: _authorsCtrl,
-                                      validator: (v) => (v == null || v.isEmpty) ? 'Please specify authors' : null,
-                                      decoration: const InputDecoration(
-                                        hintText: 'e.g. Author One, Author Two',
-                                      ),
-                                    ),
+                                    _authorsPicker(),
 
                                     const SizedBox(height: 20),
 
@@ -404,16 +328,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             children: [
                                               _fieldLabel('PRIMARY CATEGORY', isRequired: true),
                                               const SizedBox(height: 6),
-                                              DropdownButtonFormField<String>(
-                                                initialValue: _category,
-                                                items: const [
-                                                  DropdownMenuItem(value: 'Mobile Application', child: Text('Mobile Application')),
-                                                  DropdownMenuItem(value: 'Machine Learning / AI', child: Text('Machine Learning / AI')),
-                                                  DropdownMenuItem(value: 'Web-based System', child: Text('Web-based System')),
-                                                  DropdownMenuItem(value: 'IoT & Automation', child: Text('IoT & Automation')),
-                                                ],
-                                                onChanged: (v) => setState(() => _category = v!),
-                                              ),
+                                              _categoryDropdown(),
                                             ],
                                           ),
                                         ),
@@ -422,12 +337,12 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              _fieldLabel('KEYWORDS / TAGS', isRequired: true),
+                                              _fieldLabel('KEYWORDS / TAGS', isRequired: false),
                                               const SizedBox(height: 6),
                                               TextFormField(
                                                 controller: _keywordsCtrl,
                                                 decoration: const InputDecoration(
-                                                  hintText: 'campus navigation, GPS, BLE beacons',
+                                                  hintText: 'comma, separated, keywords',
                                                 ),
                                               ),
                                             ],
@@ -438,46 +353,24 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
 
                                     const SizedBox(height: 28),
 
-                                    // Manuscript PDF File Upload Area
-                                    _fieldLabel('MANUSCRIPT PDF ATTACHMENT', isRequired: false),
-                                    const SizedBox(height: 8),
-                                    InkWell(
-                                      onTap: () {
-                                        setState(() => _uploadedFileName = 'CScholar_Manuscript_Final_Draft.pdf (4.8 MB)');
-                                      },
-                                      borderRadius: BorderRadius.circular(CScholarRadius.lg),
-                                      child: Container(
+                                    if (_submitError != null)
+                                      Container(
                                         width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                                        margin: const EdgeInsets.only(bottom: 16),
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF8FAFC),
-                                          borderRadius: BorderRadius.circular(CScholarRadius.lg),
+                                          color: CScholarColors.errorLight,
+                                          borderRadius: BorderRadius.circular(CScholarRadius.md),
                                           border: Border.all(
-                                            color: CScholarColors.primaryGreen.withValues(alpha: 0.4),
-                                            width: 1.5,
-                                            style: BorderStyle.solid,
+                                            color: CScholarColors.error.withValues(alpha: 0.3),
                                           ),
                                         ),
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(Icons.cloud_upload_outlined, size: 38, color: CScholarColors.primaryGreen),
-                                            const SizedBox(height: 10),
-                                            Text(
-                                              _uploadedFileName ?? 'Click or drag PDF manuscript file here to upload',
-                                              style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Supports PDF documents up to 25MB for AI indexing',
-                                              style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textHint),
-                                            ),
-                                          ],
+                                        child: Text(
+                                          _submitError!,
+                                          style: CScholarTextStyles.inter(
+                                              12, FontWeight.w500, CScholarColors.error),
                                         ),
                                       ),
-                                    ),
-
-                                    const SizedBox(height: 32),
 
                                     // Form Submission Buttons
                                     Row(
@@ -491,20 +384,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                           ),
                                           child: Text('Cancel', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textSecondary)),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        OutlinedButton(
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Draft saved successfully!')),
-                                            );
-                                          },
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: CScholarColors.primaryGreen,
-                                            side: const BorderSide(color: CScholarColors.primaryGreen),
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                          ),
-                                          child: Text('Save Draft', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.primaryGreen)),
                                         ),
                                         const SizedBox(width: 12),
                                         FilledButton.icon(
@@ -556,6 +435,210 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         ),
         if (isRequired)
           const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Widget _formLoading() {
+    return const SizedBox(
+      height: 48,
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _programDropdown() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final programsAsync = ref.watch(programsProvider);
+        return programsAsync.when(
+          data: (programs) {
+            if (programs.isEmpty) return const Text('No programs available');
+            return DropdownButtonFormField<Program>(
+              initialValue: _program != null && programs.any((p) => p.id == _program!.id)
+                  ? programs.firstWhere((p) => p.id == _program!.id)
+                  : null,
+              items: programs
+                  .map((p) => DropdownMenuItem(
+                        value: p,
+                        child: Text('${p.name} (${p.code})'),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _program = v),
+              validator: (v) => v == null ? 'Select a program' : null,
+              hint: const Text('Select program'),
+            );
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load programs: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _academicYearDropdown() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final yearsAsync = ref.watch(academicYearsProvider);
+        return yearsAsync.when(
+          data: (years) {
+            if (years.isEmpty) return const Text('No academic years available');
+            return DropdownButtonFormField<AcademicYear>(
+              initialValue: _year != null && years.any((y) => y.id == _year!.id)
+                  ? years.firstWhere((y) => y.id == _year!.id)
+                  : null,
+              items: years
+                  .map((y) => DropdownMenuItem(
+                        value: y,
+                        child: Text(y.label),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _year = v),
+              validator: (v) => v == null ? 'Select an academic year' : null,
+              hint: const Text('Select academic year'),
+            );
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load academic years: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _researchTypeDropdown() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final typesAsync = ref.watch(researchTypesProvider);
+        return typesAsync.when(
+          data: (types) {
+            if (types.isEmpty) return const Text('No research types available');
+            return DropdownButtonFormField<String>(
+              initialValue: _researchType,
+              items: types
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
+              onChanged: (v) => setState(() => _researchType = v),
+              validator: (v) => v == null ? 'Select a research type' : null,
+              hint: const Text('Select research type'),
+            );
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load research types: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _adviserDropdown() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final advisersAsync = ref.watch(advisersProvider);
+        return advisersAsync.when(
+          data: (advisers) {
+            if (advisers.isEmpty) return const Text('No advisers available');
+            return DropdownButtonFormField<Adviser>(
+              initialValue: _adviser != null && advisers.any((a) => a.id == _adviser!.id)
+                  ? advisers.firstWhere((a) => a.id == _adviser!.id)
+                  : null,
+              items: advisers
+                  .map((a) => DropdownMenuItem(
+                        value: a,
+                        child: Text(a.fullName),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _adviser = v),
+              hint: const Text('Select adviser (optional)'),
+            );
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load advisers: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _categoryDropdown() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final categoriesAsync = ref.watch(categoriesProvider);
+        return categoriesAsync.when(
+          data: (categories) {
+            if (categories.isEmpty) return const Text('No categories available');
+            return DropdownButtonFormField<Category>(
+              initialValue: _category != null &&
+                      categories.any((c) => c.id == _category!.id)
+                  ? categories.firstWhere((c) => c.id == _category!.id)
+                  : null,
+              items: categories
+                  .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c.name),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => _category = v),
+              validator: (v) => v == null ? 'Select a category' : null,
+              hint: const Text('Select category'),
+            );
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load categories here: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _authorsPicker() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final authorsAsync = ref.watch(authorsProvider);
+        return authorsAsync.when(
+          data: (authors) {
+            if (authors.isEmpty) return const Text('No authors available');
+            return _authorChips(authors);
+          },
+          loading: _formLoading,
+          error: (err, _) => Text('Could not load authors: $err'),
+        );
+      },
+    );
+  }
+
+  Widget _authorChips(List<Author> authors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: authors.map((a) {
+            final selected = _authorIds.contains(a.id);
+            return FilterChip(
+              label: Text(a.fullName),
+              selected: selected,
+              onSelected: (v) => setState(() {
+                if (v) {
+                  _authorIds.add(a.id);
+                } else {
+                  _authorIds.remove(a.id);
+                }
+              }),
+            );
+          }).toList(),
+        ),
+        if (_authorIds.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'No authors selected yet',
+              style: CScholarTextStyles.inter(
+                  12, FontWeight.w500, CScholarColors.textMuted),
+            ),
+          ),
       ],
     );
   }

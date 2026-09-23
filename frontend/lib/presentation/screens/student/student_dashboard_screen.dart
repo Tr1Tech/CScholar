@@ -22,7 +22,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   }
 
   void _search() {
-    if (_searchController.text.trim().isNotEmpty) {
+    final query = _searchController.text.trim();
+    if (query.isNotEmpty) {
+      context.go('/repository?q=${Uri.encodeComponent(query)}');
+    } else {
       context.go('/repository');
     }
   }
@@ -33,6 +36,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     final recentTheses = ref.watch(recentThesesProvider);
     final stats = ref.watch(dashboardStatsProvider);
     final savedIds = ref.watch(savedThesisIdsProvider);
+    final academicYears = ref.watch(academicYearsProvider);
+
+    // Recommendations are generated from the most recent database record.
+    final recentList = recentTheses.value;
+    final recommendationSourceId =
+        (recentList != null && recentList.isNotEmpty) ? recentList.first.id : null;
+    final recommendedTheses = recommendationSourceId == null
+        ? AsyncValue.data(<SemanticResult>[])
+        : ref.watch(recommendedThesesProvider(recommendationSourceId));
 
     return StudentLayout(
       currentIndex: 0,
@@ -60,7 +72,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Good ${_timeOfDay()}, ${user?.username ?? 'Juan'}!',
+                        'Good ${_timeOfDay()}${(user?.username ?? '').isEmpty ? '' : ', ${user!.username}'}!',
                         style: CScholarTextStyles.poppins(
                           24,
                           FontWeight.w800,
@@ -141,28 +153,28 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       children: [
                         _metricCard(
                           title: 'Archived Studies',
-                          value: '${stats.value?['studies'] ?? '1,248'}',
+                          value: '${stats.value?['studies'] ?? 0}',
                           icon: Icons.article_outlined,
                           iconBg: const Color(0xFFDCFCE7),
                           iconColor: CScholarColors.primaryGreen,
                         ),
                         _metricCard(
                           title: 'CEIT Programs',
-                          value: '${stats.value?['programs'] ?? '3'}',
+                          value: '${stats.value?['programs'] ?? 0}',
                           icon: Icons.account_balance_outlined,
                           iconBg: const Color(0xFFE0F2FE),
                           iconColor: const Color(0xFF0284C7),
                         ),
                         _metricCard(
                           title: 'Academic Years',
-                          value: '${stats.value?['years'] ?? '5'}',
+                          value: '${academicYears.value?.length ?? 0}',
                           icon: Icons.calendar_today_outlined,
                           iconBg: const Color(0xFFEDE9FE),
                           iconColor: const Color(0xFF7C3AED),
                         ),
                         _metricCard(
                           title: 'Your Saved',
-                          value: '${savedIds.isNotEmpty ? savedIds.length : (stats.value?['saved'] ?? '12')}',
+                          value: '${savedIds.length}',
                           icon: Icons.bookmark_outline,
                           iconBg: const Color(0xFFFEF3C7),
                           iconColor: const Color(0xFFD97706),
@@ -180,7 +192,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                     final isMultiCol = constraints.maxWidth > 880;
 
                     final leftCol = _recentStudiesCard(recentTheses);
-                    final recommendedTheses = ref.watch(recommendedThesesProvider(1));
                     final rightCol = _recommendedStudiesCard(recommendedTheses);
 
                     if (isMultiCol) {
@@ -347,22 +358,26 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE0F2FE),
-                                          borderRadius: BorderRadius.circular(4),
+                                      if ((t.program?.name ?? '').isNotEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE0F2FE),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            t.program!.name,
+                                            style: CScholarTextStyles.inter(10.5, FontWeight.w700, const Color(0xFF0369A1)),
+                                          ),
                                         ),
-                                        child: Text(
-                                          t.program?.name ?? 'BSIT',
-                                          style: CScholarTextStyles.inter(10.5, FontWeight.w700, const Color(0xFF0369A1)),
+                                      if ((t.program?.name ?? '').isNotEmpty &&
+                                          (t.academicYear?.label ?? '').isNotEmpty)
+                                        const SizedBox(width: 8),
+                                      if ((t.academicYear?.label ?? '').isNotEmpty)
+                                        Text(
+                                          t.academicYear!.label,
+                                          style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '• ${t.academicYear?.label ?? '2024 - 2025'}',
-                                        style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
-                                      ),
                                     ],
                                   ),
                                 ],
@@ -424,7 +439,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      'No recommendations — generate embeddings first.',
+                      'No recommendations yet',
                       style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
                     ),
                   ),
@@ -468,7 +483,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${r.thesis.program?.name ?? 'CEIT'} • ${(r.similarity * 100).round()}% match',
+                                    '${r.thesis.program?.name ?? ''}${(r.thesis.program?.name ?? '').isEmpty ? '' : ' • '}${(r.similarity * 100).round()}% match',
                                     style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted),
                                   ),
                                 ],

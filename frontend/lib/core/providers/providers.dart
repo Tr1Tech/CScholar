@@ -1,25 +1,27 @@
 // Riverpod 3.x state management (modern Notifier API — no code generation)
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/thesis.dart';
-import 'package:frontend/services/mock_repository_service.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// All data shown in the UI comes from the backend API — there is no local
+// sample/seed data anywhere in the app.
 
 // ─── API Service provider (production HTTP client) ───────────────────────────
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
 // ─── Auth API provider ────────────────────────────────────────────────────────
-final authApiProvider = Provider<AuthApi>((ref) => AuthApi(ref.read(apiServiceProvider)));
-
-// ─── Repository Service provider ──────────────────────────────────────────────
-final repositoryServiceProvider = Provider<RepositoryService>((ref) {
-  return MockRepositoryService();
-});
+final authApiProvider = Provider<AuthApi>(
+  (ref) => AuthApi(ref.read(apiServiceProvider)),
+);
 
 // Auth state using Notifier (Riverpod 3.x — simple and clean)
-final authProvider =
-    NotifierProvider<AuthNotifier, AsyncValue<User?>>(() => AuthNotifier());
+final authProvider = NotifierProvider<AuthNotifier, AsyncValue<User?>>(
+  () => AuthNotifier(),
+);
 
 class AuthNotifier extends Notifier<AsyncValue<User?>> {
   AuthApi get _authApi => ref.read(authApiProvider);
@@ -51,7 +53,9 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
         passwordHash: '',
         role: userData['role'] as String,
         isActive: userData['is_active'] as bool? ?? true,
-        createdAt: DateTime.tryParse(userData['created_at'] as String? ?? '') ?? DateTime.now(),
+        createdAt:
+            DateTime.tryParse(userData['created_at'] as String? ?? '') ??
+            DateTime.now(),
         updatedAt: DateTime.now(),
       );
       state = AsyncValue.data(user);
@@ -99,7 +103,9 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
           passwordHash: '',
           role: userData['role'] as String,
           isActive: userData['is_active'] as bool? ?? true,
-          createdAt: DateTime.tryParse(userData['created_at'] as String? ?? '') ?? DateTime.now(),
+          createdAt:
+              DateTime.tryParse(userData['created_at'] as String? ?? '') ??
+              DateTime.now(),
           updatedAt: DateTime.now(),
         );
         state = AsyncValue.data(user);
@@ -124,6 +130,9 @@ class ThesisListParams {
   final String? query;
   final int? programId;
   final int? academicYearId;
+  final int? categoryId;
+  final String? keyword;
+  final String? sortBy;
   final String? researchType;
   final String? status;
   final int? page;
@@ -133,6 +142,9 @@ class ThesisListParams {
     this.query,
     this.programId,
     this.academicYearId,
+    this.categoryId,
+    this.keyword,
+    this.sortBy,
     this.researchType,
     this.status,
     this.page,
@@ -147,6 +159,9 @@ class ThesisListParams {
           query == other.query &&
           programId == other.programId &&
           academicYearId == other.academicYearId &&
+          categoryId == other.categoryId &&
+          keyword == other.keyword &&
+          sortBy == other.sortBy &&
           researchType == other.researchType &&
           status == other.status &&
           page == other.page &&
@@ -157,6 +172,9 @@ class ThesisListParams {
       query.hashCode ^
       programId.hashCode ^
       academicYearId.hashCode ^
+      categoryId.hashCode ^
+      keyword.hashCode ^
+      sortBy.hashCode ^
       researchType.hashCode ^
       status.hashCode ^
       page.hashCode ^
@@ -164,47 +182,48 @@ class ThesisListParams {
 }
 
 // ─── Thesis API provider ─────────────────────────────────────────────────────
-final thesisApiProvider = Provider<ThesisApi>((ref) => ThesisApi(ref.read(apiServiceProvider)));
+final thesisApiProvider = Provider<ThesisApi>(
+  (ref) => ThesisApi(ref.read(apiServiceProvider)),
+);
 
 final thesisListProvider = FutureProvider.autoDispose
     .family<List<Thesis>?, ThesisListParams>((ref, params) async {
-  // Use real API
-  final api = ref.read(apiServiceProvider);
-  try {
-    final queryParams = <String, String>{};
-    if (params.query != null && params.query!.isNotEmpty) {
-      queryParams['q'] = params.query!;
-    }
-    if (params.programId != null) {
-      queryParams['program_id'] = params.programId.toString();
-    }
-    if (params.academicYearId != null) {
-      queryParams['year_id'] = params.academicYearId.toString();
-    }
-    if (params.researchType != null) {
-      queryParams['research_type'] = params.researchType!;
-    }
-    if (params.status != null) {
-      queryParams['status'] = params.status!;
-    }
-    final qs = queryParams.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
-    final endpoint = qs.isEmpty ? '/api/theses' : '/api/theses?$qs';
-    final data = await api.get(endpoint);
-    final List<dynamic> raw = data['theses'] as List<dynamic>;
-    return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    // Fallback to mock
-    return ref.read(repositoryServiceProvider).getTheses(
-      query: params.query,
-      programId: params.programId,
-      academicYearId: params.academicYearId,
-      researchType: params.researchType,
-      status: params.status,
-      page: params.page,
-      pageSize: params.pageSize,
-    );
-  }
-});
+      final api = ref.read(apiServiceProvider);
+      final queryParams = <String, String>{};
+      if (params.query != null && params.query!.isNotEmpty) {
+        queryParams['q'] = params.query!;
+      }
+      if (params.programId != null) {
+        queryParams['program_id'] = params.programId.toString();
+      }
+      if (params.academicYearId != null) {
+        queryParams['year_id'] = params.academicYearId.toString();
+      }
+      if (params.categoryId != null) {
+        queryParams['category_id'] = params.categoryId.toString();
+      }
+      if (params.keyword != null && params.keyword!.isNotEmpty) {
+        queryParams['keyword'] = params.keyword!;
+      }
+      if (params.sortBy != null && params.sortBy!.isNotEmpty) {
+        queryParams['sort_by'] = params.sortBy!;
+      }
+      if (params.researchType != null) {
+        queryParams['research_type'] = params.researchType!;
+      }
+      if (params.status != null) {
+        queryParams['status'] = params.status!;
+      }
+      final qs = queryParams.entries
+          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+      final endpoint = qs.isEmpty ? '/api/theses' : '/api/theses?$qs';
+      final data = await api.get(endpoint);
+      final List<dynamic> raw = data['theses'] as List<dynamic>;
+      return raw
+          .map((e) => Thesis.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
 
 /// Phase 9: semantic search result with similarity score.
 class SemanticResult {
@@ -214,41 +233,46 @@ class SemanticResult {
 }
 
 final semanticSearchProvider = FutureProvider.autoDispose
-    .family<List<SemanticResult>?, String>((ref, query) async {
-  if (query.trim().isEmpty) return null;
-  final thesisApi = ref.read(thesisApiProvider);
-  try {
-    final raw = await thesisApi.semanticSearch(query.trim(), limit: 10);
-    final out = <SemanticResult>[];
-    for (final e in raw) {
-      final m = e as Map<String, dynamic>;
+    .family<List<SemanticResult>, String>((ref, query) async {
+      if (query.trim().isEmpty) return const [];
+      final thesisApi = ref.read(thesisApiProvider);
       try {
-        // Semantic endpoint returns a slim payload — hydrate via detail endpoint.
-        final detail = await ref.read(apiServiceProvider).get('/api/theses/${m['id']}');
-        out.add(SemanticResult(
-          thesis: Thesis.fromJson(detail as Map<String, dynamic>),
-          similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
-        ));
-      } catch (_) {
-        // Skip unhydratable rows instead of failing the whole search.
-        continue;
+        final raw = await thesisApi
+            .semanticSearch(query.trim(), limit: 10)
+            .timeout(const Duration(seconds: 20));
+        final out = <SemanticResult>[];
+        for (final e in raw) {
+          final m = e as Map<String, dynamic>;
+          try {
+            // Semantic endpoint returns a slim payload — hydrate via detail endpoint.
+            final detail = await ref
+                .read(apiServiceProvider)
+                .get('/api/theses/${m['id']}')
+                .timeout(const Duration(seconds: 10));
+            out.add(
+              SemanticResult(
+                thesis: Thesis.fromJson(detail as Map<String, dynamic>),
+                similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
+              ),
+            );
+          } catch (_) {
+            // Skip unhydratable rows instead of failing the whole search.
+            continue;
+          }
+        }
+        return out;
+      } catch (error, stackTrace) {
+        Error.throwWithStackTrace(error, stackTrace);
       }
-    }
-    return out;
-  } catch (_) {
-    return null;
-  }
-});
+    });
 
-final thesisProvider = FutureProvider.autoDispose.family<Thesis?, int>((ref, id) async {
-  // Use real API
+final thesisProvider = FutureProvider.autoDispose.family<Thesis?, int>((
+  ref,
+  id,
+) async {
   final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/theses/$id');
-    return Thesis.fromJson(data as Map<String, dynamic>);
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getThesisById(id);
-  }
+  final data = await api.get('/api/theses/$id');
+  return Thesis.fromJson(data as Map<String, dynamic>);
 });
 
 // Alias for detail screen readability
@@ -256,7 +280,9 @@ final thesisDetailProvider = thesisProvider;
 
 // Saved thesis IDs as a simple Set<int> — easy to check membership
 final savedThesisIdsProvider =
-    NotifierProvider<SavedThesisIdsNotifier, Set<int>>(() => SavedThesisIdsNotifier());
+    NotifierProvider<SavedThesisIdsNotifier, Set<int>>(
+      () => SavedThesisIdsNotifier(),
+    );
 
 class SavedThesisIdsNotifier extends Notifier<Set<int>> {
   @override
@@ -273,183 +299,149 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
   void clear() => state = {};
 }
 
-final recentThesesProvider = FutureProvider.autoDispose<List<Thesis>>((ref) async {
+final recentThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
+  ref,
+) async {
   final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/theses');
-    final List<dynamic> raw = data['theses'] as List<dynamic>;
-    return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getRecentTheses(limit: 5);
-  }
+  final data = await api.get('/api/theses');
+  final List<dynamic> raw = data['theses'] as List<dynamic>;
+  return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
 });
 
 final recommendedThesesProvider = FutureProvider.autoDispose
     .family<List<SemanticResult>, int>((ref, thesisId) async {
-  final api = ref.read(thesisApiProvider);
-  try {
-    final raw = await api.recommend(thesisId);
-    final out = <SemanticResult>[];
-    for (final e in raw) {
-      final m = e as Map<String, dynamic>;
+      final api = ref.read(thesisApiProvider);
       try {
-        final detail = await ref.read(apiServiceProvider).get('/api/theses/${m['id']}');
-        out.add(SemanticResult(
-          thesis: Thesis.fromJson(detail as Map<String, dynamic>),
-          similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
-        ));
+        final raw = await api.recommend(thesisId);
+        final out = <SemanticResult>[];
+        for (final e in raw) {
+          final m = e as Map<String, dynamic>;
+          try {
+            final detail = await ref
+                .read(apiServiceProvider)
+                .get('/api/theses/${m['id']}');
+            out.add(
+              SemanticResult(
+                thesis: Thesis.fromJson(detail as Map<String, dynamic>),
+                similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
+              ),
+            );
+          } catch (_) {
+            continue;
+          }
+        }
+        return out;
       } catch (_) {
-        continue;
+        return [];
       }
-    }
-    return out;
-  } catch (_) {
-    return [];
-  }
-});
+    });
 
 final programsProvider = FutureProvider.autoDispose<List<Program>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/programs');
-    final List<dynamic> raw = data as List<dynamic>;
-    return raw.map((e) => Program.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getPrograms();
-  }
+  final data = await ref.read(apiServiceProvider).get('/api/programs');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => Program.fromJson(e as Map<String, dynamic>)).toList();
 });
 
-final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/academic-years');
-    final List<dynamic> raw = data as List<dynamic>;
-    return raw.map((e) => AcademicYear.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getAcademicYears();
-  }
+final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYear>>((
+  ref,
+) async {
+  final data = await ref.read(apiServiceProvider).get('/api/academic-years');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw
+      .map((e) => AcademicYear.fromJson(e as Map<String, dynamic>))
+      .toList();
 });
 
-final categoriesProvider = FutureProvider.autoDispose<List<Category>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/categories');
-    final List<dynamic> raw = data as List<dynamic>;
-    return raw.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getCategories();
-  }
+final categoriesProvider = FutureProvider.autoDispose<List<Category>>((
+  ref,
+) async {
+  final data = await ref.read(apiServiceProvider).get('/api/categories');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => Category.fromJson(e as Map<String, dynamic>)).toList();
 });
 
 final keywordsProvider = FutureProvider.autoDispose<List<Keyword>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/keywords');
-    final List<dynamic> raw = data as List<dynamic>;
-    return raw.map((e) => Keyword.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return ref.read(repositoryServiceProvider).getKeywords();
-  }
+  final data = await ref.read(apiServiceProvider).get('/api/keywords');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => Keyword.fromJson(e as Map<String, dynamic>)).toList();
 });
 
-final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/dashboard/stats');
+/// Authors registered in the database (used by the thesis submission form).
+final authorsProvider = FutureProvider.autoDispose<List<Author>>((ref) async {
+  final data = await ref.read(apiServiceProvider).get('/api/authors');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => Author.fromJson(e as Map<String, dynamic>)).toList();
+});
+
+/// Advisers registered in the database (used by the thesis submission form).
+final advisersProvider = FutureProvider.autoDispose<List<Adviser>>((ref) async {
+  final data = await ref.read(apiServiceProvider).get('/api/advisers');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => Adviser.fromJson(e as Map<String, dynamic>)).toList();
+});
+
+/// Research types supported by the backend (GET /api/research-types).
+final researchTypesProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final data = await ref.read(apiServiceProvider).get('/api/research-types');
+  final List<dynamic> raw = data as List<dynamic>;
+  return raw.map((e) => e.toString()).toList();
+});
+
+final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) async {
+    final data = await ref.read(apiServiceProvider).get('/api/dashboard/stats');
     return Map<String, dynamic>.from(data as Map);
-  } catch (_) {
-    // Fallback to old behavior
-    final theses = await api.get('/api/theses');
-    final List<dynamic> raw = theses['theses'] as List<dynamic>;
-    return {
-      'studies': raw.length,
-      'programs': 3,
-      'users': 0,
-      'authors': 0,
-      'active_users': 0,
-      'active_programs': 3,
-      'searches': '0',
-      'studies_this_week': 0,
-      'search_growth': 0,
-    };
-  }
+  },
+);
+
+final recentActivityProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/dashboard/recent-activity');
+      final List<dynamic> raw = data['activity'] as List<dynamic>;
+      return raw.cast<Map<String, dynamic>>();
+    });
+
+final facultyStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
+  ref,
+) async {
+  final data = await ref.read(apiServiceProvider).get('/api/faculty/dashboard');
+  return Map<String, dynamic>.from(data as Map);
 });
 
-final recentActivityProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/dashboard/recent-activity');
-    final List<dynamic> raw = data['activity'] as List<dynamic>;
-    return raw.cast<Map<String, dynamic>>();
-  } catch (_) {
-    return [];
-  }
-});
-
-final facultyStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/faculty/dashboard');
-    return Map<String, dynamic>.from(data as Map);
-  } catch (_) {
-    return {
-      'theses': 0,
-      'advisees': 0,
-      'published': 0,
-      'active_projects': 0,
-      'programs': 3,
-      'pending_reviews': 0,
-      'completed_reviews': 0,
-    };
-  }
-});
-
-final facultyActivityProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/faculty/activity');
-    final List<dynamic> raw = data['activity'] as List<dynamic>;
-    return raw.cast<Map<String, dynamic>>();
-  } catch (_) {
-    return [];
-  }
-});
+final facultyActivityProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/faculty/activity');
+      final List<dynamic> raw = data['activity'] as List<dynamic>;
+      return raw.cast<Map<String, dynamic>>();
+    });
 
 final usersProvider = FutureProvider.autoDispose<List<User>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  try {
-    final data = await api.get('/api/users');
-    final List<dynamic> raw = data as List<dynamic>;
-    return raw.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
-  } catch (_) {
-    return [];
-  }
+  final data = await ref.read(apiServiceProvider).get('/api/users');
+  final List<dynamic> raw = data['users'] as List<dynamic>;
+  return raw.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
 });
 
-// Simple state notifier for saved theses
-final savedThesesProvider =
-    NotifierProvider<SavedThesesNotifier, List<Thesis>>(() => SavedThesesNotifier());
-
-class SavedThesesNotifier extends Notifier<List<Thesis>> {
-  RepositoryService get _repository => ref.read(repositoryServiceProvider);
-
-  @override
-  List<Thesis> build() => [];
-
-  Future<void> saveThesis(Thesis thesis) async {
-    if (!state.any((t) => t.id == thesis.id)) {
-      await _repository.saveThesis(thesis.id);
-      state = [...state, thesis];
-    }
+// Saved studies — the bookmarked IDs are kept per session, but every study
+// shown is re-loaded from the database so no stale/offline copy is displayed.
+final savedThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
+  ref,
+) async {
+  final ids = ref.watch(savedThesisIdsProvider);
+  if (ids.isEmpty) return const <Thesis>[];
+  final api = ref.read(apiServiceProvider);
+  final saved = <Thesis>[];
+  for (final id in ids) {
+    final data = await api.get('/api/theses/$id');
+    saved.add(Thesis.fromJson(data as Map<String, dynamic>));
   }
-
-  Future<void> unsaveThesis(Thesis thesis) async {
-    await _repository.unsaveThesis(thesis.id);
-    state = state.where((t) => t.id != thesis.id).toList();
-  }
-
-  bool isSaved(int thesisId) => state.any((t) => t.id == thesisId);
-}
+  return saved;
+});
 
 // Simple state for search
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
@@ -491,9 +483,10 @@ class SearchFilters {
   }
 }
 
-final searchFiltersProvider = NotifierProvider<SearchFiltersNotifier, SearchFilters>(
-  () => SearchFiltersNotifier(),
-);
+final searchFiltersProvider =
+    NotifierProvider<SearchFiltersNotifier, SearchFilters>(
+      () => SearchFiltersNotifier(),
+    );
 
 class SearchFiltersNotifier extends Notifier<SearchFilters> {
   @override
@@ -501,7 +494,8 @@ class SearchFiltersNotifier extends Notifier<SearchFilters> {
 
   void setProgram(int? id) => state = state.copyWith(programId: id);
   void setAcademicYear(int? id) => state = state.copyWith(academicYearId: id);
-  void setResearchType(String? type) => state = state.copyWith(researchType: type);
+  void setResearchType(String? type) =>
+      state = state.copyWith(researchType: type);
   void setStatus(String? status) => state = state.copyWith(status: status);
   void clear() => state = const SearchFilters();
 }

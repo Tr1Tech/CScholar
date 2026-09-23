@@ -1,6 +1,9 @@
-// Mock data models matching the database schema exactly
-// Plain Dart classes for the prototype - no code generation needed
-
+// Data models matching the database schema exactly
+ 
+/// Parses an ISO-8601 timestamp from the API, tolerating missing values so a
+/// partial row from the database never breaks a screen.
+DateTime _parseDate(dynamic value) =>
+    DateTime.tryParse((value as String?) ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
 
 /// CEIT Program model
 class Program {
@@ -23,7 +26,7 @@ class Program {
     code: json['code'] as String,
     name: json['name'] as String,
     college: json['college'] as String?,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -55,11 +58,13 @@ class AcademicYear {
 
   factory AcademicYear.fromJson(Map<String, dynamic> json) => AcademicYear(
     id: json['id'] as int,
-    label: json['label'] as String,
+    // The API exposes the label as "label" on /api/academic-years and as
+    // "name" when nested inside a thesis payload.
+    label: (json['label'] ?? json['name'] ?? '') as String,
     startYear: json['start_year'] as int,
     endYear: json['end_year'] as int,
-    isActive: json['is_active'] as bool,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    isActive: json['is_active'] as bool? ?? false,
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -108,7 +113,7 @@ class Author {
     lastName: json['last_name'] as String,
     email: json['email'] as String?,
     studentId: json['student_id'] as String?,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -158,7 +163,7 @@ class Adviser {
     lastName: json['last_name'] as String,
     email: json['email'] as String?,
     designation: json['designation'] as String?,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -190,7 +195,7 @@ class Category {
     id: json['id'] as int,
     name: json['name'] as String,
     description: json['description'] as String?,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -216,7 +221,7 @@ class Keyword {
   factory Keyword.fromJson(Map<String, dynamic> json) => Keyword(
     id: json['id'] as int,
     term: json['term'] as String,
-    createdAt: DateTime.parse(json['created_at'] as String),
+    createdAt: _parseDate(json['created_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -400,16 +405,20 @@ class User {
     required this.updatedAt,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) => User(
-    id: json['id'] as int,
-    username: json['username'] as String,
-    email: json['email'] as String,
-    passwordHash: json['password_hash'] as String,
-    role: json['role'] as String,
-    isActive: json['is_active'] as bool,
-    createdAt: DateTime.parse(json['created_at'] as String),
-    updatedAt: DateTime.parse(json['updated_at'] as String),
-  );
+  factory User.fromJson(Map<String, dynamic> json) {
+    final created = _parseDate(json['created_at']);
+    return User(
+      id: json['id'] as int,
+      username: json['username'] as String,
+      email: json['email'] as String,
+      // /api/users never exposes the password hash.
+      passwordHash: json['password_hash'] as String? ?? '',
+      role: json['role'] as String,
+      isActive: json['is_active'] as bool? ?? false,
+      createdAt: created,
+      updatedAt: json['updated_at'] == null ? created : _parseDate(json['updated_at']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -472,14 +481,14 @@ class Thesis {
   factory Thesis.fromJson(Map<String, dynamic> json) => Thesis(
     id: json['id'] as int,
     title: json['title'] as String,
-    abstract: json['abstract'] as String,
-    researchType: json['research_type'] as String,
-    status: json['status'] as String,
+    abstract: json['abstract'] as String? ?? '',
+    researchType: json['research_type'] as String? ?? '',
+    status: json['status'] as String? ?? '',
     programId: json['program_id'] as int,
     academicYearId: json['academic_year_id'] as int,
     creatorId: json['creator_id'] as int?,
-    createdAt: DateTime.parse(json['created_at'] as String),
-    updatedAt: DateTime.parse(json['updated_at'] as String),
+    createdAt: _parseDate(json['created_at']),
+    updatedAt: _parseDate(json['updated_at']),
     publishedAt: json['published_at'] != null
         ? DateTime.parse(json['published_at'] as String)
         : null,
@@ -529,9 +538,9 @@ class Thesis {
     return '${abstract.substring(0, 150)}...';
   }
 
-  /// Formatted authors string
+  /// Formatted authors string (empty when the database has no linked authors)
   String get authorsString {
-    if (authors == null || authors!.isEmpty) return 'Unknown';
+    if (authors == null || authors!.isEmpty) return '';
     return authors!.map((a) => a.fullName).join(', ');
   }
 

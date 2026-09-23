@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class ThesisDetailScreen extends ConsumerWidget {
@@ -40,14 +41,13 @@ class ThesisDetailScreen extends ConsumerWidget {
             );
           }
 
-          final authorsStr = thesis.authors != null && thesis.authors!.isNotEmpty
-              ? thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', ')
-              : 'No authors listed';
-          final programStr = thesis.program?.name ?? 'BS Information Technology';
-          final yearStr = thesis.academicYear?.label ?? '2024 - 2025';
+          // Every value below comes straight from the database record.
+          final authorsStr = thesis.authorsString;
+          final programStr = thesis.program?.name ?? '';
+          final yearStr = thesis.academicYear?.label ?? '';
           final adviserStr = thesis.advisers != null && thesis.advisers!.isNotEmpty
               ? thesis.advisers!.first.fullName
-              : 'No adviser assigned';
+              : '';
 
           return SingleChildScrollView(
             child: Column(
@@ -110,94 +110,67 @@ class ThesisDetailScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Top Overview: Left Smartphone Mockup & Right Metadata
-                          isDesktop
-                              ? Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPhoneMockup(),
-                                    const SizedBox(width: 40),
-                                    Expanded(
-                                      child: _buildMetadataAndActions(
-                                        context,
-                                        ref,
-                                        thesis: thesis,
-                                        isSaved: isSaved,
-                                        authorsStr: authorsStr,
-                                        programStr: programStr,
-                                        yearStr: yearStr,
-                                        adviserStr: adviserStr,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  children: [
-                                    _buildMetadataAndActions(
-                                      context,
-                                      ref,
-                                      thesis: thesis,
-                                      isSaved: isSaved,
-                                      authorsStr: authorsStr,
-                                      programStr: programStr,
-                                      yearStr: yearStr,
-                                      adviserStr: adviserStr,
-                                    ),
-                                    const SizedBox(height: 28),
-                                    _buildPhoneMockup(),
-                                  ],
-                                ),
+                          // Top Overview: metadata and actions
+                          _buildMetadataAndActions(
+                            context,
+                            ref,
+                            thesis: thesis,
+                            isSaved: isSaved,
+                            authorsStr: authorsStr,
+                            programStr: programStr,
+                            yearStr: yearStr,
+                            adviserStr: adviserStr,
+                          ),
 
                           const SizedBox(height: 36),
                           const Divider(color: CScholarColors.borderLight),
                           const SizedBox(height: 24),
 
-                          // Abstract Section
-                          Text(
-                            'ABSTRACT',
-                            style: CScholarTextStyles.inter(
-                              12,
-                              FontWeight.w700,
-                              CScholarColors.textSecondary,
-                              letterSpacing: 1.0,
+                          // Abstract Section (only when the database has one)
+                          if (thesis.abstract.isNotEmpty) ...[
+                            Text(
+                              'ABSTRACT',
+                              style: CScholarTextStyles.inter(
+                                12,
+                                FontWeight.w700,
+                                CScholarColors.textSecondary,
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            thesis.abstract.isNotEmpty
-                                ? thesis.abstract
-                                : 'Abstract not available for this thesis.',
-                            textAlign: TextAlign.justify,
-                            style: CScholarTextStyles.inter(
-                              14.5,
-                              FontWeight.w400,
-                              const Color(0xFF334155),
-                              height: 1.7,
+                            const SizedBox(height: 12),
+                            Text(
+                              thesis.abstract,
+                              textAlign: TextAlign.justify,
+                              style: CScholarTextStyles.inter(
+                                14.5,
+                                FontWeight.w400,
+                                const Color(0xFF334155),
+                                height: 1.7,
+                              ),
                             ),
-                          ),
+                          ],
 
-                          const SizedBox(height: 28),
-
-                          // Keywords Section
-                          Text(
-                            'KEYWORDS',
-                            style: CScholarTextStyles.inter(
-                              11.5,
-                              FontWeight.w700,
-                              CScholarColors.textMuted,
-                              letterSpacing: 1.0,
+                          // Keywords Section (only when the database has them)
+                          if (thesis.keywords != null && thesis.keywords!.isNotEmpty) ...[
+                            if (thesis.abstract.isNotEmpty) const SizedBox(height: 28),
+                            Text(
+                              'KEYWORDS',
+                              style: CScholarTextStyles.inter(
+                                11.5,
+                                FontWeight.w700,
+                                CScholarColors.textMuted,
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: (thesis.keywords != null && thesis.keywords!.isNotEmpty)
-                                ? thesis.keywords!
-                                    .map((k) => _keywordChip(k.term))
-                                    .toList()
-                                : <Widget>[],
-                          ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: thesis.keywords!
+                                  .map((k) => _keywordChip(k.term))
+                                  .toList(),
+                            ),
+                          ],
 
                           const SizedBox(height: 40),
                           const Divider(color: CScholarColors.borderLight),
@@ -224,7 +197,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(vertical: 24),
                                         child: Text(
-                                          'No recommendations yet — generate embeddings for published theses first.',
+                                          'No recommendations yet',
                                           style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
                                         ),
                                       ),
@@ -292,7 +265,15 @@ class ThesisDetailScreen extends ConsumerWidget {
                                   );
                                 },
                                 loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
-                                error: (_, _) => const SizedBox.shrink(),
+                                error: (err, _) => Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 24),
+                                    child: Text(
+                                      'Unable to load recommendations: $err',
+                                      style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -311,211 +292,45 @@ class ThesisDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPhoneMockup() {
-    return Column(
-      children: [
-        Container(
-          width: 250,
-          height: 480,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: const Color(0xFF1E293B), width: 7),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 28,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              // Top Notch
-              Container(
-                height: 18,
-                color: const Color(0xFF1E293B),
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  width: 50,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(8)),
-                  ),
-                ),
-              ),
-              // App Screen UI inside Phone Mockup
-              Expanded(
-                child: Container(
-                  color: const Color(0xFFF1F5F9),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      // Header inside phone
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: CScholarShadows.subtle,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.navigation, size: 14, color: CScholarColors.primaryGreen),
-                            const SizedBox(width: 6),
-                            Text('Campus Navigator', style: CScholarTextStyles.inter(10, FontWeight.bold, CScholarColors.textPrimary)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // Map View Simulation
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Stack(
-                            children: [
-                              // Grid/Road lines
-                              Positioned(
-                                top: 40,
-                                left: 0,
-                                right: 0,
-                                child: Container(height: 6, color: Colors.white),
-                              ),
-                              Positioned(
-                                top: 0,
-                                bottom: 0,
-                                left: 60,
-                                child: Container(width: 6, color: Colors.white),
-                              ),
-                              // User Pin ("You")
-                              Positioned(
-                                bottom: 30,
-                                left: 24,
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 14,
-                                      height: 14,
-                                      decoration: BoxDecoration(
-                                        color: CScholarColors.info,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-                                      child: Text('You', style: CScholarTextStyles.inter(7, FontWeight.bold, CScholarColors.textPrimary)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Destination Pin (Room 304)
-                              Positioned(
-                                top: 20,
-                                right: 30,
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.location_on, size: 22, color: Colors.red),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-                                      child: Text('Room 304', style: CScholarTextStyles.inter(7, FontWeight.bold, CScholarColors.textPrimary)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // Navigation turn card inside phone
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: CScholarShadows.subtle,
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Turn left at St. Joseph Hall', style: CScholarTextStyles.inter(8, FontWeight.w700, CScholarColors.textPrimary)),
-                                Text('45m', style: CScholarTextStyles.inter(8, FontWeight.w800, CScholarColors.primaryGreen)),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            LinearProgressIndicator(
-                              value: 0.65,
-                              backgroundColor: const Color(0xFFE2E8F0),
-                              color: CScholarColors.primaryGreen,
-                              minHeight: 3,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Bottom Home Indicator bar
-              Container(
-                height: 14,
-                color: Colors.white,
-                alignment: Alignment.center,
-                child: Container(
-                  width: 48,
-                  height: 3,
-                  decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Interactive Mobile Interface Preview',
-          style: CScholarTextStyles.inter(11, FontWeight.w500, CScholarColors.textMuted),
-        ),
-      ],
-    );
-  }
-
   Widget _buildMetadataAndActions(
     BuildContext context,
     WidgetRef ref, {
-    required dynamic thesis,
+    required Thesis thesis,
     required bool isSaved,
     required String authorsStr,
     required String programStr,
     required String yearStr,
     required String adviserStr,
   }) {
+    // Only fields that exist in the database record are rendered.
+    final metaItems = <Widget>[
+      if (authorsStr.isNotEmpty) _metaItem(Icons.people_outline, 'AUTHORS', authorsStr),
+      if (programStr.isNotEmpty) _metaItem(Icons.school_outlined, 'PROGRAM', programStr),
+      if (yearStr.isNotEmpty) _metaItem(Icons.calendar_today_outlined, 'ACADEMIC YEAR', yearStr),
+      if (adviserStr.isNotEmpty) _metaItem(Icons.person_outline, 'ADVISER', adviserStr),
+      if (thesis.categoriesString.isNotEmpty)
+        _metaItem(Icons.category_outlined, 'CATEGORY', thesis.categoriesString),
+      if (thesis.researchType.isNotEmpty)
+        _metaItem(Icons.science_outlined, 'RESEARCH TYPE', thesis.researchType),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Category / Type Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: CScholarColors.primaryGreenVeryLight,
-            borderRadius: BorderRadius.circular(CScholarRadius.sm),
-            border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.25)),
+        if (thesis.researchType.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: CScholarColors.primaryGreenVeryLight,
+              borderRadius: BorderRadius.circular(CScholarRadius.sm),
+              border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.25)),
+            ),
+            child: Text(
+              thesis.researchType.toUpperCase(),
+              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen, letterSpacing: 0.5),
+            ),
           ),
-          child: Text(
-            (thesis.researchType ?? 'Thesis').toString().toUpperCase(),
-            style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen, letterSpacing: 0.5),
-          ),
-        ),
 
         const SizedBox(height: 14),
 
@@ -530,31 +345,26 @@ class ThesisDetailScreen extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 20),
+        if (metaItems.isNotEmpty) ...[
+          const SizedBox(height: 20),
 
-        // Metadata Grid (2 cols)
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: const BoxDecoration(
-            border: Border.symmetric(horizontal: BorderSide(color: CScholarColors.borderLight)),
+          // Metadata Grid (2 cols)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: const BoxDecoration(
+              border: Border.symmetric(horizontal: BorderSide(color: CScholarColors.borderLight)),
+            ),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 12,
+              childAspectRatio: 3.2,
+              children: metaItems,
+            ),
           ),
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 12,
-            childAspectRatio: 3.2,
-            children: [
-              _metaItem(Icons.people_outline, 'AUTHORS', authorsStr),
-              _metaItem(Icons.school_outlined, 'PROGRAM', programStr),
-              _metaItem(Icons.calendar_today_outlined, 'ACADEMIC YEAR', yearStr),
-              _metaItem(Icons.person_outline, 'ADVISER', adviserStr),
-              _metaItem(Icons.category_outlined, 'CATEGORY', 'Mobile Application'),
-              _metaItem(Icons.science_outlined, 'RESEARCH TYPE', 'Applied Research'),
-            ],
-          ),
-        ),
+        ],
 
         const SizedBox(height: 24),
 
@@ -564,11 +374,17 @@ class ThesisDetailScreen extends ConsumerWidget {
           runSpacing: 10,
           children: [
             FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Opening thesis manuscript PDF viewer...')),
-                );
-              },
+              onPressed: thesis.file == null
+                  ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No manuscript file is attached to this record.')),
+                      );
+                    }
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Opening ${thesis.file!.originalFilename}...')),
+                      );
+                    },
               style: FilledButton.styleFrom(
                 backgroundColor: CScholarColors.primaryGreen,
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),

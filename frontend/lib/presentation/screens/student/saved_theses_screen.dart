@@ -17,8 +17,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final savedIds = ref.watch(savedThesisIdsProvider);
-    final allTheses = ref.watch(thesisListProvider(const ThesisListParams()));
+    final savedTheses = ref.watch(savedThesesProvider);
 
     return StudentLayout(
       currentIndex: 2,
@@ -77,33 +76,27 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                 const SizedBox(height: 24),
 
                 // Studies Cards List
-                allTheses.when(
-                  data: (list) {
-                    if (list == null || list.isEmpty) {
-                      return _emptyState('No studies found in repository');
-                    }
-                    var saved = list.where((t) => savedIds.contains(t.id)).toList();
-
-                    // If user hasn't saved anything yet, provide the top 2 featured studies as demo
-                    if (saved.isEmpty) {
-                      saved = list.take(2).toList();
-                    }
-
+                savedTheses.when(
+                  data: (saved) {
                     // Filter by tab
+                    var filtered = saved;
                     if (_selectedTab != 'All') {
-                      saved = saved.where((t) => t.researchType.toLowerCase() == _selectedTab.toLowerCase()).toList();
+                      filtered = filtered
+                          .where((t) =>
+                              t.researchType.toLowerCase() == _selectedTab.toLowerCase())
+                          .toList();
                     }
 
-                    if (saved.isEmpty) {
-                      return _emptyState('No saved ${_selectedTab.toLowerCase()} studies yet');
+                    if (filtered.isEmpty) {
+                      return _emptyState('No saved studies');
                     }
 
                     return ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: saved.length,
+                      itemCount: filtered.length,
                       itemBuilder: (context, i) {
-                        final thesis = saved[i];
+                        final thesis = filtered[i];
                         final isTeal = i % 2 == 0;
 
                         return Padding(
@@ -156,22 +149,26 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(4),
+                                          if ((thesis.program?.name ?? '').isNotEmpty)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF1F5F9),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                thesis.program!.name,
+                                                style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary),
+                                              ),
                                             ),
-                                            child: Text(
-                                              thesis.program?.name ?? 'BSIT',
-                                              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary),
+                                          if ((thesis.program?.name ?? '').isNotEmpty &&
+                                              (thesis.academicYear?.label ?? '').isNotEmpty)
+                                            const SizedBox(width: 8),
+                                          if ((thesis.academicYear?.label ?? '').isNotEmpty)
+                                            Text(
+                                              thesis.academicYear!.label,
+                                              style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '• ${thesis.academicYear?.label ?? '2024 - 2025'}',
-                                            style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
-                                          ),
                                         ],
                                       ),
                                     ],
@@ -223,7 +220,16 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                     );
                   },
                   loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                  error: (_, _) => const Text('Error loading saved studies'),
+                  error: (err, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Text(
+                        'Unable to load saved studies: $err',
+                        textAlign: TextAlign.center,
+                        style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.error),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

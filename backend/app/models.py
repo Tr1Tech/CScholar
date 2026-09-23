@@ -341,15 +341,22 @@ def get_thesis_by_id(thesis_id):
         put_conn(conn)
 
 
-def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, page=1, per_page=20):
+def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, category_id=None, keyword=None, sort_by=None, page=1, per_page=20):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             conditions = []
             params = []
             if q:
-                conditions.append("(t.title ILIKE %s OR t.abstract ILIKE %s)")
-                params.extend([f"%{q}%", f"%{q}%"])
+                conditions.append(
+                    "("
+                    "t.title ILIKE %s OR t.abstract ILIKE %s "
+                    "OR EXISTS (SELECT 1 FROM thesis_keywords tk2 JOIN keywords k2 ON tk2.keyword_id = k2.id WHERE tk2.thesis_id = t.id AND k2.term ILIKE %s) "
+                    "OR EXISTS (SELECT 1 FROM thesis_authors ta2 JOIN authors a2 ON ta2.author_id = a2.id WHERE ta2.thesis_id = t.id AND (a2.first_name ILIKE %s OR a2.last_name ILIKE %s))"
+                    ")"
+                )
+                pattern = f"%{q}%"
+                params.extend([pattern, pattern, pattern, pattern, pattern])
             if program_id:
                 conditions.append("t.program_id = %s")
                 params.append(program_id)
@@ -359,6 +366,12 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
             if research_type:
                 conditions.append("t.research_type = %s")
                 params.append(research_type)
+            if category_id:
+                conditions.append("EXISTS (SELECT 1 FROM thesis_categories tc WHERE tc.thesis_id = t.id AND tc.category_id = %s)")
+                params.append(category_id)
+            if keyword:
+                conditions.append("EXISTS (SELECT 1 FROM thesis_keywords tk JOIN keywords k ON tk.keyword_id = k.id WHERE tk.thesis_id = t.id AND k.term ILIKE %s)")
+                params.append(f"%{keyword}%")
             if status:
                 if isinstance(status, list):
                     conditions.append("t.status = ANY(%s)")
@@ -366,6 +379,20 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 else:
                     conditions.append("t.status = %s")
                     params.append(status)
+
+            order_by_sql = "t.created_at DESC"
+            if sort_by:
+                sb = str(sort_by).strip().lower()
+                if sb in ("latest", "newest"):
+                    order_by_sql = "t.created_at DESC"
+                elif sb in ("oldest",):
+                    order_by_sql = "t.created_at ASC"
+                elif sb in ("title", "title (a-z)", "title_asc"):
+                    order_by_sql = "t.title ASC"
+                elif sb in ("title (z-a)", "title_desc"):
+                    order_by_sql = "t.title DESC"
+                elif sb in ("relevance", "highest similarity", "most viewed"):
+                    order_by_sql = "t.created_at DESC"
 
             where = "WHERE " + " AND ".join(conditions) if conditions else ""
             offset = (page - 1) * per_page
@@ -385,7 +412,7 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 f"LEFT JOIN programs p ON t.program_id = p.id "
                 f"LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
                 f"{where} "
-                f"ORDER BY t.created_at DESC "
+                f"ORDER BY {order_by_sql} "
                 f"LIMIT %s OFFSET %s",
                 params + [per_page, offset],
             )

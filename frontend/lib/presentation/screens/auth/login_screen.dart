@@ -15,7 +15,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(text: '');
-  final _passwordController = TextEditingController(text: 'pass123');
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _error;
   bool _obscure = true;
@@ -26,14 +26,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _fillDemo(String email) {
-    setState(() {
-      _emailController.text = email;
-      _passwordController.text = 'pass123';
-      _error = null;
-    });
   }
 
   Future<void> _login() async {
@@ -63,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context.go('/student/dashboard');
         }
       } else {
-        setState(() => _error = 'Invalid credentials. Please click a demo role below.');
+        setState(() => _error = 'Invalid credentials. Please check your email and password.');
       }
     } catch (e) {
       if (!mounted) return;
@@ -253,36 +245,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Demo Account Switcher Pills
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(CScholarRadius.lg),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'QUICK DEMO ACCOUNTS (CLICK TO AUTO-FILL):',
-                    style: CScholarTextStyles.inter(10, FontWeight.w700, CScholarColors.textMuted, letterSpacing: 0.5),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      _demoButton('Student', 'student@csu.edu.ph', CScholarColors.primaryGreen),
-                      _demoButton('Admin', 'admin@csu.edu.ph', CScholarColors.orange),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
             if (_error != null) ...[
               Container(
                 padding: const EdgeInsets.all(12),
@@ -319,7 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid institutional email' : null,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.email_outlined, size: 18, color: CScholarColors.textHint),
-                hintText: 'e.g. juan.delacruz@csu.edu.ph',
+                hintText: 'you@example.com',
               ),
             ),
 
@@ -414,22 +376,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _demoButton(String role, String email, Color color) {
-    return InkWell(
-      onTap: () => _fillDemo(email),
-      borderRadius: BorderRadius.circular(CScholarRadius.sm),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(CScholarRadius.sm),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Text(
-          role,
-          style: CScholarTextStyles.inter(11.5, FontWeight.w700, color),
-        ),
-      ),
-    );
-  }
 }

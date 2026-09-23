@@ -9,16 +9,23 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
-class AdminUserManagementScreen extends ConsumerWidget {
+class AdminUserManagementScreen extends ConsumerStatefulWidget {
   const AdminUserManagementScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminUserManagementScreen> createState() => _AdminUserManagementScreenState();
+}
+
+class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementScreen> {
+  String _selectedRole = 'All';
+
+  @override
+  Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
 
     if (!isWide) {
-      return _mobileLayout(context, ref);
+      return _mobileLayout(context);
     }
 
     return Scaffold(
@@ -67,19 +74,19 @@ class AdminUserManagementScreen extends ConsumerWidget {
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
-                                _filterChip('All', true),
+                                _filterChip('All'),
                                 const SizedBox(width: 8),
-                                _filterChip('Student', false),
+                                _filterChip('Student'),
                                 const SizedBox(width: 8),
-                                _filterChip('Faculty', false),
+                                _filterChip('Faculty'),
                                 const SizedBox(width: 8),
-                                _filterChip('Admin', false),
+                                _filterChip('Admin'),
                               ],
                             ),
                           ),
                           const Divider(height: 1),
                           // Table
-                          _userTable(context, ref),
+                          _userTable(context),
                         ],
                       ),
                     ),
@@ -93,7 +100,7 @@ class AdminUserManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _userTable(BuildContext context, WidgetRef ref) {
+  Widget _userTable(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
     return usersAsync.when(
       loading: () => const Padding(
@@ -129,10 +136,21 @@ class AdminUserManagementScreen extends ConsumerWidget {
         ),
       ),
       data: (users) {
-        if (users.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(48),
-            child: Center(child: Text('No users found', style: TextStyle(color: CScholarColors.textSecondary))),
+        final filteredUsers = _selectedRole == 'All'
+            ? users
+            : users
+                .where((u) => u.role.toLowerCase() == _selectedRole.toLowerCase())
+                .toList();
+
+        if (filteredUsers.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(48),
+            child: Center(
+              child: Text(
+                'No users found matching "$_selectedRole"',
+                style: const TextStyle(color: CScholarColors.textSecondary),
+              ),
+            ),
           );
         }
         return DataTable(
@@ -144,7 +162,7 @@ class AdminUserManagementScreen extends ConsumerWidget {
             DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
-          rows: users.map((u) => DataRow(
+          rows: filteredUsers.map((u) => DataRow(
             cells: [
               DataCell(Text(u.username, style: const TextStyle(fontWeight: FontWeight.w500))),
               DataCell(Text(u.email, style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary))),
@@ -220,11 +238,12 @@ class AdminUserManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _filterChip(String label, bool selected) {
+  Widget _filterChip(String label) {
+    final selected = _selectedRole.toLowerCase() == label.toLowerCase();
     return FilterChip(
       label: Text(label, style: TextStyle(fontSize: 12, color: selected ? Colors.white : CScholarColors.textPrimary)),
       selected: selected,
-      onSelected: (_) {},
+      onSelected: (_) => setState(() => _selectedRole = label),
       backgroundColor: Colors.white,
       selectedColor: CScholarColors.primaryGreen,
       checkmarkColor: Colors.white,
@@ -289,7 +308,8 @@ class AdminUserManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _mobileLayout(BuildContext context, WidgetRef ref) {
+  Widget _mobileLayout(BuildContext context) {
+    final usersAsync = ref.watch(usersProvider);
     return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
       appBar: AppBar(
@@ -302,7 +322,63 @@ class AdminUserManagementScreen extends ConsumerWidget {
         ),
         title: const Text('User Management', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
-      body: const Center(child: Text('Mobile view - User Management')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _filterChip('All'),
+                  const SizedBox(width: 8),
+                  _filterChip('Student'),
+                  const SizedBox(width: 8),
+                  _filterChip('Faculty'),
+                  const SizedBox(width: 8),
+                  _filterChip('Admin'),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: usersAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(child: Text('Failed to load users: $err')),
+              data: (users) {
+                final filtered = _selectedRole == 'All'
+                    ? users
+                    : users.where((u) => u.role.toLowerCase() == _selectedRole.toLowerCase()).toList();
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text('No users found matching "$_selectedRole"'),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, i) {
+                    final u = filtered[i];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        title: Text(u.username, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(u.email),
+                        trailing: _roleChip(u.role),
+                        onTap: () => _showRoleDialog(context, u),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

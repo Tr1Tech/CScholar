@@ -95,11 +95,26 @@ class ThesisApi {
   final ApiService _api;
   ThesisApi(this._api);
 
-  Future<List<dynamic>> list({String? q, int? programId, int? yearId, int page = 1}) async {
+  Future<List<dynamic>> list({
+    String? q,
+    int? programId,
+    int? yearId,
+    int? categoryId,
+    String? keyword,
+    String? sortBy,
+    String? researchType,
+    String? status,
+    int page = 1,
+  }) async {
     final params = <String, String>{'page': page.toString()};
-    if (q != null) params['q'] = q;
+    if (q != null && q.isNotEmpty) params['q'] = q;
     if (programId != null) params['program_id'] = programId.toString();
     if (yearId != null) params['year_id'] = yearId.toString();
+    if (categoryId != null) params['category_id'] = categoryId.toString();
+    if (keyword != null && keyword.isNotEmpty) params['keyword'] = keyword;
+    if (sortBy != null && sortBy.isNotEmpty) params['sort_by'] = sortBy;
+    if (researchType != null && researchType.isNotEmpty) params['research_type'] = researchType;
+    if (status != null && status.isNotEmpty) params['status'] = status;
     final uri = Uri.parse('/api/theses').replace(queryParameters: params);
     final data = await _api.get(uri.toString());
     return data['theses'] as List<dynamic>;

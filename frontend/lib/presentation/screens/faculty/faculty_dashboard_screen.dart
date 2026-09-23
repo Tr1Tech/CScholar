@@ -82,14 +82,14 @@ class FacultyDashboardScreen extends ConsumerWidget {
                           radius: 16,
                           backgroundColor: Colors.white.withValues(alpha: 0.2),
                           child: Text(
-                            (user?.username ?? 'FA').substring(0, 2).toUpperCase(),
+                            _initials(user?.username),
                             style: CScholarTextStyles.inter(11, FontWeight.w700, Colors.white),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            user?.username ?? 'Faculty Adviser',
+                            user?.username ?? '',
                             style: CScholarTextStyles.inter(12, FontWeight.w500, Colors.white),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -197,7 +197,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                               builder: (context, constraints) {
                                 final isWide = constraints.maxWidth > 860;
                                 final leftPanel = _recentActivityPanel(recentActivity);
-                                final rightPanel = _adviseesPanel();
+                                final rightPanel = _adviseesPanel(ref);
                                 if (isWide) {
                                   return Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,7 +274,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   radius: 16,
                   backgroundColor: const Color(0xFFDCFCE7),
                   child: Text(
-                    user?.username?.substring(0, 2).toUpperCase() ?? 'FA',
+                    _initials(user?.username),
                     style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.primaryGreen),
                   ),
                 ),
@@ -283,7 +283,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(user?.username ?? 'Faculty Adviser', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
+                    Text(user?.username ?? '', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
                     Text('Faculty', style: CScholarTextStyles.inter(10.5, FontWeight.w500, CScholarColors.textMuted)),
                   ],
                 ),
@@ -397,14 +397,21 @@ class FacultyDashboardScreen extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
-            error: (_, _) => const SizedBox.shrink(),
+            error: (err, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text('Could not load activity: $err',
+                    style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _adviseesPanel() {
+  Widget _adviseesPanel(WidgetRef ref) {
+    final stats = ref.watch(facultyStatsProvider);
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -418,12 +425,49 @@ class FacultyDashboardScreen extends ConsumerWidget {
         children: [
           Text('My Advisees', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
           const Divider(color: CScholarColors.borderLight, height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(
-              child: Text(
-                'No advisees found',
-                style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+          stats.when(
+            data: (s) {
+              final count = (s['advisees'] as num?)?.toInt() ?? 0;
+              if (count == 0) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      'No users found',
+                      style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                    ),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    '$count advisee${count == 1 ? '' : 's'} linked to your account',
+                    style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            },
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+            error: (err, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  'Could not load advisees: $err',
+                  style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
@@ -473,6 +517,13 @@ class FacultyDashboardScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _initials(String? name) {
+    final parts = (name ?? '').trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
 }

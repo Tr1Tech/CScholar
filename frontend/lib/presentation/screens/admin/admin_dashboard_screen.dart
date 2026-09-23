@@ -371,7 +371,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               ],
             ),
           ),
-          error: (_, __) => Container(
+          error: (_, _) => Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(CScholarRadius.xxl),

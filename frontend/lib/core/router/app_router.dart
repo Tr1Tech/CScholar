@@ -90,7 +90,9 @@ final appRouter = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/repository',
-            builder: (context, state) => const RepositoryScreen(),
+            builder: (context, state) => RepositoryScreen(
+              initialQuery: state.uri.queryParameters['q'],
+            ),
           ),
           GoRoute(
             path: '/thesis/:id',

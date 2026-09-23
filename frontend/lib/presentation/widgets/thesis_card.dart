@@ -111,18 +111,22 @@ class ThesisCard extends StatelessWidget {
                     const Spacer(),
                     Row(
                       children: [
-                        Flexible(
-                          child: _tag(_programCode(thesis.program?.name)),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          thesis.academicYear?.label ?? '2024 - 2025',
-                          style: CScholarTextStyles.inter(
-                            11,
-                            FontWeight.w500,
-                            CScholarColors.textHint,
+                        if ((thesis.program?.code ?? '').isNotEmpty)
+                          Flexible(
+                            child: _tag(thesis.program!.code),
                           ),
-                        ),
+                        if ((thesis.program?.code ?? '').isNotEmpty &&
+                            (thesis.academicYear?.label ?? '').isNotEmpty)
+                          const SizedBox(width: 8),
+                        if ((thesis.academicYear?.label ?? '').isNotEmpty)
+                          Text(
+                            thesis.academicYear!.label,
+                            style: CScholarTextStyles.inter(
+                              11,
+                              FontWeight.w500,
+                              CScholarColors.textHint,
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -180,14 +184,6 @@ class ThesisCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _programCode(String? name) {
-    if (name == null || name.isEmpty) return 'BSIT';
-    if (name.contains('Information Technology')) return 'BSIT';
-    if (name.contains('Computer Science')) return 'BSCS';
-    if (name.contains('Information Systems')) return 'BSIS';
-    return name;
   }
 
   Color get _headerColor {

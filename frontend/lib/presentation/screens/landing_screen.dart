@@ -23,7 +23,10 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   void _handleSearch(String term) {
-    if (term.trim().isNotEmpty) {
+    final query = term.trim();
+    if (query.isNotEmpty) {
+      context.go('/repository?q=${Uri.encodeComponent(query)}');
+    } else {
       context.go('/repository');
     }
   }
@@ -246,21 +249,31 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
                       const SizedBox(height: 18),
 
-                      // Popular Search Pills
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Text(
-                            'Popular searches:',
-                            style: CScholarTextStyles.inter(12, FontWeight.w500, const Color(0xFFD1FAE5)),
-                          ),
-                          _popularSearchTag('machine learning'),
-                          _popularSearchTag('web application'),
-                          _popularSearchTag('campus navigation'),
-                          _popularSearchTag('IoT & robotics'),
-                        ],
+                      // Popular Search Pills — live keywords from the database.
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final keywordsAsync = ref.watch(keywordsProvider);
+                          return keywordsAsync.maybeWhen(
+                            data: (keywords) {
+                              if (keywords.isEmpty) return const SizedBox.shrink();
+                              return Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  Text(
+                                    'Popular searches:',
+                                    style: CScholarTextStyles.inter(12, FontWeight.w500, const Color(0xFFD1FAE5)),
+                                  ),
+                                  ...keywords
+                                      .take(4)
+                                      .map((k) => _popularSearchTag(k.term)),
+                                ],
+                              );
+                            },
+                            orElse: () => const SizedBox.shrink(),
+                          );
+                        },
                       ),
                     ],
                   ),

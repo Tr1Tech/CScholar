@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -11,7 +12,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final savedIds = ref.watch(savedThesisIdsProvider);
+    final savedTheses = ref.watch(savedThesesProvider);
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
 
@@ -70,14 +71,14 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           Expanded(flex: 7, child: _leftColumn(user)),
                           const SizedBox(width: 24),
-                          Expanded(flex: 4, child: _rightColumn(context, savedIds)),
+                          Expanded(flex: 4, child: _rightColumn(context, savedTheses)),
                         ],
                       )
                     : Column(
                         children: [
                           _leftColumn(user),
                           const SizedBox(height: 24),
-                          _rightColumn(context, savedIds),
+                          _rightColumn(context, savedTheses),
                         ],
                       ),
               ],
@@ -120,36 +121,18 @@ class ProfileScreen extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar with active checkmark
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 44,
-                          backgroundColor: const Color(0xFFD1FAE5),
-                          child: Text(
-                            _initials(user?.username ?? ''),
-                            style: CScholarTextStyles.poppins(
-                              28,
-                              FontWeight.w800,
-                              const Color(0xFF065F46),
-                            ),
-                          ),
+                    // Avatar
+                    CircleAvatar(
+                      radius: 44,
+                      backgroundColor: const Color(0xFFD1FAE5),
+                      child: Text(
+                        _initials(user?.username ?? ''),
+                        style: CScholarTextStyles.poppins(
+                          28,
+                          FontWeight.w800,
+                          const Color(0xFF065F46),
                         ),
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: CScholarColors.primaryGreen,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2.5),
-                            ),
-                            child: const Icon(Icons.check, size: 13, color: Colors.white),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     const SizedBox(width: 24),
                     // General Info
@@ -163,36 +146,50 @@ class ProfileScreen extends ConsumerWidget {
                                 user?.username ?? '',
                                 style: CScholarTextStyles.poppins(20, FontWeight.w700, CScholarColors.textPrimary),
                               ),
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: CScholarColors.primaryGreenVeryLight,
-                                  borderRadius: BorderRadius.circular(CScholarRadius.full),
-                                  border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.2)),
+                              if ((user?.role ?? '').isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: CScholarColors.primaryGreenVeryLight,
+                                    borderRadius: BorderRadius.circular(CScholarRadius.full),
+                                    border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Text(
+                                    _roleLabel(user?.role),
+                                    style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
+                                  ),
                                 ),
-                                child: Text(
-                                  'Enrolled',
-                                  style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
-                                ),
-                              ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            user?.email ?? 'juan.delacruz@csu.edu.ph',
+                            user?.email ?? '',
                             style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textSecondary),
                           ),
-                          const SizedBox(height: 16),
-                          // Student Metadata Badge Pills
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _infoPill(Icons.badge_outlined, 'Student ID: 2021-00384', const Color(0xFFF1F5F9), CScholarColors.textSecondary),
-                              _infoPill(Icons.account_balance_outlined, 'CEIT Department', CScholarColors.primaryGreenVeryLight, const Color(0xFF065F46)),
-                            ],
-                          ),
+                          if (user != null) ...[
+                            const SizedBox(height: 16),
+                            // Account metadata coming from the database
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _infoPill(
+                                  Icons.event_outlined,
+                                  'Member since ${_formatDate(user.createdAt)}',
+                                  const Color(0xFFF1F5F9),
+                                  CScholarColors.textSecondary,
+                                ),
+                                _infoPill(
+                                  Icons.verified_user_outlined,
+                                  user.isActive ? 'Account active' : 'Account inactive',
+                                  CScholarColors.primaryGreenVeryLight,
+                                  const Color(0xFF065F46),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -218,18 +215,20 @@ class ProfileScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Academic Information',
+                'Account Information',
                 style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
               ),
               const SizedBox(height: 16),
               const Divider(color: CScholarColors.borderLight, height: 1),
-              _academicRow('Program', 'BS Information Technology', hasDot: true),
+              _academicRow('Username', user?.username ?? '', hasDot: true),
               const Divider(color: CScholarColors.borderLight, height: 1),
-              _academicRow('Role', user?.role == 'admin' ? 'Administrator' : 'Student Researcher'),
+              _academicRow('Role', _roleLabel(user?.role)),
               const Divider(color: CScholarColors.borderLight, height: 1),
-              _academicRow('College', 'College of Engineering & Information Technology (CEIT)'),
+              _academicRow('Email', user?.email ?? ''),
               const Divider(color: CScholarColors.borderLight, height: 1),
-              _academicRow('Academic Standing', '4th Year (Senior Candidate)'),
+              _academicRow('Status', user == null ? '' : (user.isActive ? 'Active' : 'Inactive')),
+              const Divider(color: CScholarColors.borderLight, height: 1),
+              _academicRow('Member Since', user == null ? '' : _formatDate(user.createdAt)),
             ],
           ),
         ),
@@ -237,24 +236,19 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _rightColumn(BuildContext context, Set<int> savedIds) {
+  Widget _rightColumn(BuildContext context, AsyncValue<List<Thesis>> savedTheses) {
     return Column(
       children: [
         // Saved Studies Widget
-        Consumer(
-          builder: (context, ref, _) {
-            final saved = ref.watch(savedThesesProvider);
-            return Container(
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                border: Border.all(color: CScholarColors.borderLight),
-                boxShadow: CScholarShadows.card,
-              ),
-              child: _savedStudiesList(saved, context, savedIds),
-            );
-          },
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(CScholarRadius.xl),
+            border: Border.all(color: CScholarColors.borderLight),
+            boxShadow: CScholarShadows.card,
+          ),
+          child: _savedStudiesList(savedTheses, context),
         ),
 
         const SizedBox(height: 20),
@@ -287,7 +281,8 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _savedStudiesList(List<dynamic> saved, BuildContext context, Set<int> savedIds) {
+  Widget _savedStudiesList(AsyncValue<List<Thesis>> savedTheses, BuildContext context) {
+    final saved = savedTheses.value ?? const <Thesis>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -305,7 +300,20 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 14),
-        if (saved.isEmpty && savedIds.isEmpty)
+        if (savedTheses.isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (savedTheses.hasError)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'Unable to load saved studies: ${savedTheses.error}',
+              style: const TextStyle(color: CScholarColors.error, fontSize: 13),
+            ),
+          )
+        else if (saved.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Text(
@@ -410,6 +418,22 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// Human readable label for the role stored in the database.
+  String _roleLabel(String? role) {
+    switch ((role ?? '').toLowerCase()) {
+      case 'admin':
+        return 'Administrator';
+      case 'faculty':
+        return 'Faculty';
+      case 'student':
+        return 'Student Researcher';
+      default:
+        return '';
+    }
+  }
+
+  String _formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   String _initials(String name) {
     final parts = name.trim().split(' ');

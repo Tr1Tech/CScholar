@@ -24,6 +24,9 @@ def list_theses():
     q = request.args.get("q")
     program_id = request.args.get("program_id", type=int)
     year_id = request.args.get("year_id", type=int)
+    category_id = request.args.get("category_id", type=int)
+    keyword = request.args.get("keyword")
+    sort_by = request.args.get("sort_by")
     research_type = request.args.get("research_type")
     status = request.args.get("status")
     if not status:
@@ -38,6 +41,9 @@ def list_theses():
         q=q,
         program_id=program_id,
         year_id=year_id,
+        category_id=category_id,
+        keyword=keyword,
+        sort_by=sort_by,
         research_type=research_type,
         status=status,
         page=page,

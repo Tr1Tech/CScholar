@@ -132,7 +132,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                 child: Text(p.name[0], style: const TextStyle(color: Colors.white)),
               ),
               title: Text(p.name),
-              subtitle: Text('${p.code} • ${p.college ?? 'CEIT'}'),
+              subtitle: Text(p.college ?? p.code),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

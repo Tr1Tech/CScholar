@@ -23,7 +23,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _isLoading = false;
   String? _error;
   final String _selectedRole = 'student';
-  String _selectedProgram = 'BS Information Technology';
+  Program? _selectedProgram;
 
   @override
   void dispose() {
@@ -270,7 +270,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _studentIdController,
                         decoration: const InputDecoration(
                           prefixIcon: Icon(Icons.badge_outlined, size: 18, color: CScholarColors.textHint),
-                          hintText: '2021-00384',
+                          hintText: 'e.g. 2021-00001',
                         ),
                       ),
                     ],
@@ -290,26 +290,50 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid institutional email' : null,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.email_outlined, size: 18, color: CScholarColors.textHint),
-                hintText: 'juan.delacruz@csu.edu.ph',
+                hintText: 'you@example.com',
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Degree Program Dropdown
+            // Degree Program Dropdown (loaded live from GET /api/programs)
             Text('ACADEMIC PROGRAM', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
             const SizedBox(height: 6),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedProgram,
-              items: const [
-                DropdownMenuItem(value: 'BS Information Technology', child: Text('BS Information Technology (BSIT)')),
-                DropdownMenuItem(value: 'BS Computer Science', child: Text('BS Computer Science (BSCS)')),
-                DropdownMenuItem(value: 'BS Information Systems', child: Text('BS Information Systems (BSIS)')),
-              ],
-              onChanged: (v) => setState(() => _selectedProgram = v ?? _selectedProgram),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.school_outlined, size: 18, color: CScholarColors.textHint),
-              ),
+            Consumer(
+              builder: (context, ref, _) {
+                final programsAsync = ref.watch(programsProvider);
+                return programsAsync.when(
+                  data: (programs) {
+                    if (programs.isEmpty) {
+                      return const Text('No programs available');
+                    }
+                    return DropdownButtonFormField<Program>(
+                      initialValue: _selectedProgram != null &&
+                              programs.any((p) => p.id == _selectedProgram!.id)
+                          ? programs.firstWhere((p) => p.id == _selectedProgram!.id)
+                          : null,
+                      items: programs
+                          .map((p) => DropdownMenuItem(
+                                value: p,
+                                child: Text('${p.name} (${p.code})'),
+                              ))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedProgram = v),
+                      validator: (v) => v == null ? 'Select your academic program' : null,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.school_outlined, size: 18, color: CScholarColors.textHint),
+                      ),
+                    );
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (err, _) => Text('Could not load programs: $err'),
+                );
+              },
             ),
 
             const SizedBox(height: 16),
