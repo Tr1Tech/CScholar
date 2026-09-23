@@ -129,6 +129,8 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thesis registered successfully!')),
       );
+      // Refresh the thesis list so the new one appears
+      ref.invalidate(thesisListProvider(const ThesisListParams()));
       context.go('/admin/thesis/management');
     } catch (e) {
       if (!mounted) return;
