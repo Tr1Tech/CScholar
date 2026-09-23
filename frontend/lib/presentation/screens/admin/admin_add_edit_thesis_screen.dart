@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/services/api_service.dart';
@@ -29,6 +32,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   Category? _category;
   final Set<int> _authorIds = {};
   bool _isSubmitting = false;
+  bool _isParsing = false;
 
   String? _submitError;
 
@@ -91,6 +95,111 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       setState(() => _submitError = 'Error: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _parsePdf() async {
+    if (_isParsing) return;
+
+    // Pick a PDF file
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to read the selected file.')),
+      );
+      return;
+    }
+
+    setState(() => _isParsing = true);
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final token = apiService.token;
+      final baseUrl = apiService.baseUrl;
+
+      final uri = Uri.parse('$baseUrl/api/upload/parse');
+      final request = http.MultipartRequest('POST', uri);
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
+
+      final streamed = await request.send();
+      final res = await http.Response.fromStream(streamed);
+
+      if (res.statusCode >= 400) {
+        throw Exception('Server returned ${res.statusCode}: ${res.body}');
+      }
+
+      final data = jsonDecode(res.body);
+      final metadata = data['metadata'] as Map<String, dynamic>? ?? {};
+
+      // Match program by name against the programs list
+      String? parsedProgram = metadata['program'] as String?;
+      Program? matchedProgram;
+      if (parsedProgram != null) {
+        final programsAsync = ref.read(programsProvider);
+        final programsData = programsAsync.value;
+        if (programsData != null) {
+          final programs = programsData;
+          matchedProgram = programs.cast<Program?>().firstWhere(
+            (p) => p!.name.toLowerCase().contains(parsedProgram.toLowerCase()) ||
+                   parsedProgram.toLowerCase().contains(p.name.toLowerCase()),
+            orElse: () => null,
+          );
+        }
+      }
+
+      // Match year by label against the academic years list
+      String? parsedYear = metadata['year']?.toString();
+      AcademicYear? matchedYear;
+      if (parsedYear != null) {
+        final yearsAsync = ref.read(academicYearsProvider);
+        final yearsData = yearsAsync.value;
+        if (yearsData != null) {
+          final years = yearsData;
+          matchedYear = years.cast<AcademicYear?>().firstWhere(
+            (y) => y!.label.toLowerCase().contains(parsedYear.toLowerCase()) ||
+                   parsedYear.toLowerCase().contains(y.label.toLowerCase()),
+            orElse: () => null,
+          );
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        if (metadata['title'] != null) _titleCtrl.text = metadata['title'].toString();
+        if (metadata['abstract'] != null) _abstractCtrl.text = metadata['abstract'].toString();
+        if (metadata['keywords'] != null) {
+          final keywords = metadata['keywords'];
+          if (keywords is List) {
+            _keywordsCtrl.text = keywords.map((e) => e.toString()).join(', ');
+          } else {
+            _keywordsCtrl.text = keywords.toString();
+          }
+        }
+        if (matchedProgram != null) _program = matchedProgram;
+        if (matchedYear != null) _year = matchedYear;
+        if (metadata['research_type'] != null) _researchType = metadata['research_type'].toString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PDF parsed successfully! Form auto-filled.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Parse error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isParsing = false);
     }
   }
 
@@ -205,6 +314,33 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     ),
                                   ),
                                 ],
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Auto-parse from PDF button
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _isParsing ? null : _parsePdf,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: CScholarColors.primaryGreen,
+                                    side: BorderSide(color: CScholarColors.primaryGreen.withValues(alpha: 0.5)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                                  ),
+                                  icon: _isParsing
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: CScholarColors.primaryGreen),
+                                        )
+                                      : const Icon(Icons.auto_awesome, size: 18),
+                                  label: Text(
+                                    _isParsing ? 'Parsing PDF...' : 'Auto-parse from PDF',
+                                    style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.primaryGreen),
+                                  ),
+                                ),
                               ),
 
                               const SizedBox(height: 24),
