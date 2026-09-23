@@ -953,6 +953,12 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       if (_selectedType != null && r.thesis.researchType != _selectedType) {
         return false;
       }
+      if (_selectedCategoryId != null) {
+        final catIds = r.thesis.categories?.map((c) => c.id).toList() ?? [];
+        if (!catIds.contains(_selectedCategoryId)) {
+          return false;
+        }
+      }
       return true;
     }).toList();
   }
