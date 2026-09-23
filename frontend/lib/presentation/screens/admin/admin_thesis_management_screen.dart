@@ -9,11 +9,27 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
-class AdminThesisManagementScreen extends ConsumerWidget {
+class AdminThesisManagementScreen extends ConsumerStatefulWidget {
   const AdminThesisManagementScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminThesisManagementScreen> createState() =>
+      _AdminThesisManagementScreenState();
+}
+
+class _AdminThesisManagementScreenState
+    extends ConsumerState<AdminThesisManagementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh the list every time this screen is visited
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(thesisListProvider(const ThesisListParams()));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theses = ref.watch(thesisListProvider(const ThesisListParams()));
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
