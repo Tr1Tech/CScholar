@@ -183,7 +183,8 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
                   ),
                   const SizedBox(width: 6),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => _toggleActive(context, ref, u),
+                    tooltip: u.isActive ? 'Deactivate user' : 'Reactivate user',
                     style: IconButton.styleFrom(
                       foregroundColor: u.isActive ? CScholarColors.error : CScholarColors.success,
                       visualDensity: VisualDensity.compact,
@@ -281,6 +282,8 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
   }
 
   void _showRoleDialog(BuildContext context, User user) {
+    const roles = ['student', 'faculty', 'admin'];
+    const labels = {'student': 'Student', 'faculty': 'Faculty', 'admin': 'Admin'};
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -288,16 +291,16 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Select a new role:', style: TextStyle(fontSize: 14)),
           const SizedBox(height: 16),
-          ...['Student', 'Faculty', 'Admin'].map((r) => ListTile(
+          ...roles.map((r) => ListTile(
             leading: Icon(
-              r == 'Admin' ? Icons.admin_panel_settings : r == 'Faculty' ? Icons.school : Icons.person,
-              color: r == user.role ? CScholarColors.primaryGreen : CScholarColors.textSecondary,
+              r == 'admin' ? Icons.admin_panel_settings : r == 'faculty' ? Icons.school : Icons.person,
+              color: r == user.role.toLowerCase() ? CScholarColors.primaryGreen : CScholarColors.textSecondary,
             ),
-            title: Text(r),
-            trailing: r == user.role ? const Icon(Icons.check, color: CScholarColors.primaryGreen) : null,
+            title: Text(labels[r]!),
+            trailing: r == user.role.toLowerCase() ? const Icon(Icons.check, color: CScholarColors.primaryGreen) : null,
             onTap: () {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${user.username} role changed to $r'), backgroundColor: CScholarColors.success));
+              _changeRole(context, ref, user, r);
             },
           )),
         ]),
@@ -306,6 +309,77 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
         ],
       ),
     );
+  }
+
+  Future<void> _changeRole(BuildContext context, WidgetRef ref, User user, String newRole) async {
+    if (newRole == user.role.toLowerCase()) return; // no-op
+    final me = ref.read(currentUserProvider);
+    if (me != null && me.id == user.id && newRole != 'admin') {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You cannot remove your own admin role')),
+        );
+      }
+      return;
+    }
+    try {
+      await ref.read(apiServiceProvider).put('/api/users/${user.id}/role', {'role': newRole});
+      final fresh = await ref.refresh(usersProvider.future);
+      final row = fresh.where((u) => u.id == user.id).toList();
+      if (context.mounted) {
+        if (row.isNotEmpty && row.first.role.toLowerCase() == newRole) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${user.username} role changed to $newRole'), backgroundColor: CScholarColors.success),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _toggleActive(BuildContext context, WidgetRef ref, User user) async {
+    final me = ref.read(currentUserProvider);
+    if (me != null && me.id == user.id) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You cannot deactivate your own account')),
+        );
+      }
+      return;
+    }
+    try {
+      await ref.read(apiServiceProvider).put(
+        '/api/users/${user.id}/active',
+        {'is_active': !user.isActive},
+      );
+      final fresh = await ref.refresh(usersProvider.future);
+      final row = fresh.where((u) => u.id == user.id).toList();
+      if (context.mounted) {
+        if (row.isNotEmpty && row.first.isActive == !user.isActive) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(user.isActive ? '${user.username} deactivated' : '${user.username} reactivated'),
+              backgroundColor: CScholarColors.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
   }
 
   Widget _mobileLayout(BuildContext context) {

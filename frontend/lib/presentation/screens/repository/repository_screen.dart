@@ -24,7 +24,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   int? _selectedYearId;
   int? _selectedCategoryId;
   String? _selectedType;
-  String _sortBy = 'Relevance';
+  String _sortBy = 'Latest';
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       _keywordController.clear();
       _searchController.clear();
       _query = '';
-      _sortBy = 'Relevance';
+      _sortBy = 'Latest';
     });
   }
 
@@ -279,20 +279,20 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                                         ),
                                         items: const [
                                           DropdownMenuItem(
-                                            value: 'Relevance',
-                                            child: Text('Relevance'),
-                                          ),
-                                          DropdownMenuItem(
                                             value: 'Latest',
                                             child: Text('Latest'),
                                           ),
                                           DropdownMenuItem(
-                                            value: 'Highest Similarity',
-                                            child: Text('Highest Similarity'),
+                                            value: 'Oldest',
+                                            child: Text('Oldest'),
                                           ),
                                           DropdownMenuItem(
-                                            value: 'Most Viewed',
-                                            child: Text('Most Viewed'),
+                                            value: 'Title (A-Z)',
+                                            child: Text('Title (A-Z)'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'Title (Z-A)',
+                                            child: Text('Title (Z-A)'),
                                           ),
                                         ],
                                         onChanged: (v) =>

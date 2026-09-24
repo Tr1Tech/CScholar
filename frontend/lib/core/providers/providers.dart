@@ -82,6 +82,9 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
         'password': user.passwordHash,
         'role': user.role,
       });
+      //Registration does not log the user in (no token returned to store),
+      // so reset to logged-out instead of leaving the provider stuck in loading.
+      state = const AsyncValue.data(null);
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -111,6 +114,8 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
         state = AsyncValue.data(user);
       } catch (_) {
         await prefs.remove('auth_token');
+        ref.read(apiServiceProvider).clearToken();
+        state = const AsyncValue.data(null);
       }
     }
   }
@@ -252,8 +257,8 @@ final semanticSearchProvider = FutureProvider.autoDispose
         final raw = await thesisApi
             .semanticSearch(query.trim(), limit: 10)
             .timeout(const Duration(seconds: 20));
-        final out = <SemanticResult>[];
-        for (final e in raw) {
+        // Hydrate in parallel — sequential awaits made 10 hits take up to 100s.
+        final futures = raw.map((e) async {
           final m = e as Map<String, dynamic>;
           try {
             // Semantic endpoint returns a slim payload — hydrate via detail endpoint.
@@ -261,18 +266,17 @@ final semanticSearchProvider = FutureProvider.autoDispose
                 .read(apiServiceProvider)
                 .get('/api/theses/${m['id']}')
                 .timeout(const Duration(seconds: 10));
-            out.add(
-              SemanticResult(
-                thesis: Thesis.fromJson(detail as Map<String, dynamic>),
-                similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
-              ),
+            return SemanticResult(
+              thesis: Thesis.fromJson(detail as Map<String, dynamic>),
+              similarity: (m['similarity'] as num?)?.toDouble() ?? 0.0,
             );
           } catch (_) {
             // Skip unhydratable rows instead of failing the whole search.
-            continue;
+            return null;
           }
-        }
-        return out;
+        }).toList();
+        final hydrated = await Future.wait(futures);
+        return hydrated.whereType<SemanticResult>().toList();
       } catch (error, stackTrace) {
         Error.throwWithStackTrace(error, stackTrace);
       }
@@ -408,6 +412,15 @@ final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   },
 );
 
+/// Public stats for non-admin dashboards — the admin /api/dashboard/stats
+/// endpoint returns 403 for students, so the student dashboard uses this.
+final publicStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) async {
+    final data = await ref.read(apiServiceProvider).get('/api/stats/summary');
+    return Map<String, dynamic>.from(data as Map);
+  },
+);
+
 final recentActivityProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
       final data = await ref
@@ -431,6 +444,36 @@ final facultyActivityProvider =
           .get('/api/faculty/activity');
       final List<dynamic> raw = data['activity'] as List<dynamic>;
       return raw.cast<Map<String, dynamic>>();
+    });
+
+/// Full thesis records advised by the current faculty member.
+final facultyThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
+  ref,
+) async {
+  final data = await ref
+      .read(apiServiceProvider)
+      .get('/api/faculty/theses?per_page=50');
+  final List<dynamic> raw = (data as Map<String, dynamic>)['theses'] as List<dynamic>;
+  return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
+});
+
+/// Authors linked to the faculty member's advised theses.
+final facultyAdviseesProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/faculty/advisees');
+      final List<dynamic> raw = (data as Map<String, dynamic>)['advisees'] as List<dynamic>;
+      return raw.cast<Map<String, dynamic>>();
+    });
+
+/// Status/program/year breakdown of the faculty member's advised theses.
+final facultyAnalyticsProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/faculty/analytics');
+      return Map<String, dynamic>.from(data as Map);
     });
 
 final usersProvider = FutureProvider.autoDispose<List<User>>((ref) async {

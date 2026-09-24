@@ -19,6 +19,11 @@ import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_thesis_form_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -30,6 +35,8 @@ final appRouter = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     redirect: (context, state) {
+      // Don't bounce while auth is still restoring (login/loadToken).
+      if (authState.isLoading) return null;
       final loc = state.matchedLocation;
       final loggingIn = loc == '/login' || loc == '/register' || loc == '/';
       final role = authState.value?.role;
@@ -97,7 +104,26 @@ final appRouter = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/thesis/:id',
             builder: (context, state) {
-              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null || id <= 0) {
+                return Scaffold(
+                  body: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text('Invalid thesis id: ${state.pathParameters['id']}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => context.go('/repository'),
+                          child: const Text('Back to Repository'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
               return ThesisDetailScreen(thesisId: id);
             },
           ),
@@ -132,7 +158,12 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/thesis/:id/edit',
         builder: (context, state) {
-          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null || id <= 0) {
+            return Scaffold(
+              body: Center(child: Text('Invalid thesis id: ${state.pathParameters['id']}')),
+            );
+          }
           return AdminAddEditThesisScreen(thesisId: id);
         },
       ),
@@ -149,7 +180,45 @@ final appRouter = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminSettingsScreen(),
       ),
 
-      // Fallback — must be last
+      // Faculty routes
+      GoRoute(
+        path: '/faculty/dashboard',
+        builder: (context, state) => const FacultyDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/theses',
+        builder: (context, state) => const FacultyThesesScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/thesis/new',
+        builder: (context, state) => const FacultyThesisFormScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/thesis/:id/edit',
+        builder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null || id <= 0) {
+            return Scaffold(
+              body: Center(child: Text('Invalid thesis id: ${state.pathParameters['id']}')),
+            );
+          }
+          return FacultyThesisFormScreen(thesisId: id);
+        },
+      ),
+      GoRoute(
+        path: '/faculty/students',
+        builder: (context, state) => const FacultyStudentsScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/analytics',
+        builder: (context, state) => const FacultyAnalyticsScreen(),
+      ),
+      GoRoute(
+        path: '/faculty/settings',
+        builder: (context, state) => const FacultySettingsScreen(),
+      ),
+
+      // Fallback — must be last (matches any unmatched location)
       GoRoute(
         path: '/:unmatched',
         builder: (context, state) => Scaffold(
@@ -169,33 +238,6 @@ final appRouter = Provider<GoRouter>((ref) {
             ),
           ),
         ),
-      ),
-
-      // Faculty routes
-      GoRoute(
-        path: '/faculty/dashboard',
-        builder: (context, state) => const FacultyDashboardScreen(),
-        redirect: (context, state) {
-          final role = GoRouterState.of(context).extra as String?;
-          if (role == 'admin') return '/admin/dashboard';
-          return null;
-        },
-      ),
-      GoRoute(
-        path: '/faculty/theses',
-        builder: (context, state) => const FacultyDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/faculty/students',
-        builder: (context, state) => const FacultyDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/faculty/analytics',
-        builder: (context, state) => const FacultyDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/faculty/settings',
-        builder: (context, state) => const FacultyDashboardScreen(),
       ),
     ],
   );

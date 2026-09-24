@@ -19,13 +19,17 @@ def allowed_file(filename):
 
 
 @upload_bp.route("/api/upload/pdf", methods=["POST"])
-@admin_required
+@login_required
 def upload_pdf():
     """Upload PDF, extract text with PyMuPDF, return preview.
-    
-    Accepts optional thesis_id via form data to associate the uploaded
-    PDF with a thesis record (stores relative path in pdf_url column).
+
+    Admins and faculty. Accepts optional thesis_id via form data to
+    associate the uploaded PDF with a thesis record (stores relative path
+    in pdf_url column). Faculty may only attach to their own drafts.
     """
+    role = request.current_user["role"]
+    if role not in ("admin", "faculty"):
+        return jsonify({"error": "Admin or faculty access required"}), 403
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -36,9 +40,15 @@ def upload_pdf():
     if not allowed_file(file.filename):
         return jsonify({"error": "Only PDF files are allowed"}), 400
 
-    file_bytes = file.read()
+    # Reject obviously oversized bodies before buffering into RAM.
+    if request.content_length and request.content_length > MAX_FILE_SIZE:
+        return jsonify({"error": "File too large (max 50MB)"}), 413
+
+    file_bytes = file.read(MAX_FILE_SIZE + 1)
     if len(file_bytes) > MAX_FILE_SIZE:
-        return jsonify({"error": "File too large (max 50MB)"}), 400
+        return jsonify({"error": "File too large (max 50MB)"}), 413
+    if not file_bytes.startswith(b"%PDF-"):
+        return jsonify({"error": "Invalid PDF file"}), 400
 
     # Parse thesis_id if provided
     thesis_id = request.form.get("thesis_id", type=int)
@@ -46,6 +56,11 @@ def upload_pdf():
         existing = db.get_thesis_by_id(thesis_id)
         if not existing:
             return jsonify({"error": "Thesis not found"}), 404
+        if role == "faculty":
+            if existing.get("creator_id") != request.current_user["id"]:
+                return jsonify({"error": "You can only attach PDFs to theses you submitted"}), 403
+            if existing.get("status") != "draft":
+                return jsonify({"error": "PDFs can only be attached to drafts"}), 403
 
     try:
         doc = pymupdf.open(stream=file_bytes, filetype="pdf")

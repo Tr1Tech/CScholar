@@ -19,18 +19,23 @@ class AdminThesisManagementScreen extends ConsumerStatefulWidget {
 
 class _AdminThesisManagementScreenState
     extends ConsumerState<AdminThesisManagementScreen> {
+  // Single shared key: watch() and invalidate() must use the SAME params,
+  // or mutations (status change / delete) refresh a different provider
+  // instance and the table looks stale until a full page reload.
+  static const _listParams = ThesisListParams(showAll: true);
+
   @override
   void initState() {
     super.initState();
     // Refresh the list every time this screen is visited
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(thesisListProvider(const ThesisListParams()));
+      ref.invalidate(thesisListProvider(_listParams));
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theses = ref.watch(thesisListProvider(const ThesisListParams(showAll: true)));
+    final theses = ref.watch(thesisListProvider(_listParams));
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 900;
 
@@ -83,6 +88,10 @@ class _AdminThesisManagementScreenState
                             return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No theses found')));
                           }
                           return DataTable(
+                            horizontalMargin: 20,
+                            columnSpacing: 24,
+                            dataRowMinHeight: 64,
+                            dataRowMaxHeight: 72,
                             headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
                             columns: const [
                               DataColumn(label: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -93,11 +102,16 @@ class _AdminThesisManagementScreenState
                             ],
                             rows: list.map((t) => DataRow(
                               cells: [
-                                DataCell(Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                DataCell(SizedBox(
+                                  width: 470,
+                                  child: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+                                )),
                                 DataCell(Text(t.program?.name ?? '—')),
                                 DataCell(Text(t.academicYear?.label ?? '—')),
                                 DataCell(_statusChip(t.status)),
-                                DataCell(Row(
+                                DataCell(SizedBox(
+                                  width: 180,
+                                  child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     // Status dropdown
@@ -115,18 +129,28 @@ class _AdminThesisManagementScreenState
                                     const SizedBox(width: 4),
                                     TextButton(
                                       onPressed: () => context.go('/thesis/${t.id}'),
+                                      style: TextButton.styleFrom(
+                                        minimumSize: const Size(38, 36),
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      ),
                                       child: const Text('View', style: TextStyle(fontSize: 12)),
                                     ),
                                     TextButton(
                                       onPressed: () => context.go('/admin/thesis/${t.id}/edit'),
+                                      style: TextButton.styleFrom(
+                                        minimumSize: const Size(38, 36),
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      ),
                                       child: const Text('Edit', style: TextStyle(fontSize: 12, color: CScholarColors.orange)),
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline, size: 18, color: CScholarColors.error),
+                                      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                                      padding: EdgeInsets.zero,
                                       onPressed: () => _deleteThesis(context, ref, t),
                                     ),
                                   ],
-                                )),
+                                ))),
                               ],
                             )).toList(),
                           );
@@ -176,11 +200,21 @@ class _AdminThesisManagementScreenState
   Future<void> _changeStatus(BuildContext context, WidgetRef ref, Thesis thesis, String newStatus) async {
     try {
       await ref.read(thesisApiProvider).updateStatus(thesis.id, newStatus);
-      ref.invalidate(thesisListProvider(const ThesisListParams()));
+      // Await the refetch (not just invalidate) so the table rebuilds with
+      // fresh rows before we confirm — and drop the cached detail view too.
+      ref.invalidate(thesisDetailProvider(thesis.id));
+      final fresh = await ref.refresh(thesisListProvider(_listParams).future);
+      final row = (fresh ?? []).where((t) => t.id == thesis.id).toList();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Thesis status changed to $newStatus')),
-        );
+        if (row.isNotEmpty && row.first.status == newStatus) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Thesis status changed to $newStatus')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {
@@ -202,9 +236,17 @@ class _AdminThesisManagementScreenState
               Navigator.pop(ctx);
               try {
                 await ref.read(thesisApiProvider).delete(thesis.id);
-                ref.invalidate(thesisListProvider(const ThesisListParams()));
+                ref.invalidate(thesisDetailProvider(thesis.id));
+                final fresh = await ref.refresh(thesisListProvider(_listParams).future);
+                final stillThere = (fresh ?? []).any((t) => t.id == thesis.id);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thesis deleted')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(stillThere
+                          ? 'Deleted on server, but the list did not refresh — reload the page'
+                          : 'Thesis deleted'),
+                    ),
+                  );
                 }
               } catch (e) {
                 if (context.mounted) {

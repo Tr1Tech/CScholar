@@ -25,13 +25,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_token(user) -> str:
     """Create a JWT access token for a user."""
+    now = datetime.datetime.now(datetime.timezone.utc)
     payload = {
         "sub": str(user["id"]),
         "username": user["username"],
         "email": user["email"],
         "role": user["role"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=24),
-        "iat": datetime.datetime.utcnow(),
+        "exp": now + datetime.timedelta(hours=24),
+        "iat": now,
     }
     return jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
 
@@ -56,9 +57,12 @@ def login_required(fn):
         token = auth.split(" ", 1)[1]
         try:
             payload = decode_token(token)
+            user_id = int(payload.get("sub"))
         except Unauthorized:
             return jsonify({"error": "Invalid or expired token"}), 401
-        user = get_user_by_id(int(payload["sub"]))
+        except (KeyError, TypeError, ValueError):
+            return jsonify({"error": "Invalid or expired token"}), 401
+        user = get_user_by_id(user_id)
         if not user or not user["is_active"]:
             return jsonify({"error": "User not found or inactive"}), 401
         request.current_user = user
@@ -76,9 +80,12 @@ def admin_required(fn):
         token = auth.split(" ", 1)[1]
         try:
             payload = decode_token(token)
+            user_id = int(payload.get("sub"))
         except Unauthorized:
             return jsonify({"error": "Invalid or expired token"}), 401
-        user = get_user_by_id(int(payload["sub"]))
+        except (KeyError, TypeError, ValueError):
+            return jsonify({"error": "Invalid or expired token"}), 401
+        user = get_user_by_id(user_id)
         if not user or not user["is_active"]:
             return jsonify({"error": "User not found or inactive"}), 401
         if user["role"] != "admin":

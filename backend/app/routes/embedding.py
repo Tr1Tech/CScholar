@@ -79,7 +79,14 @@ def search():
         return jsonify({"error": "Embedding service not available"}), 503
 
     query = data["query"]
-    limit = data.get("limit", 10)
+    if not isinstance(query, str) or not query.strip():
+        return jsonify({"error": "Query must be a non-empty string"}), 400
+    try:
+        limit = int(data.get("limit", 10))
+    except (TypeError, ValueError):
+        return jsonify({"error": "limit must be between 1 and 20"}), 400
+    if not 1 <= limit <= 20:
+        return jsonify({"error": "limit must be between 1 and 20"}), 400
 
     query_vector = embedding_service.embed(query)
     if query_vector is None:

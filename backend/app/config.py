@@ -11,14 +11,14 @@ class Config:
 
     # Flask
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
-    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "1") == "1"
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
 
     # Database (raw psycopg2 connection params)
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "5432")
     DB_NAME = os.getenv("DB_NAME", "cscholar")
     DB_USER = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "radj062406")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
     # AI/ML
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")

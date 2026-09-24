@@ -34,7 +34,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final recentTheses = ref.watch(recentThesesProvider);
-    final stats = ref.watch(dashboardStatsProvider);
+    final stats = ref.watch(publicStatsProvider);
     final savedIds = ref.watch(savedThesisIdsProvider);
     final academicYears = ref.watch(academicYearsProvider);
 

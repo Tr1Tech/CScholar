@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/core/config.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
-import 'dart:html' as html;
 
 class ThesisDetailScreen extends ConsumerWidget {
   final int thesisId;
@@ -101,6 +102,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                   ),
                   child: Center(
                     child: Container(
+                      width: double.infinity,
                       constraints: const BoxConstraints(maxWidth: 1120),
                       padding: EdgeInsets.all(isDesktop ? 36 : 22),
                       decoration: BoxDecoration(
@@ -140,15 +142,21 @@ class ThesisDetailScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              thesis.abstract,
-                              textAlign: TextAlign.justify,
-                              style: CScholarTextStyles.inter(
-                                14.5,
-                                FontWeight.w400,
-                                const Color(0xFF334155),
-                                height: 1.7,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _displayAbstract(thesis.abstract),
+                                    textAlign: TextAlign.justify,
+                                    style: CScholarTextStyles.inter(
+                                      14.5,
+                                      FontWeight.w400,
+                                      const Color(0xFF334155),
+                                      height: 1.7,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
 
@@ -350,20 +358,28 @@ class ThesisDetailScreen extends ConsumerWidget {
         if (metaItems.isNotEmpty) ...[
           const SizedBox(height: 20),
 
-          // Metadata Grid (2 cols)
+          // Content-sized metadata rows. A fixed GridView aspect ratio made
+          // these rows disproportionately tall on wide displays.
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: const BoxDecoration(
               border: Border.symmetric(horizontal: BorderSide(color: CScholarColors.borderLight)),
             ),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 12,
-              childAspectRatio: 3.2,
-              children: metaItems,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 560;
+                final itemWidth = isNarrow
+                    ? constraints.maxWidth
+                    : (constraints.maxWidth - 24) / 2;
+
+                return Wrap(
+                  spacing: 24,
+                  runSpacing: 16,
+                  children: metaItems
+                      .map((item) => SizedBox(width: itemWidth, child: item))
+                      .toList(),
+                );
+              },
             ),
           ),
         ],
@@ -380,7 +396,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                   ? null
                   : () {
                       final pdfUrl = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}/pdf';
-                      _openPdfInNewTab(pdfUrl);
+                      _openPdfInNewTab(context, ref, pdfUrl);
                     },
               style: FilledButton.styleFrom(
                 backgroundColor: CScholarColors.primaryGreen,
@@ -405,10 +421,14 @@ class ThesisDetailScreen extends ConsumerWidget {
               label: Text(isSaved ? 'Saved' : 'Save', style: CScholarTextStyles.inter(13.5, FontWeight.w600, isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary)),
             ),
             OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Study share link copied to clipboard!')),
-                );
+              onPressed: () async {
+                final link = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}';
+                await Clipboard.setData(ClipboardData(text: link));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Study share link copied to clipboard!')),
+                  );
+                }
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: CScholarColors.textPrimary,
@@ -460,7 +480,37 @@ class ThesisDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _openPdfInNewTab(String url) {
-    html.window.open(url, '_blank');
+  /// Stored abstracts often contain hard line-breaks (PDF extraction /
+  /// manual wraps). A lone `\n` renders as an early break, so justified
+  /// text looks like a narrow column with a big empty right side.
+  /// Collapse single newlines to spaces, keep real paragraph breaks.
+  String _displayAbstract(String raw) {
+    return raw
+        .replaceAll('\r\n', '\n')
+        .replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ')
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .trim();
+  }
+
+  void _openPdfInNewTab(BuildContext context, WidgetRef ref, String url) async {
+    // Browsers can't set Authorization headers, so the token travels as
+    // ?token= (backend validates it exactly like the Bearer header).
+    final token = ref.read(apiServiceProvider).token;
+    final base = Uri.parse(url);
+    final uri = token == null
+        ? base
+        : base.replace(queryParameters: {'token': token});
+    // Cross-platform open (web: new tab; desktop/mobile: browser/PDF viewer).
+    // Falls back to copying the link if nothing can handle it.
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, webOnlyWindowName: '_blank');
+    } else {
+      await Clipboard.setData(ClipboardData(text: uri.toString()));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PDF link copied — paste it in your browser to view.')),
+        );
+      }
+    }
   }
 }

@@ -1,8 +1,11 @@
 """Flask application factory — raw psycopg2, no ORM."""
 
 import os
+from dotenv import load_dotenv
 from flask import Flask, jsonify, send_from_directory
 from .extensions import cors, db_test
+
+load_dotenv()
 
 
 def create_app():
@@ -11,10 +14,19 @@ def create_app():
 
     # ── Config ──────────────────────────────────────────────────────────────
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
-    app.config["FLASK_DEBUG"] = os.getenv("FLASK_DEBUG", "1") == "1"
+    if app.config["SECRET_KEY"] == "dev-change-me":
+        print("WARNING: using default dev SECRET_KEY — set SECRET_KEY in production!")
+    app.config["FLASK_DEBUG"] = os.getenv("FLASK_DEBUG", "0") == "1"
+    # Guard against unbounded uploads (upload/ocr routes also check size).
+    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 
     # ── CORS ────────────────────────────────────────────────────────────────
-    cors.init_app(app, origins="*")
+    # Comma-separated allowlist, e.g. CORS_ORIGINS=https://cscholar.example,http://localhost:8080
+    _cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+    if _cors_origins:
+        cors.init_app(app, origins=_cors_origins)
+    else:
+        cors.init_app(app, origins="*")
 
     # ── Blueprints ───────────────────────────────────────────────────────────
     from .routes import db_test_bp, health_bp, auth_bp, thesis_bp, meta_bp, upload_bp, ocr_bp, embedding_bp, swagger_bp

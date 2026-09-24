@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 
 class FacultyDashboardScreen extends ConsumerWidget {
   const FacultyDashboardScreen({super.key});
@@ -21,85 +22,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
         children: [
           // Sidebar
           if (isDesktop)
-            Container(
-              width: 260,
-              decoration: const BoxDecoration(
-                color: CScholarColors.primaryGreen,
-                border: Border(right: BorderSide(color: CScholarColors.borderLight)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.school, color: Colors.white, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'CScholar',
-                          style: CScholarTextStyles.poppins(18, FontWeight.w800, Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _sidebarItem(context, Icons.dashboard_outlined, 'Dashboard', '/faculty/dashboard'),
-                  _sidebarItem(context, Icons.article_outlined, 'My Theses', '/faculty/theses'),
-                  _sidebarItem(context, Icons.people_outlined, 'My Students', '/faculty/students'),
-                  _sidebarItem(context, Icons.analytics_outlined, 'Analytics', '/faculty/analytics'),
-                  _sidebarItem(context, Icons.settings_outlined, 'Settings', '/faculty/settings'),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ListTile(
-                      leading: const Icon(Icons.logout, size: 20, color: Color(0xFFA7F3D0)),
-                      title: Text(
-                        'Log Out',
-                        style: CScholarTextStyles.inter(13, FontWeight.w500, const Color(0xFFA7F3D0)),
-                      ),
-                      dense: true,
-                      onTap: () {
-                        ref.read(authProvider.notifier).logout();
-                        context.go('/login');
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          child: Text(
-                            _initials(user?.username),
-                            style: CScholarTextStyles.inter(11, FontWeight.w700, Colors.white),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            user?.username ?? '',
-                            style: CScholarTextStyles.inter(12, FontWeight.w500, Colors.white),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const FacultySidebar(currentPath: '/faculty/dashboard'),
           Expanded(
             child: Column(
               children: [
@@ -196,8 +119,8 @@ class FacultyDashboardScreen extends ConsumerWidget {
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final isWide = constraints.maxWidth > 860;
-                                final leftPanel = _recentActivityPanel(recentActivity);
-                                final rightPanel = _adviseesPanel(ref);
+                                final leftPanel = _recentActivityPanel(context, recentActivity);
+                                final rightPanel = _adviseesPanel(context, ref);
                                 if (isWide) {
                                   return Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,22 +218,6 @@ class FacultyDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _sidebarItem(BuildContext context, IconData icon, String label, String route) {
-    final isActive = GoRouterState.of(context).matchedLocation == route;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: ListTile(
-        leading: Icon(icon, size: 20, color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.7)),
-        title: Text(label, style: CScholarTextStyles.inter(13, isActive ? FontWeight.w600 : FontWeight.w500, isActive ? Colors.white : Colors.white.withValues(alpha: 0.7))),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-        selected: isActive,
-        selectedTileColor: Colors.white.withValues(alpha: 0.15),
-        dense: true,
-        onTap: () => context.go(route),
-      ),
-    );
-  }
-
   Widget _kpiCard({
     required String label,
     required String value,
@@ -352,7 +259,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _recentActivityPanel(AsyncValue<List<Map<String, dynamic>>> activity) {
+  Widget _recentActivityPanel(BuildContext context, AsyncValue<List<Map<String, dynamic>>> activity) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -369,7 +276,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
             children: [
               Text('Recent Activity', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
               TextButton(
-                onPressed: () {},
+                onPressed: () => context.go('/faculty/theses'),
                 child: Text('View All', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
               ),
             ],
@@ -410,7 +317,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _adviseesPanel(WidgetRef ref) {
+  Widget _adviseesPanel(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(facultyStatsProvider);
     return Container(
       padding: const EdgeInsets.all(22),
@@ -474,7 +381,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: () => context.go('/faculty/students'),
               child: Text('View All Advisees', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
             ),
           ),

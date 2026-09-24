@@ -44,13 +44,21 @@ def ocr_pdf():
     if not allowed_file(file.filename):
         return jsonify({"error": "Only PDF files are allowed"}), 400
 
-    file_bytes = file.read()
-    if len(file_bytes) > MAX_FILE_SIZE:
-        return jsonify({"error": "File too large (max 50MB)"}), 400
+    if request.content_length and request.content_length > MAX_FILE_SIZE:
+        return jsonify({"error": "File too large (max 50MB)"}), 413
 
+    file_bytes = file.read(MAX_FILE_SIZE + 1)
+    if len(file_bytes) > MAX_FILE_SIZE:
+        return jsonify({"error": "File too large (max 50MB)"}), 413
+    if not file_bytes.startswith(b"%PDF-"):
+        return jsonify({"error": "Invalid PDF file"}), 400
+
+    doc = None
     try:
         doc = pymupdf.open(stream=file_bytes, filetype="pdf")
         page_count = len(doc)
+        if page_count > 50:
+            return jsonify({"error": "PDF has too many pages (max 50 for OCR)"}), 400
         text = ""
         tesseract_path = get_tesseract_path()
 
@@ -64,13 +72,20 @@ def ocr_pdf():
                         [tesseract_path, img_path, "stdout", "-l", "eng"],
                         capture_output=True, text=True, timeout=60,
                     )
+                    if result.returncode != 0:
+                        return jsonify({"error": f"OCR failed: {result.stderr[:500]}"}), 500
                     text += result.stdout + "\n"
-                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
                     return jsonify({"error": f"OCR failed: {str(e)}"}), 500
 
-        doc.close()
     except Exception as e:
         return jsonify({"error": f"Failed to process PDF: {str(e)}"}), 400
+    finally:
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception:
+                pass
 
     return jsonify({
         "message": "OCR completed",

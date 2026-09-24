@@ -22,6 +22,9 @@ class ApiService {
   void setToken(String token) => _token = token;
   void clearToken() => _token = null;
 
+  /// Exposed so screens can build authenticated URLs (e.g. PDF in browser tab).
+  String? get token => _token;
+
   Map<String, String> get _headers {
     final h = {'Content-Type': 'application/json'};
     if (_token != null) h['Authorization'] = 'Bearer $_token';

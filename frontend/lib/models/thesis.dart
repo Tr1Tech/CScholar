@@ -553,9 +553,9 @@ class Thesis {
     return categories!.map((c) => c.name).join(', ');
   }
 
-  /// Formatted keywords string
+  /// Formatted keywords string (semicolon-separated, matching the form input)
   String get keywordsString {
     if (keywords == null || keywords!.isEmpty) return '';
-    return keywords!.map((k) => k.term).join(', ');
+    return keywords!.map((k) => k.term).join('; ');
   }
 }

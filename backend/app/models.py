@@ -4,6 +4,7 @@ Functions return plain dicts or None.
 """
 
 from .extensions import get_conn, put_conn
+import re
 
 
 # ── Users ───────────────────────────────────────────────────────────────────
@@ -119,6 +120,20 @@ def update_user_role(user_id, new_role):
     try:
         with conn.cursor() as cur:
             cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def set_user_active(user_id, is_active):
+    """Activate or deactivate a user."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET is_active = %s WHERE id = %s", (bool(is_active), user_id))
         conn.commit()
     except Exception:
         conn.rollback()
@@ -273,6 +288,67 @@ def _load_thesis_relations(cur, thesis_id):
     return {"authors": authors, "advisers": advisers, "categories": categories, "keywords": keywords}
 
 
+def _load_thesis_relations_batch(cur, thesis_ids):
+    """Batch-load relations for many theses in 4 queries (fixes N+1)."""
+    empty = {"authors": [], "advisers": [], "categories": [], "keywords": []}
+    grouped = {tid: {"authors": [], "advisers": [], "categories": [], "keywords": []} for tid in thesis_ids}
+    if not thesis_ids:
+        return grouped
+    ids = list(thesis_ids)
+
+    cur.execute(
+        "SELECT ta.thesis_id, a.id, a.first_name, a.middle_name, a.last_name, a.email, a.created_at "
+        "FROM thesis_authors ta JOIN authors a ON ta.author_id = a.id "
+        "WHERE ta.thesis_id = ANY(%s) ORDER BY ta.thesis_id, ta.order_index",
+        (ids,),
+    )
+    for r in cur.fetchall():
+        grouped[r[0]]["authors"].append({
+            "id": r[1], "first_name": r[2], "middle_name": r[3],
+            "last_name": r[4], "email": r[5],
+            "created_at": r[6].isoformat() if r[6] else None,
+        })
+
+    cur.execute(
+        "SELECT ta.thesis_id, a.id, a.first_name, a.middle_name, a.last_name, a.email, a.created_at "
+        "FROM thesis_advisers ta JOIN advisers a ON ta.adviser_id = a.id "
+        "WHERE ta.thesis_id = ANY(%s)",
+        (ids,),
+    )
+    for r in cur.fetchall():
+        grouped[r[0]]["advisers"].append({
+            "id": r[1], "first_name": r[2], "middle_name": r[3],
+            "last_name": r[4], "email": r[5],
+            "created_at": r[6].isoformat() if r[6] else None,
+        })
+
+    cur.execute(
+        "SELECT tc.thesis_id, c.id, c.name, c.description, c.created_at "
+        "FROM thesis_categories tc JOIN categories c ON tc.category_id = c.id "
+        "WHERE tc.thesis_id = ANY(%s)",
+        (ids,),
+    )
+    for r in cur.fetchall():
+        grouped[r[0]]["categories"].append({
+            "id": r[1], "name": r[2], "description": r[3],
+            "created_at": r[4].isoformat() if r[4] else None,
+        })
+
+    cur.execute(
+        "SELECT tk.thesis_id, k.id, k.term, k.created_at "
+        "FROM thesis_keywords tk JOIN keywords k ON tk.keyword_id = k.id "
+        "WHERE tk.thesis_id = ANY(%s)",
+        (ids,),
+    )
+    for r in cur.fetchall():
+        grouped[r[0]]["keywords"].append({
+            "id": r[1], "term": r[2],
+            "created_at": r[3].isoformat() if r[3] else None,
+        })
+
+    return grouped
+
+
 def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None):
     """Replace author/adviser/category/keyword links for a thesis."""
     if author_ids is not None:
@@ -356,7 +432,7 @@ def get_thesis_by_id(thesis_id):
         put_conn(conn)
 
 
-def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, category_id=None, keyword=None, sort_by=None, page=1, per_page=20):
+def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, category_id=None, keyword=None, sort_by=None, page=1, per_page=20, adviser_email=None, creator_id=None):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -387,6 +463,23 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
             if keyword:
                 conditions.append("EXISTS (SELECT 1 FROM thesis_keywords tk JOIN keywords k ON tk.keyword_id = k.id WHERE tk.thesis_id = t.id AND k.term ILIKE %s)")
                 params.append(f"%{keyword}%")
+            if adviser_email and creator_id is not None:
+                # Faculty "My Theses": advised by me OR submitted by me.
+                conditions.append(
+                    "(EXISTS (SELECT 1 FROM thesis_advisers ta JOIN advisers a ON ta.adviser_id = a.id "
+                    "WHERE ta.thesis_id = t.id AND LOWER(a.email) = LOWER(%s)) "
+                    "OR t.creator_id = %s)"
+                )
+                params.extend([adviser_email, creator_id])
+            elif adviser_email:
+                conditions.append(
+                    "EXISTS (SELECT 1 FROM thesis_advisers ta JOIN advisers a ON ta.adviser_id = a.id "
+                    "WHERE ta.thesis_id = t.id AND LOWER(a.email) = LOWER(%s))"
+                )
+                params.append(adviser_email)
+            elif creator_id is not None:
+                conditions.append("t.creator_id = %s")
+                params.append(creator_id)
             if status:
                 if isinstance(status, list):
                     conditions.append("t.status = ANY(%s)")
@@ -395,10 +488,13 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                     conditions.append("t.status = %s")
                     params.append(status)
 
+            # Keyword listing has no relevance/view/similarity ranking —
+            # only honest sorts are supported. Semantic ordering lives in
+            # semantic_search() (ORDER BY embedding distance).
             order_by_sql = "t.created_at DESC"
             if sort_by:
                 sb = str(sort_by).strip().lower()
-                if sb in ("latest", "newest"):
+                if sb in ("latest", "newest", "relevance"):
                     order_by_sql = "t.created_at DESC"
                 elif sb in ("oldest",):
                     order_by_sql = "t.created_at ASC"
@@ -406,8 +502,10 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                     order_by_sql = "t.title ASC"
                 elif sb in ("title (z-a)", "title_desc"):
                     order_by_sql = "t.title DESC"
-                elif sb in ("relevance", "highest similarity", "most viewed"):
-                    order_by_sql = "t.created_at DESC"
+                # NOTE: "highest similarity" / "most viewed" are NOT supported
+                # here on purpose — they fall through to created_at DESC so old
+                # clients don't break, but the UI no longer offers them for
+                # keyword search (see repository_screen sort dropdown).
 
             where = "WHERE " + " AND ".join(conditions) if conditions else ""
             offset = (page - 1) * per_page
@@ -436,8 +534,9 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
 
             thesis_ids = [t["id"] for t in theses]
             if thesis_ids:
+                rel_map = _load_thesis_relations_batch(cur, thesis_ids)
                 for t in theses:
-                    t.update(_load_thesis_relations(cur, t["id"]))
+                    t.update(rel_map.get(t["id"], {"authors": [], "advisers": [], "categories": [], "keywords": []}))
 
             return {
                 "theses": theses,
@@ -696,6 +795,68 @@ def get_adviser_by_id(adviser_id):
                 "email": row[4],
                 "created_at": row[5].isoformat() if row[5] else None,
             }
+    finally:
+        put_conn(conn)
+
+
+def ensure_adviser_for_email(email, display_name=None):
+    """Return the advisers.id matching this email, creating the row (faculty
+    auto-provision) when none exists. Admins can correct names afterwards."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM advisers WHERE LOWER(email) = LOWER(%s) ORDER BY id LIMIT 1",
+                (email,),
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0]
+            parts = re.split(r"[\s._-]+", (display_name or email.split("@")[0]).strip())
+            parts = [p for p in parts if p]
+            first = parts[0] if parts else (display_name or "Faculty")
+            last = " ".join(parts[1:]) if len(parts) > 1 else ""
+            cur.execute(
+                "INSERT INTO advisers (first_name, middle_name, last_name, email) "
+                "VALUES (%s, %s, %s, %s) RETURNING id",
+                (first, None, last, email),
+            )
+            adviser_id = cur.fetchone()[0]
+        conn.commit()
+        return adviser_id
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        # Likely a duplicate-email race: re-read instead of failing the submit.
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM advisers WHERE LOWER(email) = LOWER(%s) ORDER BY id LIMIT 1",
+                (email,),
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0]
+        raise
+    finally:
+        put_conn(conn)
+
+
+def link_thesis_adviser(thesis_id, adviser_id):
+    """Add an adviser link without disturbing existing ones."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO thesis_advisers (thesis_id, adviser_id) VALUES (%s, %s) "
+                "ON CONFLICT (thesis_id, adviser_id) DO NOTHING",
+                (thesis_id, int(adviser_id)),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         put_conn(conn)
 
@@ -1072,6 +1233,20 @@ def get_dashboard_stats():
         put_conn(conn)
 
 
+def get_public_stats():
+    """Public repository summary — published/approved counts only, no auth."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM theses WHERE status IN ('published','approved')")
+            total_theses = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM programs")
+            total_programs = cur.fetchone()[0]
+            return {"studies": total_theses, "programs": total_programs}
+    finally:
+        put_conn(conn)
+
+
 def recent_activity(limit=10):
     """Get recent activity for the admin dashboard."""
     conn = get_conn()
@@ -1227,6 +1402,91 @@ def get_faculty_activity(email, limit=10):
                 }
                 for r in rows
             ]
+    finally:
+        put_conn(conn)
+
+
+def get_faculty_theses(email, user_id=None, page=1, per_page=50):
+    """Theses advised by (or submitted by) this faculty member, all statuses."""
+    return list_theses(adviser_email=email, creator_id=user_id, status=None, page=page, per_page=per_page)
+
+
+def get_faculty_advisees(email):
+    """Authors linked to theses advised by this faculty member."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT a.id, a.first_name, a.middle_name, a.last_name, a.email, "
+                "       COUNT(DISTINCT ta.thesis_id) AS thesis_count, "
+                "       MAX(t.updated_at) AS last_activity "
+                "FROM thesis_advisers tadv "
+                "JOIN advisers adv ON tadv.adviser_id = adv.id "
+                "JOIN thesis_authors ta ON ta.thesis_id = tadv.thesis_id "
+                "JOIN authors a ON ta.author_id = a.id "
+                "JOIN theses t ON t.id = tadv.thesis_id "
+                "WHERE LOWER(adv.email) = LOWER(%s) "
+                "GROUP BY a.id, a.first_name, a.middle_name, a.last_name, a.email "
+                "ORDER BY last_activity DESC NULLS LAST, a.last_name ASC",
+                (email,),
+            )
+            return [
+                {
+                    "id": r[0],
+                    "first_name": r[1],
+                    "middle_name": r[2],
+                    "last_name": r[3],
+                    "email": r[4],
+                    "thesis_count": r[5],
+                    "last_activity": r[6].isoformat() if r[6] else None,
+                }
+                for r in cur.fetchall()
+            ]
+    finally:
+        put_conn(conn)
+
+
+def get_faculty_analytics(email):
+    """Status + program breakdown of theses advised by this faculty member."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT t.status, COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s) "
+                "GROUP BY t.status",
+                (email,),
+            )
+            by_status = {r[0]: r[1] for r in cur.fetchall()}
+            cur.execute(
+                "SELECT p.name, COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "JOIN programs p ON t.program_id = p.id "
+                "WHERE LOWER(a.email) = LOWER(%s) "
+                "GROUP BY p.name ORDER BY COUNT(*) DESC",
+                (email,),
+            )
+            by_program = [{"program": r[0], "count": r[1]} for r in cur.fetchall()]
+            cur.execute(
+                "SELECT ay.name, COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "JOIN academic_years ay ON t.academic_year_id = ay.id "
+                "WHERE LOWER(a.email) = LOWER(%s) "
+                "GROUP BY ay.name ORDER BY ay.name DESC",
+                (email,),
+            )
+            by_year = [{"year": r[0], "count": r[1]} for r in cur.fetchall()]
+            total = sum(by_status.values())
+            return {
+                "total": total,
+                "by_status": by_status,
+                "by_program": by_program,
+                "by_year": by_year,
+            }
     finally:
         put_conn(conn)
 
