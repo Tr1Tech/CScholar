@@ -163,6 +163,48 @@ class Stagger extends StatelessWidget {
   }
 }
 
+/// A [Column] whose children rise in one after another — the standard page
+/// entrance for the blocks below a header.
+///
+/// Children must not be [Expanded]/[Flexible]: the motion wrapper sits between
+/// the child and the Flex, and an Expanded needs the Flex as its direct parent.
+/// Under reduced motion every child is returned untouched (no tickers at all).
+class StaggerColumn extends StatelessWidget {
+  const StaggerColumn({
+    super.key,
+    required this.children,
+    this.crossAxisAlignment = CrossAxisAlignment.start,
+    this.mainAxisSize = MainAxisSize.max,
+    this.startIndex = 0,
+    this.step = const Duration(milliseconds: 40),
+    this.max = const Duration(milliseconds: 240),
+  });
+
+  final List<Widget> children;
+  final CrossAxisAlignment crossAxisAlignment;
+  final MainAxisSize mainAxisSize;
+  final int startIndex;
+  final Duration step;
+  final Duration max;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: crossAxisAlignment,
+      mainAxisSize: mainAxisSize,
+      children: [
+        for (var i = 0; i < children.length; i++)
+          Stagger(
+            index: startIndex + i,
+            step: step,
+            max: max,
+            child: children[i],
+          ),
+      ],
+    );
+  }
+}
+
 /// Press feedback for a custom surface (card, tile) that is not a clay button:
 /// a small scale-down + sink while the pointer is down, springing back on
 /// release. Inert on touch and under reduced motion. Transform only.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// Shared desktop/mobile shell for all roles (design plan, item 4).
@@ -63,7 +64,8 @@ class CScholarShell extends StatelessWidget {
                 color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
-        body: child,
+        // Every shelled page opens the same way: one fade + rise.
+        body: EntranceReveal(child: child),
         bottomNavigationBar: bottomNav,
       );
     }
@@ -84,7 +86,7 @@ class CScholarShell extends StatelessWidget {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: child,
+                        child: EntranceReveal(child: child),
                       ),
                     ),
                   ),
