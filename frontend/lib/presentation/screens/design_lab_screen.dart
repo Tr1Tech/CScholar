@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/hover_lift.dart';
+import 'package:frontend/presentation/widgets/common/kpi_card.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/status_chips.dart';
+import 'package:frontend/presentation/widgets/common/topbar.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
@@ -8,6 +19,9 @@ import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/rec_rail.dart';
+import 'package:frontend/presentation/widgets/result_card.dart';
+import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 /// DEV ONLY — CScholar design lab (route: `/design-lab`).
 ///
@@ -173,6 +187,13 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         _stateBoard(),
         _identityBoard(),
         _rulesBoard(),
+        _cardBoard(),
+        _asyncBoard(),
+        _dataBoard(),
+        _cardPreview(),
+        _selectBoard(),
+        _chromeBoard(),
+        _motionBoard(),
       ];
 
   Widget _section({
@@ -901,6 +922,440 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 9 · Content cards. [CScholarCard] is the single card; it delegates to
+  /// [ClaySurface], and [HoverLift] is the opt-in lift for clickable cards.
+  Widget _cardBoard() {
+    return _section(
+      title: '9 · Content cards',
+      note: 'CScholarCard delegates to ClaySurface, so screens never hand-roll card decoration. HoverLift is opt-in: a lift promises interactivity, so only clickable cards take it, and it is inert on touch and under reduced motion.',
+      child: _columns([
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _eyebrow('cs scholar card · static'),
+            const CScholarCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Static content card'),
+                  SizedBox(height: 6),
+                  Text('One fill, one soft shadow, no outline.'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _eyebrow('hover lift · clickable'),
+            HoverLift(
+              onTap: () {},
+              child: const CScholarCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Hover me on a desktop pointer'),
+                    SizedBox(height: 6),
+                    Text('Lifts 3px; shadow deepens.'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ]),
+    );
+  }
+
+  /// 10 · Async slots. [AsyncCrossFade] owns the skeleton-to-content swap;
+  /// [SkeletonCard] / [SkeletonList] keep the layout height while loading.
+  Widget _asyncBoard() {
+    return _section(
+      title: '10 · Loading and empty',
+      note: 'An async slot never hard-swaps: SkeletonList holds the same card rhythm, EmptyState fades + scales in, and AsyncCrossFade cross-fades between them so the page does not jump. Flip the loader state to watch it.',
+      child: StatefulBuilder(
+        builder: (context, setLocal) {
+          var loading = true;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              NeumorphToggle(
+                value: loading,
+                label: 'Simulate loading',
+                onChanged: (v) => setLocal(() => loading = v),
+              ),
+              const SizedBox(height: 18),
+              _eyebrow('skeleton card / skeleton list'),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: const SkeletonList(count: 2, cardHeight: 72),
+              ),
+              const SizedBox(height: 12),
+              const SkeletonCard(height: 72),
+              const SizedBox(height: 22),
+              _eyebrow('async cross-fade'),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: AsyncCrossFade(
+                  isLoading: loading,
+                  skeleton: const SkeletonList(count: 0, cardHeight: 72),
+                  child: const EmptyState(
+                    icon: Icons.inbox_outlined,
+                    title: 'No studies yet',
+                    message: 'Saved and matching studies appear here.',
+                    actionLabel: 'Browse repository',
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// 11 · Data display. KPI cards, the page header, the three status chips and
+  /// an animated count-up number.
+  Widget _dataBoard() {
+    return _section(
+      title: '11 · Data display',
+      note: 'KpiCard is the compact metric tile; PageHeader is the one page heading; the status/role/active chips are the badge set. CountUpText is the only animated number and snaps under reduced motion.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _eyebrow('page header'),
+          PageHeader(
+            title: 'Thesis Management',
+            subtitle: 'Review statuses, edit records, and curate.',
+            action: NeumorphButton(
+                label: 'Add Thesis', icon: Icons.add, onPressed: () {}),
+          ),
+          const SizedBox(height: 24),
+          _eyebrow('kpi cards'),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: const [
+              SizedBox(
+                width: 220,
+                child: KpiCard(
+                  label: 'STUDIES',
+                  value: '128',
+                  trend: '+4 this week',
+                  icon: Icons.article_outlined,
+                ),
+              ),
+              SizedBox(
+                width: 220,
+                child: KpiCard(
+                  label: 'ARCHIVED',
+                  value: '12,480',
+                  trend: 'since 2019',
+                  icon: Icons.inventory_2_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _eyebrow('status · role · active chips'),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: const [
+              ThesisStatusChip('published'),
+              ThesisStatusChip('approved'),
+              ThesisStatusChip('draft'),
+              ThesisStatusChip('archived'),
+              RoleChip('student'),
+              RoleChip('faculty'),
+              RoleChip('admin'),
+              ActiveChip(true),
+              ActiveChip(false),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _eyebrow('count up · animated value'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              const CountUpText(
+                value: 1284,
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'studies counted up on paint',
+                  style: CScholarTextStyles.inter(12, FontWeight.w400,
+                      CScholarMaterial.textMuted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Thesis _mockThesis() => Thesis(
+        id: 7,
+        title: 'OCR-based Hybrid Image Text Summarizer',
+        abstract: 'A hybrid OCR pipeline for summarizing scanned manuscripts.',
+        researchType: 'Thesis',
+        status: 'published',
+        programId: 1,
+        academicYearId: 1,
+        createdAt: DateTime(2024, 1, 1),
+        updatedAt: DateTime(2024, 6, 1),
+        program: null,
+        authors: const [],
+        advisers: const [],
+        keywords: const [],
+      );
+
+  /// 12 · Result & thesis cards. Both are real screens' cards, shown with a
+  /// generated cover so the identity art is reviewed here too. The row scrolls
+  /// horizontally rather than squeezing: these cards carry fixed-width cover /
+  /// badge parts, so cramming them into a phone slot would clip, not adapt.
+  Widget _cardPreview() {
+    return _section(
+      title: '12 · Result and thesis cards',
+      note: 'ThesisCard is the grid tile; ResultCard is the repository search row (cover + badge + save). Both are CScholarCard (lift) over ThesisCover art, so the pair shares one material and one verbal rhythm.',
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 520,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _eyebrow('result card · search row'),
+                  ResultCard(
+                    thesis: _mockThesis(),
+                    isSaved: true,
+                    similarity: 0.91,
+                    onToggleSave: () {},
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            SizedBox(
+              width: 300,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _eyebrow('thesis card · grid tile'),
+                  SizedBox(
+                    width: 260,
+                    height: 240,
+                    child: ThesisCard(thesis: _mockThesis(), onTap: () {}),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 13 · Selects. The FormField half and the controlled half of the dropdown,
+  /// plus the closed menu face.
+  Widget _selectBoard() {
+    return _section(
+      title: '13 · Selects',
+      note: 'NeumorphSelect is the FormField half (validator + Form); NeumorphSelectField is the controlled half for externally reset filters. Both open a clay well with a fade/scale menu and no outline.',
+      child: _columns([
+        Builder(
+          builder: (context) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _eyebrow('neumorph select · form field'),
+              NeumorphSelect<String>(
+                initialValue: 'BSCS',
+                label: 'Program',
+                items: const [
+                  DropdownMenuItem(value: 'BSCS', child: Text('BS Computer Science')),
+                  DropdownMenuItem(value: 'BSIT', child: Text('BS Information Technology')),
+                ],
+                onChanged: (_) {},
+              ),
+            ],
+          ),
+        ),
+        StatefulBuilder(
+          builder: (context, setLocal) {
+            var value = 'BSIT';
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _eyebrow('neumorph select field · controlled'),
+                NeumorphSelectField<String>(
+                  value: value,
+                  label: 'Program',
+                  items: const [
+                    DropdownMenuItem(value: 'BSCS', child: Text('BS Computer Science')),
+                    DropdownMenuItem(value: 'BSIT', child: Text('BS Information Technology')),
+                    DropdownMenuItem(value: 'BSECE', child: Text('BS Electronics Engineering')),
+                  ],
+                  onChanged: (v) => setLocal(() => value = v ?? value),
+                ),
+              ],
+            );
+          },
+        ),
+      ]),
+    );
+  }
+
+  /// 14 · Floating chrome. The dialog shell is shown in a real `showDialog`
+/// (never inside the scrolling list, per the glass rule); the topbar user pill
+/// and the AI recommendations rail are the identity / rail chrome.
+  Widget _chromeBoard() {
+    return _section(
+      title: '14 · Floating chrome',
+      note: 'GlassDialog is the dialog shell (title/content/actions); TopbarUserPill is the identity chip in the topbar; RecRail is the repository AI rail. Glass is capped at two layers per screen and never sits inside a scrolling list item.',
+      child: _columns([
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _eyebrow('glass dialog · opens as a real overlay'),
+            NeumorphButton(
+              label: 'Open GlassDialog',
+              icon: Icons.open_in_new,
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => GlassDialog(
+                  title: const Text('Delete this study?'),
+                  content: const Text(
+                      'Persistent, real-dialog copy so the shell can be judged. This is a real modal, so it never sits inside the scrolling list.'),
+                  actions: [
+                    NeumorphButton(
+                        label: 'Cancel',
+                        gel: false,
+                        onPressed: () => Navigator.pop(ctx)),
+                    NeumorphButton(
+                        label: 'Delete',
+                        danger: true,
+                        icon: Icons.delete_outline,
+                        onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _eyebrow('topbar user pill'),
+            const TopbarUserPill(name: 'Juan Dela Cruz', role: 'student'),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _eyebrow('ai recommendations rail'),
+            // Empty query shows the real placeholder and never touches the
+            // semantic provider, so the lab needs no network and no data.
+            const ProviderScope(child: RecRail(query: '')),
+          ],
+        ),
+      ]),
+    );
+  }
+
+  /// 15 · Motion board. Every interaction from the motion system, with the
+  /// reduced-motion toggle wired to the real switch (the bar above).
+  Widget _motionBoard() {
+    return _section(
+      title: '15 · Motion system',
+      note: 'Entrance, press, hover, cross-fade, count-up and stagger — all inert under reduced motion (flip the toggle in the top bar and every sample snaps). Durations only ever come from CScholarDurations, capped at 300ms.',
+      child: StatefulBuilder(
+        builder: (context, setLocal) {
+          var pressed = 0;
+          var loading = false;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _eyebrow('entrance reveal · fade + rise'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < 3; i++)
+                    Stagger(
+                      index: i,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: CScholarCard(
+                          padding: const EdgeInsets.all(12),
+                          child: Text('Staggered row ${i + 1}'),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('entrance reveal · explicit delay'),
+              EntranceReveal(
+                delay: const Duration(milliseconds: 120),
+                child: ClaySurface(
+                  padding: const EdgeInsets.all(14),
+                  child: Text('I rise in 120ms late',
+                      style: CScholarTextStyles.inter(
+                          13, FontWeight.w500, CScholarMaterial.textPrimary)),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('pressable surface · press feedback'),
+              PressableSurface(
+                onTap: () => setLocal(() => pressed++),
+                child: ClaySurface(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('Pressed $pressed times — scale + sink'),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('async cross-fade'),
+              NeumorphToggle(
+                value: loading,
+                label: 'Loading',
+                onChanged: (v) => setLocal(() => loading = v),
+              ),
+              const SizedBox(height: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: AsyncCrossFade(
+                  isLoading: loading,
+                  skeleton: const SkeletonCard(height: 64),
+                  child: ClaySurface(
+                    padding: const EdgeInsets.all(16),
+                    child: Text('Content arrived — no hard swap'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('count up · tween on change'),
+              CountUpText(
+                value: pressed == 0 ? 100 : 100 + pressed,
+                style: CScholarTextStyles.poppins(
+                    22, FontWeight.w800, CScholarMaterial.textPrimary),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
