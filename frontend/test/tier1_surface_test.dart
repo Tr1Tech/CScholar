@@ -236,6 +236,13 @@ void main() {
       expect(find.byType(ClaySurface), findsOneWidget);
       expect(find.byType(ClayIconTile), findsOneWidget);
       expect(find.text('STUDIES'), findsOneWidget);
+      // The value line counts up from zero, so it is asserted once the tween
+      // has settled — and the first frame is asserted too, because a count-up
+      // that lands complete on frame one is not a count-up.
+      expect(find.text('128'), findsNothing,
+          reason: 'the KPI value must animate up, not appear complete');
+      await tester.pump(CScholarDurations.slow);
+      await tester.pump();
       expect(find.text('128'), findsOneWidget);
       expect(find.text('+4 this week'), findsOneWidget);
 

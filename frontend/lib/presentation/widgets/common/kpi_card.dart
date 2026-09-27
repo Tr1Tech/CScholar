@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 
 /// Minimum height the KPI card column needs: 20px padding, the 36px label row,
@@ -65,6 +66,11 @@ class KpiCard extends StatelessWidget {
     this.iconColor,
   });
 
+  /// The value as a number when the string is a plain integer, so the count-up
+  /// can run. Anything else — `12,480`, `—`, `92%` — stays literal text:
+  /// [CountUpText] formats with its own digits and would drop the separator.
+  int? get _countable => int.tryParse(value.trim());
+
   @override
   Widget build(BuildContext context) {
     return CScholarCard(
@@ -98,8 +104,18 @@ class KpiCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(value,
-              style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
+          // The value counts up on first paint and tweens when it changes;
+          // reduced motion snaps it straight to the number.
+          if (_countable != null)
+            CountUpText(
+              value: _countable!,
+              style: CScholarTextStyles.poppins(
+                  24, FontWeight.w800, CScholarColors.textPrimary),
+            )
+          else
+            Text(value,
+                style: CScholarTextStyles.poppins(
+                    24, FontWeight.w800, CScholarColors.textPrimary)),
           const SizedBox(height: 4),
           Text(trend,
               style: CScholarTextStyles.inter(11.5, FontWeight.w500, CScholarColors.textMuted),
