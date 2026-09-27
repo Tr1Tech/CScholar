@@ -130,7 +130,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   Positioned(
                     bottom: -110,
                     left: -50,
-                    child: _glow(280, Colors.white.withValues(alpha: 0.08)),
+                    child: _glow(280, CScholarColors.white.withValues(alpha: 0.08)),
                   ),
                   Center(
                     child: Container(
@@ -183,7 +183,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         style: CScholarTextStyles.poppins(
                           isWide ? 46 : 32,
                           FontWeight.w800,
-                          Colors.white,
+                          CScholarColors.white,
                           height: 1.15,
                           letterSpacing: -0.5,
                         ),
@@ -217,7 +217,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           // Deliberate overrides of the chrome recipe — .62
                           // fill / 18 blur. The hero's copy sits behind this
                           // box, so it needs a more opaque, sharper pane.
-                          fill: Colors.white.withValues(alpha: 0.88),
+                          fill: CScholarColors.white.withValues(alpha: 0.88),
                           blur: 14,
                           padding: const EdgeInsets.all(6),
                           // Glass over the dark hero: a dark shadow is correct
@@ -562,11 +562,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         decoration: BoxDecoration(
           color: CScholarMaterial.scrim,
           borderRadius: BorderRadius.circular(CScholarRadius.full),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          border: Border.all(color: CScholarColors.white.withValues(alpha: 0.15)),
         ),
         child: Text(
           term,
-          style: CScholarTextStyles.inter(12, FontWeight.w500, Colors.white),
+          style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.white),
         ),
       ),
     );

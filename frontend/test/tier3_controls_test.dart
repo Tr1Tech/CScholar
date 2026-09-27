@@ -1125,6 +1125,77 @@ void main() {
               'inline literal. Offenders:\n${offences.join('\n')}');
     });
 
+    test('no raw Material palette name in a screen', () {
+      // Extends the raw-hex guard to the other way a screen can name a colour
+      // outside the system: `Colors.<name>`. Material's palette is not the
+      // measured palette — `Colors.red` (#F44336) is 3.44:1 on clay, so the
+      // required-field asterisks that used it were below the 4.5:1 body floor
+      // for their own 13px text. `CScholarColors.error` (#B91C1C) is 5.91:1
+      // there, and `CScholarColors.white` is #FFFFFFFF, the token the hero art
+      // and the white-on-gel glyphs already measure against.
+      //
+      // `Colors.transparent` is the one exception: it is not a colour, it is
+      // how a box declares "no fill" (design_lab, the mobile app bars).
+      final offences = <String>[];
+      final files = libSources()
+          .where((f) => f.path.replaceAll('\\', '/').contains('/screens/'))
+          .toList();
+      expect(files.length, greaterThan(15),
+          reason: 'the scan found almost no screens — is lib/ at the root?');
+      final palette =
+          RegExp(r'(?<![A-Za-z])Colors\.(?!transparent\b)[A-Za-z0-9]+');
+
+      for (final file in files) {
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          for (final match in palette.allMatches(lines[i])) {
+            offences.add('${file.path}:${i + 1} (${match.group(0)})');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'screens name tokens, never Material palette entries — use '
+              'CScholarColors / CScholarMaterial. Offenders:\n'
+              '${offences.join('\n')}');
+    });
+
+    test('hero ink clears the body floor on every hero gradient stop', () {
+      // Surfaced by the palette migration above: the repository hero's "Clear
+      // all" affordance was `Colors.white70`. Over the LIGHTEST stop of the
+      // hero gradient (#008000) 70%-white composites to ~3.3:1 — under the
+      // 4.5:1 floor its own 12px label owes — while the palette's white is
+      // 5.14:1 there. Both hero gradients are asserted, because "the hero"
+      // is whichever one a screen happens to paint.
+      Color over(Color ink, Color stop) => Color.fromARGB(
+            255,
+            ((ink.r * 255 * ink.a) + (stop.r * 255 * (1 - ink.a))).round(),
+            ((ink.g * 255 * ink.a) + (stop.g * 255 * (1 - ink.a))).round(),
+            ((ink.b * 255 * ink.a) + (stop.b * 255 * (1 - ink.a))).round(),
+          );
+
+      const stops = <String, Color>{
+        'heroDeep': CScholarColors.heroDeep,
+        'heroMid': CScholarColors.heroMid,
+        'heroGlow': CScholarColors.heroGlow,
+        'heroBase': CScholarColors.heroBase,
+        'heroFloor': CScholarColors.heroFloor,
+      };
+      stops.forEach((name, stop) {
+        final white = _contrast(CScholarColors.white, stop);
+        expect(white, greaterThanOrEqualTo(4.5),
+            reason: 'hero ink on $name is ${white.toStringAsFixed(2)}:1');
+      });
+
+      // The failure stays on the record: if 70%-white ever clears the floor,
+      // the gradient stops moved and every hero needs re-measuring.
+      const white70 = Color(0xB3FFFFFF);
+      final soft = _contrast(
+          over(white70, CScholarColors.heroGlow), CScholarColors.heroGlow);
+      expect(soft, lessThan(4.5),
+          reason: 'white70 on heroGlow is only ${soft.toStringAsFixed(2)}:1 — '
+              'hero ink is the token white, never white at 70%');
+    });
+
     test('the design lab mirrors the component catalogue', () {
       // A primitive the lab never shows cannot be reviewed by feel, and a lab
       // that looks perfect while the screens differ is a false positive. Every

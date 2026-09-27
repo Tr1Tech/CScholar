@@ -407,7 +407,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   style: CScholarTextStyles.poppins(
                       isWide ? 30 : 24,
                       FontWeight.w800,
-                      Colors.white,
+                      CScholarColors.white,
                       height: 1.2)),
               const SizedBox(height: 8),
               ConstrainedBox(
@@ -429,7 +429,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   // Deliberate overrides of the chrome recipe — .62 fill /
                   // 18 blur. The hero copy sits behind this box, so it needs a
                   // more opaque, sharper pane to stay legible.
-                  fill: Colors.white.withValues(alpha: 0.92),
+                  fill: CScholarColors.white.withValues(alpha: 0.92),
                   blur: 12,
                   padding: const EdgeInsets.all(6),
                   // The hero's dark gradient is the only content behind this
@@ -529,10 +529,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                               ? _clearFilters
                               : null,
                           icon: const Icon(Icons.clear_all,
-                              size: 16, color: Colors.white70),
+                              size: 16, color: CScholarColors.white),
                           label: const Text('Clear all',
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.white70)),
+                                  fontSize: 12, color: CScholarColors.white)),
                         ),
                       ],
                     );
@@ -547,10 +547,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                         TextButton.icon(
                           onPressed: _clearFilters,
                           icon: const Icon(Icons.clear_all,
-                              size: 16, color: Colors.white70),
+                              size: 16, color: CScholarColors.white),
                           label: const Text('Clear all',
                               style: TextStyle(
-                                  fontSize: 12, color: Colors.white70)),
+                                  fontSize: 12, color: CScholarColors.white)),
                         ),
                     ],
                   );
@@ -613,7 +613,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     // shadow — a shadow here would land on the gradient, not on content).
     return GlassPanel(
       radius: CScholarRadius.md,
-      fill: Colors.white.withValues(alpha: 0.92),
+      fill: CScholarColors.white.withValues(alpha: 0.92),
       blur: 12,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shadows: const [],
@@ -637,7 +637,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: CScholarMaterial.clay,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),

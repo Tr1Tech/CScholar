@@ -174,7 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
+            color: CScholarColors.white.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 16, color: CScholarColors.gold),
@@ -183,7 +183,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         Expanded(
           child: Text(
             text,
-            style: CScholarTextStyles.inter(13, FontWeight.w500, Colors.white),
+            style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.white),
           ),
         ),
       ],

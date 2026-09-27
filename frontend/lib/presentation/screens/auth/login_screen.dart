@@ -176,9 +176,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: CScholarColors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(CScholarRadius.full),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+              border: Border.all(color: CScholarColors.white.withValues(alpha: 0.15)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -212,7 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
+            color: CScholarColors.white.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 16, color: CScholarColors.gold),
@@ -221,7 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Text(
             text,
-            style: CScholarTextStyles.inter(13, FontWeight.w500, Colors.white),
+            style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.white),
           ),
         ),
       ],

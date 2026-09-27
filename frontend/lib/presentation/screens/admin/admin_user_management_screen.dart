@@ -423,7 +423,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CScholarColors.surface,
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(

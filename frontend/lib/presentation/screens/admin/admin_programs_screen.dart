@@ -521,7 +521,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addForTab(context),
         backgroundColor: CScholarColors.primaryGreen,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: CScholarColors.white),
       ),
     );
   }

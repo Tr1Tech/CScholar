@@ -235,7 +235,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? CScholarColors.primaryGreen : Colors.white,
+          color: isSelected ? CScholarColors.primaryGreen : CScholarColors.white,
           borderRadius: BorderRadius.circular(CScholarRadius.full),
           border: Border.all(
             color: isSelected ? CScholarColors.primaryGreen : CScholarColors.borderLight,
@@ -247,7 +247,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
           style: CScholarTextStyles.inter(
             12.5,
             isSelected ? FontWeight.w700 : FontWeight.w500,
-            isSelected ? Colors.white : CScholarColors.textSecondary,
+            isSelected ? CScholarColors.white : CScholarColors.textSecondary,
           ),
         ),
       ),

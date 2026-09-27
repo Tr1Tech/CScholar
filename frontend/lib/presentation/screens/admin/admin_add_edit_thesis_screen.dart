@@ -249,7 +249,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                           style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
                                           children: const [
                                             TextSpan(text: 'Fields marked with '),
-                                            TextSpan(text: '*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                            TextSpan(text: '*', style: TextStyle(color: CScholarColors.error, fontWeight: FontWeight.bold)),
                                             TextSpan(text: ' are required'),
                                           ],
                                         ),
@@ -492,7 +492,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
           ),
         ),
         if (isRequired)
-          const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+          const Text(' *', style: TextStyle(color: CScholarColors.error, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }

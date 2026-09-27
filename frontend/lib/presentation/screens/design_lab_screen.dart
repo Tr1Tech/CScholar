@@ -442,7 +442,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         style: CScholarTextStyles.inter(
           11.5,
           FontWeight.w700,
-          pass ? Colors.white : CScholarMaterial.textMuted,
+          pass ? CScholarColors.white : CScholarMaterial.textMuted,
         ),
       ),
     );
