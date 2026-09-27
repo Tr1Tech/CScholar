@@ -7,6 +7,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -28,8 +29,7 @@ class FacultySettingsScreen extends ConsumerWidget {
       backRoute: '/faculty/dashboard',
       maxWidth: 720,
       child: SingleChildScrollView(
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
         children: [
           const PageHeader(
             title: 'Settings',

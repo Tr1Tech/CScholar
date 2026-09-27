@@ -4,6 +4,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
@@ -32,17 +33,17 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(facultyAnalyticsProvider.future),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: StaggerColumn(
             children: [
               const PageHeader(
                 title: 'Analytics',
                 subtitle: 'Breakdown of your supervised studies.',
               ),
               const SizedBox(height: 20),
-              analyticsAsync.when(
+              asyncSlot<Map<String, dynamic>>(
+                analyticsAsync,
+                skeleton: const SkeletonList(count: 3, cardHeight: 220),
                 data: (a) => _content(context, a),
-                loading: () => const SkeletonList(count: 3, cardHeight: 220),
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load analytics',

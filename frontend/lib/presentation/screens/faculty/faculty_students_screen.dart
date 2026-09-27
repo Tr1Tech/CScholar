@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
@@ -30,15 +31,16 @@ class FacultyStudentsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(facultyAdviseesProvider.future),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: StaggerColumn(
             children: [
               const PageHeader(
                 title: 'My Students',
                 subtitle: 'Advisees across your supervised studies.',
               ),
               const SizedBox(height: 20),
-              adviseesAsync.when(
+              asyncSlot<List<Map<String, dynamic>>>(
+                adviseesAsync,
+                skeleton: const SkeletonList(count: 6, cardHeight: 96),
                 data: (list) {
                   if (list.isEmpty) {
                     return const EmptyState(
@@ -62,7 +64,6 @@ class FacultyStudentsScreen extends ConsumerWidget {
                     },
                   );
                 },
-                loading: () => const SkeletonList(count: 6, cardHeight: 96),
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load advisees',

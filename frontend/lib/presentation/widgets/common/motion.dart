@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 
 /// Motion helpers (design plan, item 8).
@@ -304,6 +305,28 @@ class AsyncCrossFade extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The standard async slot: [AsyncValue.when] plus [AsyncCrossFade] in one
+/// call, so the skeleton the switcher shows and the skeleton the loading branch
+/// returns can never drift apart — that mismatch is exactly what makes an async
+/// page jump when the data lands.
+///
+/// A refresh is not a first load: `when` keeps the data branch while a refresh
+/// is in flight (`skipLoadingOnRefresh`), so the skeleton is only used when
+/// there is nothing to show yet and pull-to-refresh never flashes skeletons
+/// over live content.
+Widget asyncSlot<T>(
+  AsyncValue<T> value, {
+  required Widget Function(T data) data,
+  required Widget skeleton,
+  required Widget Function(Object error, StackTrace stackTrace) error,
+}) {
+  return AsyncCrossFade(
+    isLoading: value.isLoading && !value.isRefreshing,
+    skeleton: skeleton,
+    child: value.when(data: data, loading: () => skeleton, error: error),
+  );
 }
 
 /// KPI number that counts up on first paint (0 -> [value]) and tweens between

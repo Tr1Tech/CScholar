@@ -9,6 +9,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -107,8 +108,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       backRoute: '/admin/dashboard',
       maxWidth: 860,
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
           children: [
             PageHeader(
               title: 'System Settings',

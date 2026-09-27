@@ -9,6 +9,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
@@ -49,8 +50,7 @@ class _AdminThesisManagementScreenState
       mobileTitle: 'Thesis Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
           children: [
             PageHeader(
               title: 'Thesis Management',
@@ -64,7 +64,12 @@ class _AdminThesisManagementScreenState
             const SizedBox(height: 20),
             CScholarCard(
               padding: EdgeInsets.zero,
-              child: theses.when(
+              child: asyncSlot<List<Thesis>?>(
+                theses,
+                skeleton: const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: SkeletonList(count: 5, cardHeight: 56),
+                ),
                 data: (list) {
                   if (list == null || list.isEmpty) {
                     final searching = searchQuery.isNotEmpty;
@@ -190,10 +195,6 @@ class _AdminThesisManagementScreenState
                     ),
                   );
                 },
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: SkeletonList(count: 5, cardHeight: 56),
-                ),
                 error: (err, _) => Padding(
                   padding: const EdgeInsets.all(24),
                   child: EmptyState(
