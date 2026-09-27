@@ -468,13 +468,35 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
                   itemCount: filtered.length,
                   itemBuilder: (ctx, i) {
                     final u = filtered[i];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        title: Text(u.username, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(u.email),
-                        trailing: RoleChip(u.role),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
                         onTap: () => _showEditUserDialog(context, u),
+                        borderRadius:
+                            BorderRadius.circular(CScholarRadius.md),
+                        child: CScholarCard(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          borderRadius: CScholarRadius.md,
+                          lift: true,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(u.username,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    Text(u.email),
+                                  ],
+                                ),
+                              ),
+                              RoleChip(u.role),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },

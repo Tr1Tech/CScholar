@@ -767,12 +767,18 @@ void main() {
     });
 
     test('no stock structure widget outside the allow-list', () {
-      // Card / ListTile / TabBar are stock Material structure. Each remaining
-      // site is Task C.3 backlog: either the card/chip set replaces it, or it
-      // earns a justified exemption. New sites must not add to the list.
+      // Card / ListTile / TabBar are stock Material structure. Three decided
+      // exceptions remain, all cases where the system has no equivalent and
+      // the stock widget supplies accessibility semantics, not visuals:
+      //   * admin_programs TabBar — bound to a TabController + TabBarView
+      //     with swipe; Segmented is for non-swipe single-choice, so
+      //     replacing it would delete behaviour for style points;
+      //   * faculty_students dialog rows — ListTile as the accessible row
+      //     inside an AlertDialog, with no card surface involved;
+      //   * faculty_sidebar nav rows — ListTile for row layout + tap/focus
+      //     semantics inside already-custom active styling.
       const allowed = {
         'lib/presentation/screens/admin/admin_programs_screen.dart',
-        'lib/presentation/screens/admin/admin_user_management_screen.dart',
         'lib/presentation/screens/faculty/faculty_students_screen.dart',
         'lib/presentation/widgets/faculty_sidebar.dart',
       };

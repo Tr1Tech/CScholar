@@ -121,22 +121,38 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         itemCount: list.length,
         itemBuilder: (ctx, i) {
           final p = list[i];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: CScholarColors.primaryGreen,
-                child: Text(p.name[0], style: const TextStyle(color: Colors.white)),
-              ),
-              title: Text(p.name),
-              subtitle: Text(p.college ?? p.code),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CScholarCard(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              borderRadius: CScholarRadius.md,
+              child: Row(
                 children: [
+                  CircleAvatar(
+                    backgroundColor: CScholarColors.primaryGreen,
+                    child: Text(p.name[0],
+                        style: const TextStyle(color: Colors.white)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.name,
+                            style: CScholarTextStyles.inter(13.5,
+                                FontWeight.w700, CScholarColors.textPrimary)),
+                        Text(p.college ?? p.code,
+                            style: CScholarTextStyles.inter(11.5,
+                                FontWeight.w400, CScholarColors.textMuted)),
+                      ],
+                    ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     tooltip: 'Edit program',
-                    onPressed: () => _showProgramDialog(context, ref, existing: p),
+                    onPressed: () =>
+                        _showProgramDialog(context, ref, existing: p),
                   ),
                 ],
               ),
@@ -157,30 +173,51 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         itemCount: list.length,
         itemBuilder: (ctx, i) {
           final y = list[i];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today_outlined, color: CScholarColors.primaryGreen),
-              title: Text(y.label),
-              subtitle: Text('${y.startYear} - ${y.endYear}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CScholarCard(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              borderRadius: CScholarRadius.md,
+              child: Row(
                 children: [
+                  const Icon(Icons.calendar_today_outlined,
+                      color: CScholarColors.primaryGreen),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(y.label,
+                            style: CScholarTextStyles.inter(13.5,
+                                FontWeight.w700, CScholarColors.textPrimary)),
+                        Text('${y.startYear} - ${y.endYear}',
+                            style: CScholarTextStyles.inter(11.5,
+                                FontWeight.w400, CScholarColors.textMuted)),
+                      ],
+                    ),
+                  ),
                   if (!y.isActive)
                     Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: CScholarColors.textSecondary.withValues(alpha: 0.1),
+                        color: CScholarColors.textSecondary
+                            .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text('INACTIVE',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: CScholarColors.textSecondary)),
+                          style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: CScholarColors.textSecondary)),
                     ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     tooltip: 'Edit academic year',
-                    onPressed: () => _showYearDialog(context, ref, existing: y),
+                    onPressed: () =>
+                        _showYearDialog(context, ref, existing: y),
                   ),
                 ],
               ),
@@ -201,16 +238,37 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         itemCount: list.length,
         itemBuilder: (ctx, i) {
           final c = list[i];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              leading: const Icon(Icons.category_outlined, color: CScholarColors.primaryGreen),
-              title: Text(c.name),
-              subtitle: Text(c.description ?? ''),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                tooltip: 'Edit category',
-                onPressed: () => _showCategoryDialog(context, ref, existing: c),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: CScholarCard(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              borderRadius: CScholarRadius.md,
+              child: Row(
+                children: [
+                  const Icon(Icons.category_outlined,
+                      color: CScholarColors.primaryGreen),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.name,
+                            style: CScholarTextStyles.inter(13.5,
+                                FontWeight.w700, CScholarColors.textPrimary)),
+                        Text(c.description ?? '',
+                            style: CScholarTextStyles.inter(11.5,
+                                FontWeight.w400, CScholarColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Edit category',
+                    onPressed: () =>
+                        _showCategoryDialog(context, ref, existing: c),
+                  ),
+                ],
               ),
             ),
           );
