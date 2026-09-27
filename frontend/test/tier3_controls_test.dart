@@ -804,25 +804,15 @@ void main() {
               'Card/ListTile/TabBar. Offenders:\n${offences.join('\n')}');
     });
 
-    test('no spinner in an AsyncValue loading slot outside the allow-list', () {
+    test('no spinner in an AsyncValue loading slot', () {
       // ClayLoader owns indeterminate progress in loading slots (recessed
       // clay track + gel sweep + reduced-motion policy); SkeletonList owns
       // list-shaped loading. A bare CircularProgressIndicator in a loading:
       // slot is Material blue with no track — the same defect class already
-      // fixed for linear bars. The remaining sites are Task C.4 backlog.
-      // Button/upload spinners (`_isSaving`, `_isLoading`, `_submitting`,
-      // `isLoading` conditionals) are genuine indeterminates and out of
-      // scope here — they need the Task C.4 circular-primitive decision.
-      const allowed = {
-        'lib/presentation/screens/landing_screen.dart',
-        'lib/presentation/screens/auth/register_screen.dart',
-        'lib/presentation/screens/faculty/faculty_dashboard_screen.dart',
-        'lib/presentation/screens/thesis/thesis_detail_screen.dart',
-        'lib/presentation/screens/admin/admin_user_management_screen.dart',
-        'lib/presentation/screens/student/student_dashboard_screen.dart',
-        'lib/presentation/screens/admin/admin_programs_screen.dart',
-        'lib/presentation/widgets/rec_rail.dart',
-      };
+      // fixed for linear bars. Button/upload spinners (`_isSaving`,
+      // `_isLoading`, `_submitting`, `isLoading` conditionals) are genuine
+      // indeterminates and out of scope here — they need the circular
+      // primitive decision, which the system has not made yet.
       final offences = <String>[];
       for (final file in libSources()) {
         final path = file.path.replaceAll('\\', '/');
@@ -839,11 +829,6 @@ void main() {
               .sublist(windowStart, i + 1)
               .any((l) => l.contains('loading:'));
           if (!inLoadingSlot) continue;
-          final key = allowed.firstWhere(
-            (a) => path.endsWith(a.substring(4)),
-            orElse: () => '',
-          );
-          if (key.isNotEmpty) continue;
           offences.add('${file.path}:${i + 1}');
         }
       }

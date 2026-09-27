@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
@@ -78,23 +82,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isDesktop = size.width > 860;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      // Same clay-on-canvas treatment as login — the two auth screens are one
+      // visual unit (see the material law in material_tokens.dart).
+      backgroundColor: CScholarMaterial.canvas,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1040),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: CScholarMaterial.clay,
               borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: CScholarMaterial.clayDrop(depth: 1.2),
+              border: Border.all(color: CScholarMaterial.rim),
             ),
             clipBehavior: Clip.antiAlias,
             child: isDesktop
@@ -166,6 +166,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget _benefitRow(IconData icon, String text) {
     return Row(
       children: [
+        // tile-exempt: 28px disc on the DARK hero panel — see login_screen's
+        // _featureItem for the full reason.
         Container(
           width: 28,
           height: 28,
@@ -241,39 +243,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
             // Full Name & Student ID Row
             Row(
+              // Top-align: if only one field shows a validation message the
+              // other must not float downward.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('FULL NAME', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _nameController,
-                        validator: (v) => (v == null || v.isEmpty) ? 'Enter your full name' : null,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.person_outline, size: 18, color: CScholarColors.textHint),
-                          hintText: 'Enter your full name',
-                        ),
-                      ),
-                    ],
+                  child: NeumorphField(
+                    controller: _nameController,
+                    label: 'Full Name',
+                    hintText: 'Enter your full name',
+                    prefixIcon: Icons.person_outline,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.name],
+                    validator: (v) =>
+                        (v == null || v.isEmpty) ? 'Enter your full name' : null,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('STUDENT ID', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _studentIdController,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.badge_outlined, size: 18, color: CScholarColors.textHint),
-                          hintText: 'e.g. 2021-00001',
-                        ),
-                      ),
-                    ],
+                  child: NeumorphField(
+                    controller: _studentIdController,
+                    label: 'Student ID',
+                    hintText: 'e.g. 2021-00001',
+                    prefixIcon: Icons.badge_outlined,
+                    textInputAction: TextInputAction.next,
                   ),
                 ),
               ],
@@ -282,16 +276,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             const SizedBox(height: 16),
 
             // Email Field
-            Text('INSTITUTIONAL EMAIL', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
-            const SizedBox(height: 6),
-            TextFormField(
+            NeumorphField(
               controller: _emailController,
+              label: 'Institutional Email',
+              hintText: 'you@example.com',
+              prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid institutional email' : null,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.email_outlined, size: 18, color: CScholarColors.textHint),
-                hintText: 'you@example.com',
-              ),
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.email],
+              validator: (v) => (v == null || !v.contains('@'))
+                  ? 'Please enter a valid institutional email'
+                  : null,
             ),
 
             const SizedBox(height: 16),
@@ -307,11 +302,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     if (programs.isEmpty) {
                       return const Text('No programs available');
                     }
-                    return DropdownButtonFormField<Program>(
+                    return NeumorphSelect<Program>(
                       initialValue: _selectedProgram != null &&
                               programs.any((p) => p.id == _selectedProgram!.id)
                           ? programs.firstWhere((p) => p.id == _selectedProgram!.id)
                           : null,
+                      prefixIcon: Icons.school_outlined,
+                      hintText: 'Select your academic program',
                       items: programs
                           .map((p) => DropdownMenuItem(
                                 value: p,
@@ -320,17 +317,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           .toList(),
                       onChanged: (v) => setState(() => _selectedProgram = v),
                       validator: (v) => v == null ? 'Select your academic program' : null,
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.school_outlined, size: 18, color: CScholarColors.textHint),
-                      ),
                     );
                   },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
+                  loading: () => const ClayLoader(height: 8),
                   error: (err, _) => Text('Could not load programs: $err'),
                 );
               },
@@ -340,42 +329,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
             // Password & Confirm Password
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('PASSWORD', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        validator: (v) => (v == null || v.length < 4) ? 'Min 4 characters' : null,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.lock_outline, size: 18, color: CScholarColors.textHint),
-                          hintText: '••••••••',
-                        ),
-                      ),
-                    ],
+                  child: NeumorphField(
+                    controller: _passwordController,
+                    label: 'Password',
+                    hintText: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.newPassword],
+                    validator: (v) => (v == null || v.length < 4)
+                        ? 'Min 4 characters'
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('CONFIRM PASSWORD', style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5)),
-                      const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: true,
-                        validator: (v) => (v == null || v.length < 4) ? 'Confirm password' : null,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.lock_outline, size: 18, color: CScholarColors.textHint),
-                          hintText: '••••••••',
-                        ),
-                      ),
-                    ],
+                  child: NeumorphField(
+                    controller: _confirmPasswordController,
+                    label: 'Confirm Password',
+                    hintText: '••••••••',
+                    prefixIcon: Icons.lock_outline,
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.newPassword],
+                    validator: (v) => (v == null || v.length < 4)
+                        ? 'Confirm password'
+                        : null,
                   ),
                 ),
               ],

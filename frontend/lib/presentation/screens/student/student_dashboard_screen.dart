@@ -9,6 +9,7 @@ import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class StudentDashboardScreen extends ConsumerStatefulWidget {
@@ -377,7 +378,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 }).toList(),
               );
             },
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+            loading: () => const SkeletonList(count: 4, cardHeight: 64),
             error: (_, _) => const Text('Error loading studies'),
           ),
         ],
@@ -486,7 +487,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 }).toList(),
               );
             },
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+            loading: () => const SkeletonList(count: 4, cardHeight: 64),
             error: (_, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/thesis_card.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 
 class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
@@ -58,11 +62,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     const SizedBox(width: 36),
                     Row(
                       children: [
-                        _headerNavLink('Home', isActive: true, onTap: () {}),
+                        _headerNavLink('Home', isActive: true, onTap: () => context.go('/')),
                         const SizedBox(width: 8),
                         _headerNavLink('Browse', onTap: () => context.go('/repository')),
-                        const SizedBox(width: 8),
-                        _headerNavLink('About', onTap: () {}),
                       ],
                     ),
                   ],
@@ -127,10 +129,24 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   ],
                 ),
               ),
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 1080),
-                  child: Column(
+              child: Stack(
+                children: [
+                  // Ambient glows: gold prestige + soft light (static layers,
+                  // no animation — the one glass moment lives in the search box).
+                  Positioned(
+                    top: -90,
+                    right: -70,
+                    child: _glow(240, CScholarColors.gold.withValues(alpha: 0.22)),
+                  ),
+                  Positioned(
+                    bottom: -110,
+                    left: -50,
+                    child: _glow(280, Colors.white.withValues(alpha: 0.08)),
+                  ),
+                  Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 1080),
+                      child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Badge Pill
@@ -190,7 +206,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           style: CScholarTextStyles.inter(
                             isWide ? 17 : 14.5,
                             FontWeight.w400,
-                            const Color(0xFFE2E8F0),
+                            CScholarMaterial.shadowDark,
                             height: 1.6,
                           ),
                         ),
@@ -198,52 +214,63 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
                       const SizedBox(height: 32),
 
-                      // Big Hero Search Box
-                      Container(
+                      // Big Hero Search Box — frosted glass over the gradient.
+                      // A single static GlassPanel (never inside scrolling or
+                      // animated content) so it holds frame rate.
+                      ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 720),
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(CScholarRadius.lg),
-                          boxShadow: [
+                        child: GlassPanel(
+                          radius: CScholarRadius.lg,
+                          // Deliberate overrides of the chrome recipe — .62
+                          // fill / 18 blur. The hero's copy sits behind this
+                          // box, so it needs a more opaque, sharper pane.
+                          fill: Colors.white.withValues(alpha: 0.88),
+                          blur: 14,
+                          padding: const EdgeInsets.all(6),
+                          // Glass over the dark hero: a dark shadow is correct
+                          // here (the no-black rule covers shadows cast on the
+                          // sage canvas). Tinted to the hero's own deep green so
+                          // it reads as the hero's shadow, not as soot.
+                          shadows: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.25),
+                              color: CScholarColors.heroDeep
+                                  .withValues(alpha: 0.42),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
                           ],
-                        ),
-                        child: Row(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 14),
-                              child: Icon(Icons.search, color: CScholarColors.textHint, size: 24),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                onSubmitted: _handleSearch,
-                                style: CScholarTextStyles.inter(15, FontWeight.w400, CScholarColors.textPrimary),
-                                decoration: const InputDecoration(
-                                  hintText: 'Search thesis, capstone, topic, author, keyword...',
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  filled: false,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14),
+                                child: Icon(Icons.search, color: CScholarColors.textHint, size: 24),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onSubmitted: _handleSearch,
+                                  style: CScholarTextStyles.inter(15, FontWeight.w400, CScholarColors.textPrimary),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search thesis, capstone, topic, author, keyword...',
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    filled: false,
+                                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                                  ),
                                 ),
                               ),
-                            ),
-                            FilledButton(
-                              onPressed: () => _handleSearch(_searchController.text),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: CScholarColors.primaryGreen,
-                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                              FilledButton(
+                                onPressed: () => _handleSearch(_searchController.text),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: CScholarColors.primaryGreen,
+                                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                                ),
+                                child: const Icon(Icons.arrow_forward, size: 20, color: Colors.white),
                               ),
-                              child: const Icon(Icons.arrow_forward, size: 20, color: Colors.white),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
 
@@ -277,12 +304,33 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       ),
                     ],
                   ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ),
+
+          // 3. Live repository stats (public endpoint + catalog sizes)
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                    bottom: BorderSide(color: CScholarColors.borderLight)),
+              ),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1140),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 28),
+                  child: _statsStrip(),
                 ),
               ),
             ),
           ),
 
-          // 3. Featured Studies Section
+          // 4. Latest Studies Section
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(
@@ -304,12 +352,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Featured Studies',
+                                  'Latest Studies',
                                   style: CScholarTextStyles.poppins(24, FontWeight.w700, CScholarColors.textPrimary),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Browse top-rated and recently published capstone works by CEIT students',
+                                  'Recently published thesis and capstone works from CEIT students',
                                   style: CScholarTextStyles.inter(14, FontWeight.w400, CScholarColors.textSecondary),
                                 ),
                               ],
@@ -357,19 +405,14 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                 itemBuilder: (context, index) {
                                   return ThesisCard(
                                     thesis: theses[index],
-                                    similarityScore: index == 0 ? 0.96 : index == 1 ? 0.91 : null,
                                   );
                                 },
                               );
                             },
                           );
                         },
-                        loading: () => const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40),
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
+                        loading: () =>
+                            const SkeletonList(count: 3, cardHeight: 150),
                         error: (_, _) => const Center(child: Text('Error loading featured studies')),
                       ),
                     ],
@@ -404,15 +447,20 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton(
-                            onPressed: () {},
-                            child: Text('Privacy Policy', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textSecondary)),
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            child: Text('Terms of Use', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textSecondary)),
-                          ),
-                          TextButton(
-                            onPressed: () {},
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Help Desk'),
+                                content: const Text(
+                                    'For account issues, contact your administrator or '
+                                    'email the CEIT office at ceit@csu.edu.ph.'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('Close')),
+                                ],
+                              ),
+                            ),
                             child: Text('Help Desk', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textSecondary)),
                           ),
                         ],
@@ -428,8 +476,73 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     );
   }
 
-  Widget _headerNavLink(String title, {bool isActive = false, required VoidCallback onTap}) {
-    return TextButton(
+  /// Live counts row under the hero: published studies, programs,
+  /// academic years. All from public endpoints — no login needed.
+  Widget _statsStrip() {
+    return Consumer(
+      builder: (context, ref, _) {
+        final stats = ref.watch(publicStatsProvider);
+        final years = ref.watch(academicYearsProvider);
+        final studies = stats.value?['studies']?.toString() ?? '—';
+        final programs = stats.value?['programs']?.toString() ?? '—';
+        final yearCount = years.value?.length.toString() ?? '—';
+        return Wrap(
+          alignment: WrapAlignment.spaceEvenly,
+          spacing: 32,
+          runSpacing: 16,
+          children: [
+            _statItem(studies, 'Published Studies', Icons.article_outlined),
+            _statItem(programs, 'CEIT Programs', Icons.school_outlined),
+            _statItem(yearCount, 'Academic Years',
+                Icons.calendar_today_outlined),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _statItem(String value, String label, IconData icon) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClayIconTile(
+          icon: icon,
+          size: 44,
+          gel: false,
+          background: CScholarColors.primaryGreenLight,
+          tint: CScholarColors.primaryGreen,
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+                style: CScholarTextStyles.poppins(
+                    22, FontWeight.w800, CScholarColors.textPrimary)),
+            Text(label,
+                style: CScholarTextStyles.inter(
+                    12, FontWeight.w500, CScholarColors.textMuted)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Soft radial glow orb for the hero (static decoration, no blur cost).
+  Widget _glow(double size, Color color) {    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withValues(alpha: 0)],
+        ),
+      ),
+    );
+  }
+
+  Widget _headerNavLink(String title,
+      {bool isActive = false, required VoidCallback onTap}) {    return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
         backgroundColor: isActive ? CScholarColors.primaryGreenVeryLight : Colors.transparent,
@@ -457,7 +570,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.2),
+          color: CScholarMaterial.scrim,
           borderRadius: BorderRadius.circular(CScholarRadius.full),
           border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         ),

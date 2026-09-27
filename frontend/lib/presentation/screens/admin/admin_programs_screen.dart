@@ -14,6 +14,7 @@ import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 
 class AdminProgramsScreen extends ConsumerStatefulWidget {
   const AdminProgramsScreen({super.key});
@@ -160,7 +161,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load programs')),
     );
   }
@@ -225,7 +226,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load academic years')),
     );
   }
@@ -274,7 +275,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load categories')),
     );
   }

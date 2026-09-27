@@ -4,10 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/core/config.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
+import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 
 class ThesisDetailScreen extends ConsumerWidget {
   final int thesisId;
@@ -21,10 +26,27 @@ class ThesisDetailScreen extends ConsumerWidget {
     final isSaved = savedIds.contains(thesisId);
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 920;
+    final user = ref.watch(currentUserProvider);
+    final isFaculty = user?.role == 'faculty';
+    final isAdmin = user?.role == 'admin';
+    final isStudent = !isFaculty && !isAdmin;
+    final homeRoute = isFaculty
+        ? '/faculty/dashboard'
+        : isAdmin
+            ? '/admin/dashboard'
+            : '/student/dashboard';
+    final listRoute = isFaculty
+        ? '/faculty/theses'
+        : isAdmin
+            ? '/admin/thesis/management'
+            : '/repository';
+    final listLabel = isFaculty
+        ? 'My Theses'
+        : isAdmin
+            ? 'Thesis Management'
+            : 'Repository';
 
-    return StudentLayout(
-      currentIndex: 1,
-      child: thesisAsync.when(
+    final content = thesisAsync.when(
         data: (thesis) {
           if (thesis == null) {
             return Center(
@@ -36,8 +58,8 @@ class ThesisDetailScreen extends ConsumerWidget {
                   Text('Thesis not found', style: CScholarTextStyles.poppins(18, FontWeight.w600, CScholarColors.textPrimary)),
                   const SizedBox(height: 12),
                   FilledButton(
-                    onPressed: () => context.go('/repository'),
-                    child: const Text('Back to Repository'),
+                    onPressed: () => context.go(listRoute),
+                    child: const Text('Back to List'),
                   ),
                 ],
               ),
@@ -67,7 +89,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => context.go('/student/dashboard'),
+                        onTap: () => context.go(homeRoute),
                         child: Row(
                           children: [
                             const Icon(Icons.home_outlined, size: 16, color: CScholarColors.textMuted),
@@ -78,8 +100,8 @@ class ThesisDetailScreen extends ConsumerWidget {
                       ),
                       Text('  /  ', style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textHint)),
                       InkWell(
-                        onTap: () => context.go('/repository'),
-                        child: Text('Repository', style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.primaryGreen)),
+                        onTap: () => context.go(listRoute),
+                        child: Text(listLabel, style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.primaryGreen)),
                       ),
                       Text('  /  ', style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textHint)),
                       Expanded(
@@ -120,6 +142,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                             ref,
                             thesis: thesis,
                             isSaved: isSaved,
+                            showSave: isStudent,
                             authorsStr: authorsStr,
                             programStr: programStr,
                             yearStr: yearStr,
@@ -233,20 +256,18 @@ class ThesisDetailScreen extends ConsumerWidget {
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFF9FAFB),
+                                              color: CScholarMaterial.clayDeep,
                                               borderRadius: BorderRadius.circular(CScholarRadius.lg),
                                               border: Border.all(color: CScholarColors.borderLight),
                                             ),
                                             child: Row(
                                               children: [
-                                                Container(
-                                                  width: 36,
-                                                  height: 36,
-                                                  decoration: BoxDecoration(
-                                                    color: CScholarColors.primaryGreenVeryLight,
-                                                    borderRadius: BorderRadius.circular(CScholarRadius.md),
-                                                  ),
-                                                  child: const Icon(Icons.article_outlined, size: 18, color: CScholarColors.primaryGreen),
+                                                ClayIconTile(
+                                                  icon: Icons.article_outlined,
+                                                  size: 36,
+                                                  gel: false,
+                                                  background: CScholarColors.primaryGreenLight,
+                                                  tint: CScholarColors.primaryGreen,
                                                 ),
                                                 const SizedBox(width: 14),
                                                 Expanded(
@@ -274,7 +295,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                     }).toList(),
                                   );
                                 },
-                                loading: () => const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+                                loading: () => const SkeletonList(count: 3, cardHeight: 56),
                                 error: (err, _) => Center(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 24),
@@ -296,8 +317,45 @@ class ThesisDetailScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
+        loading: () => const SkeletonList(count: 3, cardHeight: 96),
         error: (err, _) => Center(child: Text('Error: $err')),
+      );
+
+    if (isStudent) {
+      return StudentLayout(
+        currentIndex: 1,
+        child: content,
+      );
+    }
+
+    final sidebar = isAdmin
+        ? const AdminSidebar(currentPath: '/admin/thesis/management')
+        : const FacultySidebar(currentPath: '/faculty/theses');
+
+    if (!isDesktop) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAF9),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+            onPressed: () => context.go(listRoute),
+          ),
+          title: const Text('Thesis Details',
+              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+        body: content,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAF9),
+      body: Row(
+        children: [
+          sidebar,
+          Expanded(child: content),
+        ],
       ),
     );
   }
@@ -307,6 +365,7 @@ class ThesisDetailScreen extends ConsumerWidget {
     WidgetRef ref, {
     required Thesis thesis,
     required bool isSaved,
+    required bool showSave,
     required String authorsStr,
     required String programStr,
     required String yearStr,
@@ -409,17 +468,18 @@ class ThesisDetailScreen extends ConsumerWidget {
                 style: CScholarTextStyles.inter(13.5, FontWeight.w600, Colors.white),
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary,
-                side: BorderSide(color: isSaved ? CScholarColors.primaryGreen : CScholarColors.borderLight),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+            if (showSave)
+              OutlinedButton.icon(
+                onPressed: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary,
+                  side: BorderSide(color: isSaved ? CScholarColors.primaryGreen : CScholarColors.borderLight),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                ),
+                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_outline, size: 18),
+                label: Text(isSaved ? 'Saved' : 'Save', style: CScholarTextStyles.inter(13.5, FontWeight.w600, isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary)),
               ),
-              icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_outline, size: 18),
-              label: Text(isSaved ? 'Saved' : 'Save', style: CScholarTextStyles.inter(13.5, FontWeight.w600, isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary)),
-            ),
             OutlinedButton.icon(
               onPressed: () async {
                 final link = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}';
@@ -438,6 +498,24 @@ class ThesisDetailScreen extends ConsumerWidget {
               ),
               icon: const Icon(Icons.share_outlined, size: 18),
               label: Text('Share', style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary)),
+            ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: _citation(thesis)));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('APA citation copied to clipboard!')),
+                  );
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: CScholarColors.textPrimary,
+                side: const BorderSide(color: CScholarColors.borderLight),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+              ),
+              icon: const Icon(Icons.format_quote_outlined, size: 18),
+              label: Text('Cite', style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary)),
             ),
           ],
         ),
@@ -478,6 +556,31 @@ class ThesisDetailScreen extends ConsumerWidget {
         style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.primaryGreen),
       ),
     );
+  }
+
+  /// APA-style citation for the repository (Phase 2 addition).
+  /// "Last, F., & Last2, F. (Year). Title. Program, CSU CEIT Repository."
+  String _citation(Thesis thesis) {
+    final authors = thesis.authors ?? [];
+    String names;
+    if (authors.isEmpty) {
+      names = thesis.authorsString.isNotEmpty ? thesis.authorsString : 'Anonymous';
+    } else {
+      final parts = authors.map((a) {
+        final initial = a.firstName.isNotEmpty ? '${a.firstName[0]}.' : '';
+        return '${a.lastName}, $initial'.trim();
+      }).toList();
+      if (parts.length == 1) {
+        names = parts.first;
+      } else if (parts.length == 2) {
+        names = '${parts[0]}, & ${parts[1]}';
+      } else {
+        names = '${parts.sublist(0, parts.length - 1).join(', ')}, & ${parts.last}';
+      }
+    }
+    final year = thesis.academicYear?.endYear ?? thesis.createdAt.year;
+    final program = thesis.program?.name ?? 'CEIT';
+    return '$names ($year). ${thesis.title}. $program, Caraga State University Repository.';
   }
 
   /// Stored abstracts often contain hard line-breaks (PDF extraction /

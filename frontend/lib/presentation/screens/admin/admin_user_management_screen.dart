@@ -449,7 +449,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           const Divider(height: 1),
           Expanded(
             child: usersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const SkeletonList(count: 5, cardHeight: 56),
               error: (err, _) => Center(child: Text('Failed to load users: $err')),
               data: (users) {
                 final filtered = _selectedRole == 'All'

@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
 class FacultyDashboardScreen extends ConsumerWidget {
   const FacultyDashboardScreen({super.key});
@@ -26,7 +32,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
           Expanded(
             child: Column(
               children: [
-                _topBar(context, ref, user),
+                FacultyTopbar(user: user),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
@@ -36,49 +42,33 @@ class FacultyDashboardScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Faculty Dashboard',
-                                      style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Track your advisees, research activity, and student progress.',
-                                      style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
-                                    ),
-                                  ],
+                            PageHeader(
+                              title: 'Faculty Dashboard',
+                              subtitle: 'Track your advisees, research activity, and student progress.',
+                              action: FilledButton.icon(
+                                onPressed: () => context.go('/faculty/thesis/new'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: CScholarColors.primaryGreen,
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                                 ),
-                                FilledButton.icon(
-                                  onPressed: () => context.go('/faculty/thesis/new'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: CScholarColors.primaryGreen,
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                  ),
-                                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                                  label: Text('New Thesis', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
-                                ),
-                              ],
+                                icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                                label: Text('New Thesis', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                              ),
                             ),
                             const SizedBox(height: 24),
                             // KPI Cards
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
-                                return GridView.count(
+                                return GridView(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisCount: count,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
-                                  childAspectRatio: constraints.maxWidth > 900 ? 2.0 : 2.4,
+                                  // Fixed extent, not an aspect ratio — see
+                                  // [kpiGridDelegate].
+                                  gridDelegate: kpiGridDelegate(context, count),
                                   children: [
-                                    _kpiCard(
+                                    KpiCard(
                                       label: 'ADVISEES',
                                       value: '${stats.value?['advisees'] ?? 0}',
                                       trend: '${stats.value?['active_projects'] ?? 0} active projects',
@@ -86,29 +76,29 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconBg: const Color(0xFFDCFCE7),
                                       iconColor: CScholarColors.primaryGreen,
                                     ),
-                                    _kpiCard(
+                                    KpiCard(
                                       label: 'MY THESES',
                                       value: '${stats.value?['theses'] ?? 0}',
                                       trend: '${stats.value?['published'] ?? 0} published',
                                       icon: Icons.article_outlined,
                                       iconBg: const Color(0xFFFEF3C7),
-                                      iconColor: CScholarColors.orange,
+                                      iconColor: CScholarColors.warningFg,
                                     ),
-                                    _kpiCard(
+                                    KpiCard(
                                       label: 'PROGRAMS',
                                       value: '${stats.value?['programs'] ?? 0}',
                                       trend: '${stats.value?['programs'] ?? 0} CEIT programs',
                                       icon: Icons.school_outlined,
                                       iconBg: const Color(0xFFFEF9C3),
-                                      iconColor: const Color(0xFFCA8A04),
+                                      iconColor: CScholarColors.goldDeep,
                                     ),
-                                    _kpiCard(
+                                    KpiCard(
                                       label: 'REVIEWS',
                                       value: '${stats.value?['pending_reviews'] ?? 0}',
                                       trend: '${stats.value?['completed_reviews'] ?? 0} completed',
                                       icon: Icons.rate_review_outlined,
                                       iconBg: const Color(0xFFDBEAFE),
-                                      iconColor: const Color(0xFF2563EB),
+                                      iconColor: CScholarColors.info,
                                     ),
                                   ],
                                 );
@@ -150,110 +140,6 @@ class FacultyDashboardScreen extends ConsumerWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _topBar(BuildContext context, WidgetRef ref, dynamic user) {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
-      ),
-      child: Row(
-        children: [
-          const Spacer(),
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications_none_rounded, size: 22, color: CScholarColors.textSecondary),
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(color: CScholarColors.orange, shape: BoxShape.circle),
-                  ),
-                ),
-              ],
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(CScholarRadius.full),
-              border: Border.all(color: CScholarColors.borderLight),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: const Color(0xFFDCFCE7),
-                  child: Text(
-                    _initials(user?.username),
-                    style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.primaryGreen),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(user?.username ?? '', style: CScholarTextStyles.inter(12.5, FontWeight.w700, CScholarColors.textPrimary)),
-                    Text('Faculty', style: CScholarTextStyles.inter(10.5, FontWeight.w500, CScholarColors.textMuted)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _kpiCard({
-    required String label,
-    required String value,
-    required String trend,
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textMuted, letterSpacing: 0.5)),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, size: 18, color: iconColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(value, style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-          const SizedBox(height: 4),
-          Text(trend, style: CScholarTextStyles.inter(11.5, FontWeight.w500, CScholarColors.textMuted)),
         ],
       ),
     );
@@ -303,7 +189,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 )).toList(),
               );
             },
-            loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+            loading: () => const SkeletonList(count: 4, cardHeight: 56),
             error: (err, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -357,16 +243,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 ),
               );
             },
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            ),
+            loading: () => const ClayLoader(height: 8),
             error: (err, _) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
@@ -403,11 +280,12 @@ class FacultyDashboardScreen extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(icon, size: 18, color: iconColor),
+          ClayIconTile(
+            icon: icon,
+            size: 34,
+            gel: false,
+            background: iconBg,
+            tint: iconColor,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -425,12 +303,4 @@ class FacultyDashboardScreen extends ConsumerWidget {
       ),
     );
   }
-
-  String _initials(String? name) {
-    final parts = (name ?? '').trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
-
 }
