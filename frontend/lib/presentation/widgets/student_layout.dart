@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
@@ -76,40 +77,7 @@ class StudentLayout extends ConsumerWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  _navItem(
-                    context,
-                    icon: Icons.home_outlined,
-                    selectedIcon: Icons.home,
-                    label: 'Home',
-                    path: '/student/dashboard',
-                    index: 0,
-                  ),
-                  _navItem(
-                    context,
-                    icon: Icons.menu_book_outlined,
-                    selectedIcon: Icons.menu_book,
-                    label: 'Research',
-                    path: '/repository',
-                    index: 1,
-                  ),
-                  _navItem(
-                    context,
-                    icon: Icons.bookmark_outline,
-                    selectedIcon: Icons.bookmark,
-                    label: 'Saved',
-                    path: '/saved',
-                    index: 2,
-                  ),
-                  _navItem(
-                    context,
-                    icon: Icons.person_outline,
-                    selectedIcon: Icons.person,
-                    label: 'Profile',
-                    path: '/profile',
-                    index: 3,
-                  ),
-                ],
+                children: [_nav(context)],
               ),
             ),
             // Logout
@@ -147,61 +115,50 @@ class StudentLayout extends ConsumerWidget {
     );
   }
 
-  Widget _navItem(
-    BuildContext context, {
-    required IconData icon,
-    required IconData selectedIcon,
-    required String label,
-    required String path,
-    required int index,
-  }) {
-    final isSelected = currentIndex == index;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: AnimatedContainer(
-        duration: CScholarDurations.fast,
-        curve: CScholarCurves.standard,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? CScholarColors.navActiveBg
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: isSelected ? CScholarShadows.primaryGlow : null,
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => context.go(path),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            child: Row(
-              children: [
-                Icon(
-                  isSelected ? selectedIcon : icon,
-                  size: 20,
-                  color: isSelected
-                      ? Colors.white
-                      : CScholarColors.textSecondary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: CScholarTextStyles.inter(
-                      13,
-                      isSelected ? FontWeight.w600 : FontWeight.w500,
-                      isSelected
-                          ? Colors.white
-                          : CScholarColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+  /// Sidebar destinations, in the same order as [currentIndex] (and as the
+  /// mobile [NavigationBar] below). The active row is a NUMBER, not a bool, so
+  /// the gel pill can slide to it.
+  static const List<
+      ({String label, IconData icon, IconData selectedIcon, String path})>
+      _routes = [
+    (
+      label: 'Home',
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home,
+      path: '/student/dashboard',
+    ),
+    (
+      label: 'Research',
+      icon: Icons.menu_book_outlined,
+      selectedIcon: Icons.menu_book,
+      path: '/repository',
+    ),
+    (
+      label: 'Saved',
+      icon: Icons.bookmark_outline,
+      selectedIcon: Icons.bookmark,
+      path: '/saved',
+    ),
+    (
+      label: 'Profile',
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      path: '/profile',
+    ),
+  ];
+
+  Widget _nav(BuildContext context) {
+    return ClayNavList(
+      selectedIndex: currentIndex,
+      links: [
+        for (final route in _routes)
+          ClayNavLink(
+            label: route.label,
+            icon: route.icon,
+            selectedIcon: route.selectedIcon,
+            onTap: () => context.go(route.path),
           ),
-        ),
-      ),
+      ],
     );
   }
 

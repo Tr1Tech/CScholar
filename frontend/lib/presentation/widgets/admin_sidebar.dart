@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
@@ -37,43 +38,7 @@ class AdminSidebar extends ConsumerWidget {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    _navItem(
-                      context,
-                      icon: Icons.dashboard_outlined,
-                      selectedIcon: Icons.dashboard,
-                      label: 'Dashboard',
-                      path: '/admin/dashboard',
-                    ),
-                    _navItem(
-                      context,
-                      icon: Icons.article_outlined,
-                      selectedIcon: Icons.article,
-                      label: 'Theses / Capstone',
-                      path: '/admin/thesis/management',
-                    ),
-                    _navItem(
-                      context,
-                      icon: Icons.people_outline,
-                      selectedIcon: Icons.people,
-                      label: 'Users',
-                      path: '/admin/users',
-                    ),
-                    _navItem(
-                      context,
-                      icon: Icons.school_outlined,
-                      selectedIcon: Icons.school,
-                      label: 'Programs',
-                      path: '/admin/programs',
-                    ),
-                    _navItem(
-                      context,
-                      icon: Icons.settings_outlined,
-                      selectedIcon: Icons.settings,
-                      label: 'Settings',
-                      path: '/admin/settings',
-                    ),
-                  ],
+                  children: [_nav(context)],
                 ),
               ),
 
@@ -130,66 +95,57 @@ class AdminSidebar extends ConsumerWidget {
     );
   }
 
-  Widget _navItem(
-    BuildContext context, {
-    required IconData icon,
-    required IconData selectedIcon,
-    required String label,
-    required String path,
-  }) {
-    final isSelected = currentPath == path;
+  /// Sidebar routes, in order. The pill needs a row NUMBER, so the active row
+  /// is derived from [currentPath] here rather than per item; a route matching
+  /// none (the thesis editor under `/admin/thesis/...`) yields -1 and the pill
+  /// fades out instead of highlighting the wrong row.
+  static const List<
+      ({String label, IconData icon, IconData selectedIcon, String path})>
+      _routes = [
+    (
+      label: 'Dashboard',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      path: '/admin/dashboard',
+    ),
+    (
+      label: 'Theses / Capstone',
+      icon: Icons.article_outlined,
+      selectedIcon: Icons.article,
+      path: '/admin/thesis/management',
+    ),
+    (
+      label: 'Users',
+      icon: Icons.people_outline,
+      selectedIcon: Icons.people,
+      path: '/admin/users',
+    ),
+    (
+      label: 'Programs',
+      icon: Icons.school_outlined,
+      selectedIcon: Icons.school,
+      path: '/admin/programs',
+    ),
+    (
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      path: '/admin/settings',
+    ),
+  ];
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: AnimatedContainer(
-        duration: CScholarDurations.fast,
-        curve: CScholarCurves.standard,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? CScholarColors.navActiveBg
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(CScholarRadius.md),
-          boxShadow: isSelected ? CScholarShadows.primaryGlow : null,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(CScholarRadius.md),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(CScholarRadius.md),
-            onTap: () => context.go(path),
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              child: Row(
-                children: [
-                  Icon(
-                    isSelected ? selectedIcon : icon,
-                    size: 20,
-                    color: isSelected
-                        ? Colors.white
-                        : CScholarColors.textSecondary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.inter(
-                        13,
-                        isSelected ? FontWeight.w600 : FontWeight.w500,
-                        isSelected
-                            ? Colors.white
-                            : CScholarColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  Widget _nav(BuildContext context) {
+    return ClayNavList(
+      selectedIndex: _routes.indexWhere((route) => route.path == currentPath),
+      links: [
+        for (final route in _routes)
+          ClayNavLink(
+            label: route.label,
+            icon: route.icon,
+            selectedIcon: route.selectedIcon,
+            onTap: () => context.go(route.path),
           ),
-        ),
-      ),
+      ],
     );
   }
 }

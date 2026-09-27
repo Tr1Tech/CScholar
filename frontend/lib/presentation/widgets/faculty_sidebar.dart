@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
@@ -31,16 +32,7 @@ class FacultySidebar extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _item(context, Icons.dashboard_outlined, Icons.dashboard,
-                  'Dashboard', '/faculty/dashboard'),
-              _item(context, Icons.article_outlined, Icons.article,
-                  'My Theses', '/faculty/theses'),
-              _item(context, Icons.people_outlined, Icons.people,
-                  'My Students', '/faculty/students'),
-              _item(context, Icons.analytics_outlined, Icons.analytics,
-                  'Analytics', '/faculty/analytics'),
-              _item(context, Icons.settings_outlined, Icons.settings,
-                  'Settings', '/faculty/settings'),
+              _nav(context),
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -74,42 +66,59 @@ class FacultySidebar extends ConsumerWidget {
     );
   }
 
-  Widget _item(BuildContext context, IconData icon, IconData selectedIcon,
-      String label, String route) {
-    final isActive = currentPath == route;
+  /// Sidebar routes, in order. The pill needs a row NUMBER, so the active row
+  /// is derived from [currentPath] here rather than per item; a route matching
+  /// none yields -1 and the pill fades out (same contract as the admin rail).
+  static const List<
+      ({String label, IconData icon, IconData selectedIcon, String path})>
+      _routes = [
+    (
+      label: 'Dashboard',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      path: '/faculty/dashboard',
+    ),
+    (
+      label: 'My Theses',
+      icon: Icons.article_outlined,
+      selectedIcon: Icons.article,
+      path: '/faculty/theses',
+    ),
+    (
+      label: 'My Students',
+      icon: Icons.people_outlined,
+      selectedIcon: Icons.people,
+      path: '/faculty/students',
+    ),
+    (
+      label: 'Analytics',
+      icon: Icons.analytics_outlined,
+      selectedIcon: Icons.analytics,
+      path: '/faculty/analytics',
+    ),
+    (
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      path: '/faculty/settings',
+    ),
+  ];
+
+  Widget _nav(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: AnimatedContainer(
-        duration: CScholarDurations.fast,
-        curve: CScholarCurves.standard,
-        decoration: BoxDecoration(
-          color: isActive ? CScholarColors.navActiveBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: isActive ? CScholarShadows.primaryGlow : null,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: ListTile(
-            leading: Icon(isActive ? selectedIcon : icon,
-                size: 20,
-                color:
-                    isActive ? Colors.white : CScholarColors.textSecondary),
-            title: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: CScholarTextStyles.inter(
-                13,
-                isActive ? FontWeight.w600 : FontWeight.w500,
-                isActive ? Colors.white : CScholarColors.textSecondary,
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: ClayNavList(
+        selectedIndex:
+            _routes.indexWhere((route) => route.path == currentPath),
+        links: [
+          for (final route in _routes)
+            ClayNavLink(
+              label: route.label,
+              icon: route.icon,
+              selectedIcon: route.selectedIcon,
+              onTap: () => context.go(route.path),
             ),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
-            dense: true,
-            onTap: () => context.go(route),
-          ),
-        ),
+        ],
       ),
     );
   }
