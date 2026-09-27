@@ -32,7 +32,10 @@ class PageHeader extends StatelessWidget {
           ),
           if (action != null) ...[
             const SizedBox(width: 16),
-            action!,
+            // The action is often a labelled clay button, and at 200% text its
+            // intrinsic width can exceed the row. Let it shrink (the button
+            // ellipsizes its own label) instead of overflowing the header.
+            Flexible(child: action!),
           ],
         ],
       ),

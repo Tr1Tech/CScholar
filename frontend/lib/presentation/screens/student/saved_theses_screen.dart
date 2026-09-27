@@ -50,13 +50,15 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
 
                 const SizedBox(height: 24),
 
-                // Filter Tabs (All / Thesis / Capstone)
-                Row(
+                // Filter Tabs (All / Thesis / Capstone) — Wrap, not Row: at
+                // 200% text the three labels no longer fit one phone line, and
+                // wrapping keeps every tab reachable instead of clipping one.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _tabButton('All'),
-                    const SizedBox(width: 8),
                     _tabButton('Thesis'),
-                    const SizedBox(width: 8),
                     _tabButton('Capstone'),
                   ],
                 ),

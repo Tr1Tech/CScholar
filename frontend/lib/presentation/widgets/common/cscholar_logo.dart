@@ -20,7 +20,7 @@ class CScholarLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final mark = Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -57,6 +57,16 @@ class CScholarLogo extends StatelessWidget {
           ),
         ],
       ],
+    );
+
+    // The wordmark is text, so 200% text makes it wider than a narrow host (a
+    // topbar leading slot, a sidebar card). Scale the whole mark down instead
+    // of overflowing: a brand must not ellipsize, and a logo is not body copy,
+    // so this is the one place where scaling beats growing.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: mark,
     );
   }
 }

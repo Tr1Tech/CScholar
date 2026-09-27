@@ -244,13 +244,23 @@ class ProfileScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Saved Studies',
-              style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
+            Flexible(
+              child: Text(
+                'Saved Studies',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
+              ),
             ),
-            Text(
-              '${saved.length} saved',
-              style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                '${saved.length} saved',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+              ),
             ),
           ],
         ),
@@ -322,7 +332,13 @@ class ProfileScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.textMuted)),
+          Expanded(
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.inter(
+                    12.5, FontWeight.w500, CScholarColors.textMuted)),
+          ),
           const SizedBox(width: 16),
           Flexible(
             child: Row(

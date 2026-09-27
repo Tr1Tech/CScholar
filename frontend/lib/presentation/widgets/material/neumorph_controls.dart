@@ -311,10 +311,14 @@ class NeumorphButton extends StatelessWidget {
                 Icon(icon, size: 18, color: foreground),
                 const SizedBox(width: 8),
               ],
-              Text(
-                label,
-                style:
-                    CScholarTextStyles.inter(14, FontWeight.w600, foreground),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.inter(
+                      14, FontWeight.w600, foreground),
+                ),
               ),
             ],
           ],

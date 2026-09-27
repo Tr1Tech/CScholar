@@ -271,87 +271,106 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   Widget _resultsHeader(BuildContext context, bool useSemantic,
       AsyncValue<List<Thesis>?> theses) {
     final size = MediaQuery.of(context).size;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+    final title = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  useSemantic ? 'Semantic Results' : 'Search Results',
-                  style: CScholarTextStyles.poppins(
-                      20, FontWeight.w800, CScholarColors.textPrimary)),
-              if (!useSemantic)
-                theses.maybeWhen(
-                  data: (list) => Text(
-                    _query.isEmpty
-                        ? '${list?.length ?? 0} studies in the repository'
-                        : 'Showing ${list?.length ?? 0} results for "$_query"',
-                    style: CScholarTextStyles.inter(
-                        12.5,
-                        FontWeight.w400,
-                        CScholarColors.textMuted),
-                  ),
-                  orElse: () => const SizedBox.shrink(),
-                )
-              else
-                Text('Ranked by meaning, not keywords',
-                    style: CScholarTextStyles.inter(12.5,
-                        FontWeight.w400, CScholarColors.textMuted)),
-            ],
+        Text(useSemantic ? 'Semantic Results' : 'Search Results',
+            style: CScholarTextStyles.poppins(
+                20, FontWeight.w800, CScholarColors.textPrimary)),
+        if (!useSemantic)
+          theses.maybeWhen(
+            data: (list) => Text(
+              _query.isEmpty
+                  ? '${list?.length ?? 0} studies in the repository'
+                  : 'Showing ${list?.length ?? 0} results for "$_query"',
+              style: CScholarTextStyles.inter(12.5, FontWeight.w400,
+                  CScholarColors.textMuted),
+            ),
+            orElse: () => const SizedBox.shrink(),
+          )
+        else
+          Text('Ranked by meaning, not keywords',
+              style: CScholarTextStyles.inter(12.5, FontWeight.w400,
+                  CScholarColors.textMuted)),
+      ],
+    );
+
+    // Wrap, not Row: the filter cluster is ~560px wide at rest and wider at
+    // 200% text, so it must be able to break onto a second line instead of
+    // pushing the sort well off the edge.
+    final controls = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        if (size.width <= 920)
+          NeumorphButton(
+            onPressed: () => _showMobileFilters(context),
+            icon: Icons.filter_list,
+            gel: false,
+            label:
+                'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
           ),
+        NeumorphToggle(
+          label: 'Semantic Search',
+          value: _isSemantic,
+          onChanged: (v) => setState(() => _isSemantic = v),
         ),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (size.width <= 920)
-              NeumorphButton(
-                onPressed: () => _showMobileFilters(context),
-                icon: Icons.filter_list,
-                gel: false,
-                label:
-                    'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
+            Text('Sort: ',
+                style: CScholarTextStyles.inter(12, FontWeight.w500,
+                    CScholarColors.textMuted)),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 170,
+              child: NeumorphSelectField<String>(
+                value: _sortBy,
+                items: const [
+                  DropdownMenuItem(value: 'Latest', child: Text('Latest')),
+                  DropdownMenuItem(value: 'Oldest', child: Text('Oldest')),
+                  DropdownMenuItem(
+                      value: 'Title (A-Z)', child: Text('Title (A-Z)')),
+                  DropdownMenuItem(
+                      value: 'Title (Z-A)', child: Text('Title (Z-A)')),
+                ],
+                onChanged: (v) {
+                  if (v != null) setState(() => _sortBy = v);
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
               ),
-            const SizedBox(width: 12),
-            NeumorphToggle(
-              label: 'Semantic Search',
-              value: _isSemantic,
-              onChanged: (v) => setState(() => _isSemantic = v),
-            ),
-            const SizedBox(width: 8),
-            Row(
-              children: [
-                Text('Sort: ',
-                    style: CScholarTextStyles.inter(12,
-                        FontWeight.w500, CScholarColors.textMuted)),
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: 170,
-                  child: NeumorphSelectField<String>(
-                    value: _sortBy,
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'Latest', child: Text('Latest')),
-                      DropdownMenuItem(
-                          value: 'Oldest', child: Text('Oldest')),
-                      DropdownMenuItem(
-                          value: 'Title (A-Z)',
-                          child: Text('Title (A-Z)')),
-                      DropdownMenuItem(
-                          value: 'Title (Z-A)',
-                          child: Text('Title (Z-A)')),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) setState(() => _sortBy = v);
-                    },
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 2),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
+      ],
+    );
+
+    // Below the breakpoint the title owns the line and the controls drop
+    // under it; above it they sit beside the title exactly as before.
+    if (size.width <= 920) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          title,
+          const SizedBox(height: 12),
+          controls,
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: title),
+        const SizedBox(width: 16),
+        // Loose, so at 200% text the cluster wraps onto a second line instead
+        // of forcing the title column to zero width.
+        Flexible(child: controls),
       ],
     );
   }

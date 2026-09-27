@@ -58,7 +58,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               ),
               child: Row(
                 children: [
-                  const CScholarLogo(iconSize: 36, subtitle: 'CEIT REPOSITORY'),
+                  // Flexible so the wordmark can scale down (it is a FittedBox
+                  // internally) instead of pushing the CTAs off a phone.
+                  const Flexible(
+                    child: CScholarLogo(
+                        iconSize: 36, subtitle: 'CEIT REPOSITORY'),
+                  ),
                   if (isWide) ...[
                     const SizedBox(width: 36),
                     Row(
@@ -153,13 +158,17 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'CEIT THESIS & CAPSTONE REPOSITORY',
-                              style: CScholarTextStyles.inter(
-                                11,
-                                FontWeight.w700,
-                                CScholarColors.gold,
-                                letterSpacing: 1.0,
+                            Flexible(
+                              child: Text(
+                                'CEIT THESIS & CAPSTONE REPOSITORY',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: CScholarTextStyles.inter(
+                                  11,
+                                  FontWeight.w700,
+                                  CScholarColors.gold,
+                                  letterSpacing: 1.0,
+                                ),
                               ),
                             ),
                           ],

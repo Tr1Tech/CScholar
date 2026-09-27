@@ -131,6 +131,12 @@ class NeumorphSegmented extends StatelessWidget {
           ),
           child: SizedBox(
             height: 46,
+            // The track owns its width so the segment Row is never handed
+            // unbounded constraints: the admin role filter sits inside a
+            // horizontal SingleChildScrollView, where `maxWidth` is infinite
+            // and a flexed Row would assert ("non-zero flex but incoming width
+            // constraints are unbounded") instead of laying out.
+            width: trackWidth,
             child: Stack(
               children: [
                   AnimatedPositioned(
@@ -174,7 +180,12 @@ class NeumorphSegmented extends StatelessWidget {
                                     ? CScholarMaterial.textGreen
                                     : CScholarMaterial.textMuted,
                               ),
-                              child: Text(labels[i]),
+                              child: Text(
+                                labels[i],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ),
                         ),

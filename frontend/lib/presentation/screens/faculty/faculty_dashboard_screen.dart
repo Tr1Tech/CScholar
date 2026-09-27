@@ -151,12 +151,21 @@ class FacultyDashboardScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Recent Activity', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
-              NeumorphButton(
-                onPressed: () => context.go('/faculty/theses'),
-                label: 'View All',
-                gel: false,
-                icon: Icons.arrow_forward,
+              Flexible(
+                child: Text('Recent Activity',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.poppins(
+                        16, FontWeight.w700, CScholarColors.textPrimary)),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                child: NeumorphButton(
+                  onPressed: () => context.go('/faculty/theses'),
+                  label: 'View All',
+                  gel: false,
+                  icon: Icons.arrow_forward,
+                ),
               ),
             ],
           ),

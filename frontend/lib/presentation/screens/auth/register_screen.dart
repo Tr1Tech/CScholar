@@ -202,13 +202,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Create Account',
-                  style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+                Flexible(
+                  child: Text(
+                    'Create Account',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () => context.go('/'),
-                  child: Text('Home', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => context.go('/'),
+                    child: Text('Home',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary)),
+                  ),
                 ),
               ],
             ),
@@ -380,10 +390,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Already have an account?', style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textSecondary)),
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: Text('Sign In', style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.primaryGreen)),
+                  Flexible(
+                    child: Text('Already have an account?',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CScholarTextStyles.inter(13,
+                            FontWeight.w400, CScholarColors.textSecondary)),
+                  ),
+                  Flexible(
+                    child: TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: Text('Sign In',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CScholarTextStyles.inter(13,
+                              FontWeight.w700, CScholarColors.primaryGreen)),
+                    ),
                   ),
                 ],
               ),

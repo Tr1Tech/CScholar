@@ -185,9 +185,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const Icon(Icons.school, size: 16, color: CScholarColors.gold),
                 const SizedBox(width: 8),
-                Text(
-                  'CSU CEIT Campus Portal',
-                  style: CScholarTextStyles.inter(11, FontWeight.w600, CScholarColors.heroText),
+                Flexible(
+                  child: Text(
+                    'CSU CEIT Campus Portal',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.inter(
+                        11, FontWeight.w600, CScholarColors.heroText),
+                  ),
                 ),
               ],
             ),
@@ -235,13 +240,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Welcome Back',
-                  style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+                Flexible(
+                  child: Text(
+                    'Welcome Back',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.poppins(26, FontWeight.w800, CScholarColors.textPrimary),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () => context.go('/'),
-                  child: Text('Home', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => context.go('/'),
+                    child: Text('Home',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textSecondary)),
+                  ),
                 ),
               ],
             ),
@@ -324,40 +339,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      // control-exempt: Task C.1 — "Remember me" is still a
-                      // stock Checkbox; decide NeumorphToggle vs exemption.
-                      child: Checkbox(
-                        value: _rememberMe,
-                        onChanged: (v) => setState(() => _rememberMe = v ?? true),
-                        activeColor: CScholarColors.primaryGreen,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        // control-exempt: Task C.1 — "Remember me" is still a
+                        // stock Checkbox; decide NeumorphToggle vs exemption.
+                        child: Checkbox(
+                          value: _rememberMe,
+                          onChanged: (v) =>
+                              setState(() => _rememberMe = v ?? true),
+                          activeColor: CScholarColors.primaryGreen,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text('Remember me',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CScholarTextStyles.inter(12,
+                                FontWeight.w400, CScholarColors.textSecondary)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: TextButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (ctx) => GlassDialog(
+                        title: const Text('Forgot password?'),
+                        content: const Text(
+                            'Password resets are handled by your administrator. '
+                            'Visit the CEIT office or message your admin with your username and email.'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Got it')),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text('Remember me', style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textSecondary)),
-                  ],
-                ),
-                TextButton(
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (ctx) => GlassDialog(
-                      title: const Text('Forgot password?'),
-                      content: const Text(
-                          'Password resets are handled by your administrator. '
-                          'Visit the CEIT office or message your admin with your username and email.'),
-                      actions: [
-                        TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Got it')),
-                      ],
-                    ),
+                    child: Text('Forgot password?',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CScholarTextStyles.inter(12, FontWeight.w600,
+                            CScholarColors.primaryGreen)),
                   ),
-                  child: Text('Forgot password?', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
                 ),
               ],
             ),
@@ -379,10 +412,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account?", style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textSecondary)),
-                  TextButton(
-                    onPressed: () => context.go('/register'),
-                    child: Text('Register here', style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.primaryGreen)),
+                  Flexible(
+                    child: Text("Don't have an account?",
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: CScholarTextStyles.inter(13,
+                            FontWeight.w400, CScholarColors.textSecondary)),
+                  ),
+                  Flexible(
+                    child: TextButton(
+                      onPressed: () => context.go('/register'),
+                      child: Text('Register here',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CScholarTextStyles.inter(13,
+                              FontWeight.w700, CScholarColors.primaryGreen)),
+                    ),
                   ),
                 ],
               ),

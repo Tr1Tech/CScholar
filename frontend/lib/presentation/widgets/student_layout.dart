@@ -129,9 +129,13 @@ class StudentLayout extends ConsumerWidget {
                       const Icon(Icons.logout,
                           size: 20, color: CScholarColors.textSecondary),
                       const SizedBox(width: 12),
-                      Text('Log out',
-                          style: CScholarTextStyles.inter(13, FontWeight.w500,
-                              CScholarColors.textSecondary)),
+                      Expanded(
+                        child: Text('Log out',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CScholarTextStyles.inter(13, FontWeight.w500,
+                                CScholarColors.textSecondary)),
+                      ),
                     ],
                   ),
                 ),
@@ -179,14 +183,18 @@ class StudentLayout extends ConsumerWidget {
                       : CScholarColors.textSecondary,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: CScholarTextStyles.inter(
-                    13,
-                    isSelected ? FontWeight.w600 : FontWeight.w500,
-                    isSelected
-                        ? Colors.white
-                        : CScholarColors.textSecondary,
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.inter(
+                      13,
+                      isSelected ? FontWeight.w600 : FontWeight.w500,
+                      isSelected
+                          ? Colors.white
+                          : CScholarColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

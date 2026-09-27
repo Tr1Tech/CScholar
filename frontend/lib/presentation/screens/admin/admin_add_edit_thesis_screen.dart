@@ -62,33 +62,42 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   }
 
   Future<void> _loadThesis() async {
-    final thesisAsync = await ref.read(thesisDetailProvider(widget.thesisId!).future);
-    if (!mounted || thesisAsync == null) return;
-    final thesis = thesisAsync;
-    setState(() {
-      _titleCtrl.text = thesis.title;
-      _abstractCtrl.text = thesis.abstract;
-      _keywordsCtrl.text =
-          thesis.keywords?.map((k) => k.term).join('; ') ?? '';
-      _program = thesis.program;
-      _year = thesis.academicYear;
-      _researchType = thesis.researchType;
-      _adviser = thesis.advisers?.isNotEmpty == true
-          ? thesis.advisers!.first
-          : null;
-      _category = thesis.categories?.isNotEmpty == true
-          ? thesis.categories!.first
-          : null;
-      _authorIds.clear();
-      if (thesis.authors != null) {
-        _authorIds.addAll(thesis.authors!.map((a) => a.id));
-      }
-      _pdfUrl = thesis.pdfUrl;
-      if (_pdfUrl != null) {
-        // Extract filename from pdf_url
-        _pdfFileName = _pdfUrl!.split('/').last;
-      }
-    });
+    try {
+      final thesisAsync =
+          await ref.read(thesisDetailProvider(widget.thesisId!).future);
+      if (!mounted || thesisAsync == null) return;
+      final thesis = thesisAsync;
+      setState(() {
+        _titleCtrl.text = thesis.title;
+        _abstractCtrl.text = thesis.abstract;
+        _keywordsCtrl.text =
+            thesis.keywords?.map((k) => k.term).join('; ') ?? '';
+        _program = thesis.program;
+        _year = thesis.academicYear;
+        _researchType = thesis.researchType;
+        _adviser = thesis.advisers?.isNotEmpty == true
+            ? thesis.advisers!.first
+            : null;
+        _category = thesis.categories?.isNotEmpty == true
+            ? thesis.categories!.first
+            : null;
+        _authorIds.clear();
+        if (thesis.authors != null) {
+          _authorIds.addAll(thesis.authors!.map((a) => a.id));
+        }
+        _pdfUrl = thesis.pdfUrl;
+        if (_pdfUrl != null) {
+          // Extract filename from pdf_url
+          _pdfFileName = _pdfUrl!.split('/').last;
+        }
+      });
+    } catch (e) {
+      // Offline, or the id no longer exists. The form stays empty and says so
+      // instead of throwing out of a post-frame callback nobody awaits (which
+      // is an unhandled async error, not a red banner).
+      if (!mounted) return;
+      setState(() => _submitError = 'Could not load this thesis: $e');
+    }
   }
 
   Future<void> _submit() async {
@@ -180,53 +189,70 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: CScholarColors.primaryGreenVeryLight,
-                                              borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Flexible(
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: CScholarColors.primaryGreenVeryLight,
+                                                  borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                                                ),
+                                                child: Text(
+                                                  'SUBMISSION PORTAL',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen),
+                                                ),
+                                              ),
                                             ),
-                                            child: Text(
-                                              'SUBMISSION PORTAL',
-                                              style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text('•  CEIT Department',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: CScholarTextStyles.inter(12,
+                                                      FontWeight.w500, CScholarColors.textMuted)),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text('•  CEIT Department', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Register Academic Manuscript',
-                                        style: CScholarTextStyles.poppins(22, FontWeight.w800, CScholarColors.textPrimary),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Please provide complete and accurate information regarding the academic research manuscript.',
-                                        style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
-                                      ),
-                                    ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: CScholarMaterial.clayDeep,
-                                      borderRadius: BorderRadius.circular(CScholarRadius.md),
-                                      border: Border.all(color: CScholarMaterial.rim),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Register Academic Manuscript',
+                                          style: CScholarTextStyles.poppins(22, FontWeight.w800, CScholarColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Please provide complete and accurate information regarding the academic research manuscript.',
+                                          style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
+                                        ),
+                                      ],
                                     ),
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
-                                        children: const [
-                                          TextSpan(text: 'Fields marked with '),
-                                          TextSpan(text: '*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                                          TextSpan(text: ' are required'),
-                                        ],
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Flexible(
+                                    flex: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: CScholarMaterial.clayDeep,
+                                        borderRadius: BorderRadius.circular(CScholarRadius.md),
+                                        border: Border.all(color: CScholarMaterial.rim),
+                                      ),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                                          children: const [
+                                            TextSpan(text: 'Fields marked with '),
+                                            TextSpan(text: '*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                            TextSpan(text: ' are required'),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -261,8 +287,20 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        _fieldLabel('ABSTRACT', isRequired: true),
-                                        Text('Recommended 150-300 words', style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textHint)),
+                                        Flexible(
+                                          child: _fieldLabel('ABSTRACT',
+                                              isRequired: true),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                              'Recommended 150-300 words',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: CScholarTextStyles.inter(11,
+                                                  FontWeight.w400,
+                                                  CScholarColors.textHint)),
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 6),
@@ -404,19 +442,27 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        NeumorphButton(
-                                          onPressed: () => context.go('/admin/dashboard'),
-                                          label: 'Cancel',
-                                          gel: false,
+                                        Flexible(
+                                          child: NeumorphButton(
+                                            onPressed: () =>
+                                                context.go('/admin/dashboard'),
+                                            label: 'Cancel',
+                                            gel: false,
+                                          ),
                                         ),
                                         const SizedBox(width: 12),
-                                        NeumorphButton(
-                                          onPressed: _isSubmitting ? null : _submit,
-                                          loading: _isSubmitting,
-                                          icon: _isSubmitting ? null : Icons.check,
-                                          label: _isSubmitting
-                                              ? 'Submitting...'
-                                              : 'Submit Thesis / Capstone',
+                                        Flexible(
+                                          child: NeumorphButton(
+                                            onPressed:
+                                                _isSubmitting ? null : _submit,
+                                            loading: _isSubmitting,
+                                            icon: _isSubmitting
+                                                ? null
+                                                : Icons.check,
+                                            label: _isSubmitting
+                                                ? 'Submitting...'
+                                                : 'Submit Thesis / Capstone',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -434,9 +480,16 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          text,
-          style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
+        // The label sits inside spaceBetween header rows, so it has to be able
+        // to shrink (200% text) rather than widening the row past its parent.
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: CScholarTextStyles.inter(11, FontWeight.w700,
+                CScholarColors.textSecondary, letterSpacing: 0.5),
+          ),
         ),
         if (isRequired)
           const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),

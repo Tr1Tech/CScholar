@@ -212,22 +212,34 @@ class AdminDashboardScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Recent Activity',
-                          style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: CScholarColors.primaryGreenVeryLight,
-                            borderRadius: BorderRadius.circular(CScholarRadius.full),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Recent Activity',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: CScholarTextStyles.poppins(16,
+                                  FontWeight.w700, CScholarColors.textPrimary),
+                            ),
                           ),
-                          child: Text('Live audit', style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen)),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: CScholarColors.primaryGreenVeryLight,
+                              borderRadius:
+                                  BorderRadius.circular(CScholarRadius.full),
+                            ),
+                            child: Text('Live audit',
+                                style: CScholarTextStyles.inter(10.5,
+                                    FontWeight.w700,
+                                    CScholarColors.primaryGreen)),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -260,18 +272,26 @@ class AdminDashboardScreen extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text(
-              'Recent Activity',
-              style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+            Flexible(
+              child: Text(
+                'Recent Activity',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.poppins(
+                    16, FontWeight.w700, CScholarColors.textPrimary),
+              ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: CScholarColors.primaryGreenVeryLight,
                 borderRadius: BorderRadius.circular(CScholarRadius.full),
               ),
-              child: Text('Live audit', style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.primaryGreen)),
+              child: Text('Live audit',
+                  style: CScholarTextStyles.inter(
+                      10.5, FontWeight.w700, CScholarColors.primaryGreen)),
             ),
           ],
         ),

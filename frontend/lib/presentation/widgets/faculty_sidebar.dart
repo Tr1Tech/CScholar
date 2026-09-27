@@ -44,19 +44,26 @@ class FacultySidebar extends ConsumerWidget {
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: ListTile(
-                  leading: const Icon(Icons.logout,
-                      size: 20, color: CScholarColors.textSecondary),
-                  title: Text(
-                    'Log Out',
-                    style: CScholarTextStyles.inter(
-                        13, FontWeight.w500, CScholarColors.textSecondary),
+                // MaterialType.transparency supplies the ink surface the
+                // ListTile paints on. The panel around it is a DecoratedBox,
+                // which would otherwise swallow both the background and the
+                // splashes (and assert in debug).
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: ListTile(
+                    leading: const Icon(Icons.logout,
+                        size: 20, color: CScholarColors.textSecondary),
+                    title: Text(
+                      'Log Out',
+                      style: CScholarTextStyles.inter(
+                          13, FontWeight.w500, CScholarColors.textSecondary),
+                    ),
+                    dense: true,
+                    onTap: () {
+                      ref.read(authProvider.notifier).logout();
+                      context.go('/login');
+                    },
                   ),
-                  dense: true,
-                  onTap: () {
-                    ref.read(authProvider.notifier).logout();
-                    context.go('/login');
-                  },
                 ),
               ),
               const SizedBox(height: 8),
@@ -80,22 +87,28 @@ class FacultySidebar extends ConsumerWidget {
           borderRadius: BorderRadius.circular(14),
           boxShadow: isActive ? CScholarShadows.primaryGlow : null,
         ),
-        child: ListTile(
-          leading: Icon(isActive ? selectedIcon : icon,
-              size: 20,
-              color: isActive ? Colors.white : CScholarColors.textSecondary),
-          title: Text(
-            label,
-            style: CScholarTextStyles.inter(
-              13,
-              isActive ? FontWeight.w600 : FontWeight.w500,
-              isActive ? Colors.white : CScholarColors.textSecondary,
+        child: Material(
+          type: MaterialType.transparency,
+          child: ListTile(
+            leading: Icon(isActive ? selectedIcon : icon,
+                size: 20,
+                color:
+                    isActive ? Colors.white : CScholarColors.textSecondary),
+            title: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: CScholarTextStyles.inter(
+                13,
+                isActive ? FontWeight.w600 : FontWeight.w500,
+                isActive ? Colors.white : CScholarColors.textSecondary,
+              ),
             ),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
+            dense: true,
+            onTap: () => context.go(route),
           ),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          dense: true,
-          onTap: () => context.go(route),
         ),
       ),
     );

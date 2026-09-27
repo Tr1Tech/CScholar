@@ -273,9 +273,14 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Recent Studies',
-                style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Recent Studies',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.poppins(
+                      16, FontWeight.w700, CScholarColors.textPrimary),
+                ),
               ),
               NeumorphButton(
                 onPressed: () => context.go('/repository'),
@@ -381,9 +386,14 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Recommended for You',
-                style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+              Expanded(
+                child: Text(
+                  'Recommended for You',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.poppins(
+                      16, FontWeight.w700, CScholarColors.textPrimary),
+                ),
               ),
               NeumorphButton(
                 onPressed: () => context.go('/repository'),
