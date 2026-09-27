@@ -4,8 +4,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
+import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
 class AdminSettingsScreen extends ConsumerStatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -37,13 +41,49 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     super.dispose();
   }
 
-  void _save() {
-    setState(() => _isSaving = true);
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved successfully'), backgroundColor: CScholarColors.success));
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  /// Settings persist on this device (SharedPreferences) — the Save button
+  /// is real: values survive restarts. There is no server settings store.
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _siteNameCtrl.text = prefs.getString('settings_site_name') ?? _siteNameCtrl.text;
+      _siteDescCtrl.text = prefs.getString('settings_site_desc') ?? _siteDescCtrl.text;
+      _contactEmailCtrl.text = prefs.getString('settings_contact_email') ?? _contactEmailCtrl.text;
+      _contactNameCtrl.text = prefs.getString('settings_contact_name') ?? _contactNameCtrl.text;
+      _maxResultsCtrl.text = prefs.getString('settings_max_results') ?? _maxResultsCtrl.text;
+      _semanticEnabled = prefs.getBool('settings_semantic') ?? true;
+      _recommendationsEnabled = prefs.getBool('settings_recommendations') ?? true;
+      _autoArchive = prefs.getBool('settings_auto_archive') ?? false;
+      _publicSearch = prefs.getBool('settings_public_search') ?? true;
     });
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('settings_site_name', _siteNameCtrl.text.trim());
+      await prefs.setString('settings_site_desc', _siteDescCtrl.text.trim());
+      await prefs.setString('settings_contact_email', _contactEmailCtrl.text.trim());
+      await prefs.setString('settings_contact_name', _contactNameCtrl.text.trim());
+      await prefs.setString('settings_max_results', _maxResultsCtrl.text.trim());
+      await prefs.setBool('settings_semantic', _semanticEnabled);
+      await prefs.setBool('settings_recommendations', _recommendationsEnabled);
+      await prefs.setBool('settings_auto_archive', _autoArchive);
+      await prefs.setBool('settings_public_search', _publicSearch);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved on this device'), backgroundColor: CScholarColors.success));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -55,43 +95,34 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       return _mobileLayout(context);
     }
 
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      body: Row(
-        children: [
-          const AdminSidebar(currentPath: '/admin/settings'),
-          Expanded(
-            child: Column(
-              children: [
-                // Top bar
-                Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('System Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: _isSaving ? null : _save,
-                        style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
-                        child: _isSaving
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('Save Settings'),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+    return CScholarShell(
+      sidebar: const AdminSidebar(currentPath: '/admin/settings'),
+      topbar: const AdminTopbar(),
+      mobileTitle: 'System Settings',
+      backRoute: '/admin/dashboard',
+      maxWidth: 860,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageHeader(
+              title: 'System Settings',
+              subtitle: 'Stored on this device.',
+              action: FilledButton(
+                onPressed: _isSaving ? null : _save,
+                style: FilledButton.styleFrom(
+                    backgroundColor: CScholarColors.primaryGreen,
+                    foregroundColor: Colors.white),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text('Save Settings'),
+              ),
+            ),
+            const SizedBox(height: 20),
                         // General settings
                         _sectionCard('General', Icons.settings, [
                           _textField('Repository Name', 'e.g., CScholar CEIT Repository', _siteNameCtrl),
@@ -132,13 +163,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+                );
   }
 
   Widget _sectionCard(String title, IconData icon, List<Widget> children) {
@@ -208,6 +233,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ],
           ),
         ),
+        // control-exempt: Task C.1 — settings toggles are still stock
+        // Switches; migrate to NeumorphToggle or record an exemption.
         Switch(value: value, onChanged: onChanged, activeThumbColor: CScholarColors.primaryGreen),
       ],
     );

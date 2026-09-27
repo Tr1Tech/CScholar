@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 
@@ -51,6 +53,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final user = ref.read(currentUserProvider);
         if (user?.role == 'admin') {
           context.go('/admin/dashboard');
+        } else if (user?.role == 'faculty') {
+          context.go('/faculty/dashboard');
         } else {
           context.go('/student/dashboard');
         }
@@ -72,23 +76,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isDesktop = size.width > 860;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      // The auth card is a clay panel on the shared canvas — the old
+      // #F3F4F6 cool grey belonged to no hue family in this palette and made
+      // login look like a different product from the rest of the app.
+      backgroundColor: CScholarMaterial.canvas,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 980),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: CScholarMaterial.clay,
               borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: CScholarMaterial.clayDrop(depth: 1.2),
+              border: Border.all(color: CScholarMaterial.rim),
             ),
             clipBehavior: Clip.antiAlias,
             child: isDesktop
@@ -196,6 +197,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _featureItem(IconData icon, String text) {
     return Row(
       children: [
+        // tile-exempt: a 28px disc on the DARK hero panel. ClayIconTile is a
+        // moulded clay/gel SQUARE — on the deep-green hero it would read as a
+        // stray light chip, so this one keeps its white-alpha disc.
         Container(
           width: 28,
           height: 28,
@@ -270,40 +274,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
 
             // Email Field
-            Text(
-              'INSTITUTIONAL EMAIL',
-              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
-            ),
-            const SizedBox(height: 6),
-            TextFormField(
+            NeumorphField(
               controller: _emailController,
+              label: 'Institutional Email',
+              hintText: 'you@example.com',
+              prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              validator: (v) => (v == null || !v.contains('@')) ? 'Please enter a valid institutional email' : null,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.email_outlined, size: 18, color: CScholarColors.textHint),
-                hintText: 'you@example.com',
-              ),
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.email],
+              validator: (v) => (v == null || !v.contains('@'))
+                  ? 'Please enter a valid institutional email'
+                  : null,
             ),
 
             const SizedBox(height: 16),
 
             // Password Field
-            Text(
-              'PASSWORD',
-              style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5),
-            ),
-            const SizedBox(height: 6),
-            TextFormField(
+            NeumorphField(
               controller: _passwordController,
+              label: 'Password',
+              hintText: '••••••••',
+              prefixIcon: Icons.lock_outline,
               obscureText: _obscure,
-              validator: (v) => (v == null || v.length < 4) ? 'Password must be at least 4 characters' : null,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.lock_outline, size: 18, color: CScholarColors.textHint),
-                hintText: '••••••••',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: CScholarColors.textHint),
-                  onPressed: () => setState(() => _obscure = !_obscure),
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.password],
+              onSubmitted: (_) => _login(),
+              validator: (v) => (v == null || v.length < 4)
+                  ? 'Password must be at least 4 characters'
+                  : null,
+              suffixIcon: IconButton(
+                tooltip: _obscure ? 'Show password' : 'Hide password',
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 18,
+                  color: CScholarColors.textMuted,
                 ),
+                onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
 
@@ -318,6 +326,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       width: 20,
                       height: 20,
+                      // control-exempt: Task C.1 — "Remember me" is still a
+                      // stock Checkbox; decide NeumorphToggle vs exemption.
                       child: Checkbox(
                         value: _rememberMe,
                         onChanged: (v) => setState(() => _rememberMe = v ?? true),
@@ -330,7 +340,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Forgot password?'),
+                      content: const Text(
+                          'Password resets are handled by your administrator. '
+                          'Visit the CEIT office or message your admin with your username and email.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Got it')),
+                      ],
+                    ),
+                  ),
                   child: Text('Forgot password?', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
                 ),
               ],
@@ -344,10 +367,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               height: 48,
               child: FilledButton(
                 onPressed: _isLoading ? null : _login,
+                // No elevation override: the global theme pins primary actions
+                // at 0 so one button can't reintroduce a drop shadow.
                 style: FilledButton.styleFrom(
                   backgroundColor: CScholarColors.primaryGreen,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.lg)),
-                  elevation: 2,
                 ),
                 child: _isLoading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

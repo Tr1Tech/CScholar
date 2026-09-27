@@ -1,11 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
+import 'package:frontend/presentation/widgets/result_card.dart';
+import 'package:frontend/presentation/widgets/rec_rail.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
+/// V2 repository (new design): gradient hero with glass search + live
+/// filter boxes, result cards with generative covers, AI rail.
+/// Semantic mode can be preselected via `?mode=semantic`.
 class RepositoryScreen extends ConsumerStatefulWidget {
   final String? initialQuery;
   const RepositoryScreen({super.key, this.initialQuery});
@@ -16,6 +29,7 @@ class RepositoryScreen extends ConsumerStatefulWidget {
 
 class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   final _searchController = TextEditingController();
+  final _heroController = TextEditingController();
   final _keywordController = TextEditingController();
   String _query = '';
   String _keyword = '';
@@ -25,19 +39,24 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   int? _selectedCategoryId;
   String? _selectedType;
   String _sortBy = 'Latest';
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
+    if (widget.initialQuery != null &&
+        widget.initialQuery!.trim().isNotEmpty) {
       _query = widget.initialQuery!.trim();
       _searchController.text = _query;
+      _heroController.text = _query;
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
+    _heroController.dispose();
     _keywordController.dispose();
     super.dispose();
   }
@@ -61,8 +80,29 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       _keyword = '';
       _keywordController.clear();
       _searchController.clear();
+      _heroController.clear();
       _query = '';
       _sortBy = 'Latest';
+    });
+  }
+
+  void _submitHero() {
+    _debounce?.cancel();
+    final q = _heroController.text.trim();
+    setState(() {
+      _query = q;
+      _searchController.text = q;
+    });
+  }
+
+  /// Live search: results filter while typing (debounced so we don't
+  /// hammer the API — and the embedding model — on every keystroke).
+  void _onHeroChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      final q = v.trim();
+      if (q != _query) setState(() => _query = q);
     });
   }
 
@@ -87,653 +127,517 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         : const AsyncValue<List<SemanticResult>>.data([]);
     final savedIds = ref.watch(savedThesisIdsProvider);
     final size = MediaQuery.of(context).size;
-    final showDesktopFilter = size.width > 920;
-
-    // Watch providers for filter dropdowns
-    final programs = ref.watch(programsProvider);
-    final academicYears = ref.watch(academicYearsProvider);
-    final categories = ref.watch(categoriesProvider);
+    final isWide = size.width > 920;
 
     return StudentLayout(
       currentIndex: 1,
-      searchController: _searchController,
-      searchHint: 'Search thesis, capstone, topic, author, keyword...',
-      onSearchChanged: (v) {
-        if (!_isSemantic) setState(() => _query = v);
-      },
-      onSearchSubmit: () => setState(() => _query = _searchController.text),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Left Filters Sidebar (Desktop)
-          if (showDesktopFilter)
-            Container(
-              width: 270,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  right: BorderSide(color: CScholarColors.borderLight),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Filters',
-                          style: CScholarTextStyles.poppins(
-                            16,
-                            FontWeight.w700,
-                            CScholarColors.textPrimary,
-                          ),
-                        ),
-                        const Icon(
-                          Icons.filter_list,
-                          size: 18,
-                          color: CScholarColors.textSecondary,
-                        ),
-                      ],
-                    ),
-                    const Divider(
-                      color: CScholarColors.borderLight,
-                      height: 24,
-                    ),
-                    _buildFilterContent(
-                      programs: programs,
-                      academicYears: academicYears,
-                      categories: categories,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // 2. Results Area
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            _hero(context, isWide),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: isWide ? 32 : 16, vertical: 24),
               child: Center(
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 1040),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Results Header Bar
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                'Results',
-                                style: CScholarTextStyles.poppins(
-                                  20,
-                                  FontWeight.w800,
-                                  CScholarColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              theses.maybeWhen(
-                                data: (list) => Text(
-                                  '(${list?.length ?? 0})',
-                                  style: CScholarTextStyles.inter(
-                                    14,
-                                    FontWeight.w600,
-                                    CScholarColors.textMuted,
-                                  ),
-                                ),
-                                orElse: () => const SizedBox.shrink(),
-                              ),
-                              if (!showDesktopFilter) ...[
-                                const SizedBox(width: 12),
-                                OutlinedButton.icon(
-                                  onPressed: () => _showMobileFilters(
-                                    context,
-                                    programs,
-                                    academicYears,
-                                    categories,
-                                  ),
-                                  icon: const Icon(Icons.filter_list, size: 16),
-                                  label: Text(
-                                    'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: CScholarColors.primaryGreen,
-                                    side: const BorderSide(
-                                      color: CScholarColors.primaryGreen,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-
-                          Row(
-                            children: [
-                              // Semantic Switch
-                              Row(
-                                children: [
-                                  Text(
-                                    'Semantic Match',
-                                    style: CScholarTextStyles.inter(
-                                      12,
-                                      FontWeight.w600,
-                                      CScholarColors.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Switch(
-                                    value: _isSemantic,
-                                    onChanged: (v) =>
-                                        setState(() => _isSemantic = v),
-                                    activeThumbColor:
-                                        CScholarColors.primaryGreen,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                              // Sort by Dropdown
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(
-                                    CScholarRadius.md,
-                                  ),
-                                  border: Border.all(
-                                    color: CScholarColors.borderLight,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'Sort: ',
-                                      style: CScholarTextStyles.inter(
-                                        12,
-                                        FontWeight.w500,
-                                        CScholarColors.textMuted,
-                                      ),
-                                    ),
-                                    DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: _sortBy,
-                                        isDense: true,
-                                        style: CScholarTextStyles.inter(
-                                          12,
-                                          FontWeight.w600,
-                                          CScholarColors.textPrimary,
-                                        ),
-                                        items: const [
-                                          DropdownMenuItem(
-                                            value: 'Latest',
-                                            child: Text('Latest'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'Oldest',
-                                            child: Text('Oldest'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'Title (A-Z)',
-                                            child: Text('Title (A-Z)'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'Title (Z-A)',
-                                            child: Text('Title (Z-A)'),
-                                          ),
-                                        ],
-                                        onChanged: (v) =>
-                                            setState(() => _sortBy = v!),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Results List — semantic when toggle is on + query present.
-                      if (useSemantic)
-                        semantic.when(
-                          data: (results) {
-                            if (results.isEmpty) {
-                              return Column(
-                                children: [
-                                  _semanticUnavailableNote(),
-                                  _noResultsFound(),
-                                ],
-                              );
-                            }
-                            // Apply dropdown filters client-side
-                            final filtered = _filterSemanticResults(results);
-                            if (filtered.isEmpty) {
-                              return _noResultsFound();
-                            }
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, i) {
-                                final r = filtered[i];
-                                final isSaved = savedIds.contains(r.thesis.id);
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildResultCard(
-                                    thesis: r.thesis,
-                                    isSaved: isSaved,
-                                    similarityScore: r.similarity,
-                                    onBookmarkToggle: () => ref
-                                        .read(savedThesisIdsProvider.notifier)
-                                        .toggle(r.thesis.id),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          loading: () => const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(40),
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          error: (err, _) => Center(
-                            child: Text('Semantic search error: $err'),
-                          ),
-                        )
-                      else
-                        theses.when(
-                          data: (list) {
-                            if (list == null || list.isEmpty) {
-                              return _noResultsFound();
-                            }
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: list.length,
-                              itemBuilder: (context, i) {
-                                final thesis = list[i];
-                                final isSaved = savedIds.contains(thesis.id);
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildResultCard(
-                                    thesis: thesis,
-                                    isSaved: isSaved,
-                                    similarityScore: null,
-                                    onBookmarkToggle: () => ref
-                                        .read(savedThesisIdsProvider.notifier)
-                                        .toggle(thesis.id),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          loading: () => const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(40),
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          error: (err, _) => Center(child: Text('Error: $err')),
-                        ),
-                    ],
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: _resultsColumn(context, useSemantic, theses,
+                      semantic, savedIds),
                 ),
               ),
             ),
-          ),
-        ],
+            const CScholarFooter(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildResultCard({
-    required Thesis thesis,
-    required bool isSaved,
-    required VoidCallback onBookmarkToggle,
-    double? similarityScore,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Academic Year & Degree Program Badge
-                Row(
+  /// Results list, with the AI rail beside it on wide screens.
+  /// Rail and list scroll together as one column — no nested scroll views.
+  Widget _resultsColumn(
+    BuildContext context,
+    bool useSemantic,
+    AsyncValue<List<Thesis>?> theses,
+    AsyncValue<List<SemanticResult>> semantic,
+    Set<int> savedIds,
+  ) {
+    final list = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _resultsHeader(context, useSemantic, theses),
+        const SizedBox(height: 16),
+        if (useSemantic)
+          semantic.when(
+            data: (results) {
+              if (results.isEmpty) {
+                return Column(
                   children: [
-                    Text(
-                      thesis.academicYear?.label ?? 'N/A',
-                      style: CScholarTextStyles.inter(
-                        11.5,
-                        FontWeight.w600,
-                        CScholarColors.textMuted,
+                    _semanticUnavailableNote(),
+                    _noResultsFound(),
+                  ],
+                );
+              }
+              final filtered = _filterSemanticResults(results);
+              if (filtered.isEmpty) return _noResultsFound();
+              return Column(
+                children: [
+                  for (final r in filtered)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ResultCard(
+                        thesis: r.thesis,
+                        isSaved: savedIds.contains(r.thesis.id),
+                        similarity: r.similarity,
+                        onToggleSave: () => ref
+                            .read(savedThesisIdsProvider.notifier)
+                            .toggle(r.thesis.id),
                       ),
                     ),
-                    Text(
-                      ' • ',
-                      style: CScholarTextStyles.inter(
-                        11.5,
+                ],
+              );
+            },
+            loading: () =>
+                const SkeletonList(count: 4, cardHeight: 150),
+            error: (err, _) => EmptyState(
+              icon: Icons.error_outline,
+              title: 'Semantic search error',
+              message: err.toString(),
+              actionLabel: 'Retry',
+              onAction: () =>
+                  ref.invalidate(semanticSearchProvider(_query.trim())),
+            ),
+          )
+        else
+          theses.when(
+            data: (list) {
+              if (list == null || list.isEmpty) return _noResultsFound();
+              return Column(
+                children: [
+                  for (final thesis in list)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ResultCard(
+                        thesis: thesis,
+                        isSaved: savedIds.contains(thesis.id),
+                        onToggleSave: () => ref
+                            .read(savedThesisIdsProvider.notifier)
+                            .toggle(thesis.id),
+                      ),
+                    ),
+                ],
+              );
+            },
+            loading: () =>
+                const SkeletonList(count: 4, cardHeight: 150),
+            error: (err, _) => EmptyState(
+              icon: Icons.error_outline,
+              title: 'Could not load studies',
+              message: err.toString(),
+              actionLabel: 'Retry',
+              onAction: () => ref.invalidate(thesisListProvider(
+                ThesisListParams(
+                  query: _query.isEmpty ? null : _query,
+                  programId: _selectedProgramId,
+                  academicYearId: _selectedYearId,
+                  categoryId: _selectedCategoryId,
+                  keyword: _keyword.isEmpty ? null : _keyword,
+                  sortBy: _sortBy,
+                  researchType: _selectedType,
+                ),
+              )),
+            ),
+          ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth <= 900) return list;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 8, child: list),
+            const SizedBox(width: 20),
+            Expanded(flex: 5, child: RecRail(query: _query)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _resultsHeader(BuildContext context, bool useSemantic,
+      AsyncValue<List<Thesis>?> theses) {
+    final size = MediaQuery.of(context).size;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  useSemantic ? 'Semantic Results' : 'Search Results',
+                  style: CScholarTextStyles.poppins(
+                      20, FontWeight.w800, CScholarColors.textPrimary)),
+              if (!useSemantic)
+                theses.maybeWhen(
+                  data: (list) => Text(
+                    _query.isEmpty
+                        ? '${list?.length ?? 0} studies in the repository'
+                        : 'Showing ${list?.length ?? 0} results for "$_query"',
+                    style: CScholarTextStyles.inter(
+                        12.5,
                         FontWeight.w400,
-                        CScholarColors.borderLight,
-                      ),
-                    ),
-                    Text(
-                      thesis.program?.name ?? 'N/A',
-                      style: CScholarTextStyles.inter(
-                        11.5,
-                        FontWeight.w600,
-                        const Color(0xFF0284C7),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Title
-                InkWell(
-                  onTap: () => context.go('/thesis/${thesis.id}'),
-                  child: Text(
-                    thesis.title,
-                    style: CScholarTextStyles.poppins(
-                      16,
-                      FontWeight.w700,
-                      CScholarColors.textPrimary,
-                    ),
+                        CScholarColors.textMuted),
                   ),
+                  orElse: () => const SizedBox.shrink(),
+                )
+              else
+                Text('Ranked by meaning, not keywords',
+                    style: CScholarTextStyles.inter(12.5,
+                        FontWeight.w400, CScholarColors.textMuted)),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            if (size.width <= 920)
+              OutlinedButton.icon(
+                onPressed: () => _showMobileFilters(context),
+                icon: const Icon(Icons.filter_list, size: 16),
+                label: Text(
+                  'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
+                  style: const TextStyle(fontSize: 12),
                 ),
-                const SizedBox(height: 4),
-
-                // Authors
-                Text(
-                  'By: ${thesis.authorsString}',
-                  style: CScholarTextStyles.inter(
-                    12.5,
-                    FontWeight.w500,
-                    CScholarColors.textSecondary,
-                  ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: CScholarColors.primaryGreen,
+                  side:
+                      const BorderSide(color: CScholarColors.primaryGreen),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
                 ),
-                const SizedBox(height: 8),
-
-                // Abstract snippet
-                Text(
-                  thesis.shortDescription,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(
-                    12.5,
-                    FontWeight.w400,
-                    CScholarColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Actions: View Details & Bookmark
-                Row(
-                  children: [
-                    FilledButton(
-                      onPressed: () => context.go('/thesis/${thesis.id}'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: CScholarColors.primaryGreen,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            CScholarRadius.md,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        'View Details',
-                        style: CScholarTextStyles.inter(
-                          12.5,
-                          FontWeight.w600,
-                          Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      tooltip: isSaved ? 'Remove from Saved' : 'Save Study',
-                      icon: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                        size: 22,
-                        color: isSaved
-                            ? CScholarColors.primaryGreen
-                            : CScholarColors.textHint,
-                      ),
-                      onPressed: onBookmarkToggle,
-                    ),
-                  ],
+              ),
+            const SizedBox(width: 12),
+            Row(
+              children: [
+                Text('Semantic Search',
+                    style: CScholarTextStyles.inter(12,
+                        FontWeight.w600, CScholarColors.textSecondary)),
+                const SizedBox(width: 6),
+                // control-exempt: Task C.1 — semantic toggle is still a stock
+                // Switch; migrate to NeumorphToggle or record an exemption.
+                Switch(
+                  value: _isSemantic,
+                  onChanged: (v) => setState(() => _isSemantic = v),
+                  activeThumbColor: CScholarColors.primaryGreen,
                 ),
               ],
             ),
-          ),
-
-          // Match / Similarity Badge
-          if (similarityScore != null) ...[
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: CScholarColors.primaryGreenVeryLight,
-                borderRadius: BorderRadius.circular(CScholarRadius.full),
-                border: Border.all(
-                  color: CScholarColors.primaryGreen.withValues(alpha: 0.3),
+            const SizedBox(width: 8),
+            Row(
+              children: [
+                Text('Sort: ',
+                    style: CScholarTextStyles.inter(12,
+                        FontWeight.w500, CScholarColors.textMuted)),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 170,
+                  child: NeumorphSelectField<String>(
+                    value: _sortBy,
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'Latest', child: Text('Latest')),
+                      DropdownMenuItem(
+                          value: 'Oldest', child: Text('Oldest')),
+                      DropdownMenuItem(
+                          value: 'Title (A-Z)',
+                          child: Text('Title (A-Z)')),
+                      DropdownMenuItem(
+                          value: 'Title (Z-A)',
+                          child: Text('Title (Z-A)')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setState(() => _sortBy = v);
+                    },
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 2),
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: CScholarColors.primaryGreen,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${(similarityScore * 100).round()}% similar',
-                    style: CScholarTextStyles.inter(
-                      11.5,
-                      FontWeight.w700,
-                      CScholarColors.primaryGreen,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterContent({
-    required AsyncValue<List<Program>> programs,
-    required AsyncValue<List<AcademicYear>> academicYears,
-    required AsyncValue<List<Category>> categories,
-    VoidCallback? onChangedCallback,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Program Select
-        _buildAsyncDropdown<int>(
-          label: 'Program',
-          value: _selectedProgramId,
-          asyncItems: programs,
-          itemLabel: (p) => p.name,
-          itemId: (p) => p.id,
-          onChanged: (v) {
-            setState(() => _selectedProgramId = v);
-            onChangedCallback?.call();
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Academic Year Select
-        _buildAsyncDropdown<int>(
-          label: 'Academic Year',
-          value: _selectedYearId,
-          asyncItems: academicYears,
-          itemLabel: (y) => y.label,
-          itemId: (y) => y.id,
-          onChanged: (v) {
-            setState(() => _selectedYearId = v);
-            onChangedCallback?.call();
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Category Select
-        _buildAsyncDropdown<int>(
-          label: 'Category',
-          value: _selectedCategoryId,
-          asyncItems: categories,
-          itemLabel: (c) => c.name,
-          itemId: (c) => c.id,
-          onChanged: (v) {
-            setState(() => _selectedCategoryId = v);
-            onChangedCallback?.call();
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Research Type Select
-        _buildStaticDropdown<String>(
-          label: 'Research Type',
-          value: _selectedType,
-          items: const {
-            'All': 'All',
-            'Thesis': 'Thesis',
-            'Capstone': 'Capstone',
-            'Applied Research': 'Applied Research',
-          },
-          allKey: 'All',
-          onChanged: (v) {
-            setState(() => _selectedType = v);
-            onChangedCallback?.call();
-          },
-        ),
-        const SizedBox(height: 16),
-
-        // Keywords Field
-        Text(
-          'Keywords',
-          style: CScholarTextStyles.inter(
-            11.5,
-            FontWeight.w700,
-            CScholarColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _keywordController,
-          onChanged: (v) {
-            setState(() => _keyword = v.trim());
-            onChangedCallback?.call();
-          },
-          onSubmitted: (v) {
-            setState(() => _keyword = v.trim());
-            onChangedCallback?.call();
-          },
-          style: CScholarTextStyles.inter(
-            13,
-            FontWeight.w400,
-            CScholarColors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Enter keyword...',
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-            suffixIcon: _keyword.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 16),
-                    onPressed: () {
-                      _keywordController.clear();
-                      setState(() => _keyword = '');
-                      onChangedCallback?.call();
-                    },
-                  )
-                : null,
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Clear Filters Action
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () {
-              _clearFilters();
-              onChangedCallback?.call();
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: CScholarColors.textSecondary,
-              side: const BorderSide(
-                color: CScholarColors.borderLight,
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  CScholarRadius.md,
-                ),
-              ),
-            ),
-            child: Text(
-              'Clear Filters',
-              style: CScholarTextStyles.inter(
-                12,
-                FontWeight.w600,
-                CScholarColors.textSecondary,
-              ),
-            ),
-          ),
         ),
       ],
     );
   }
 
-  void _showMobileFilters(
-    BuildContext context,
-    AsyncValue<List<Program>> programs,
-    AsyncValue<List<AcademicYear>> academicYears,
-    AsyncValue<List<Category>> categories,
-  ) {
+  Widget _hero(BuildContext context, bool isWide) {
+    final programs = ref.watch(programsProvider);
+    final academicYears = ref.watch(academicYearsProvider);
+    final categories = ref.watch(categoriesProvider);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+          horizontal: isWide ? 32 : 16, vertical: isWide ? 36 : 24),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            CScholarColors.heroDeep,
+            CScholarColors.heroMid,
+            CScholarColors.heroGlow,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          // One shared blur pass for the search pane plus the four filter
+          // panes below it — that is what GlassGroup exists for.
+          child: GlassGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              Text('Discover. Learn. Build the Future.',
+                  style: CScholarTextStyles.poppins(
+                      isWide ? 30 : 24,
+                      FontWeight.w800,
+                      Colors.white,
+                      height: 1.2)),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Text(
+                  'Find relevant theses and capstone projects using semantic search and AI-powered recommendations.',
+                  style: CScholarTextStyles.inter(
+                      13.5, FontWeight.w400, CScholarMaterial.shadowDark,
+                      height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 18),
+              // Glass search box — the shared primitive, so the low-power kill
+              // switch (glassEnabled) and the high-contrast fallback apply.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: GlassPanel(
+                  radius: CScholarRadius.lg,
+                  // Deliberate overrides of the chrome recipe — .62 fill /
+                  // 18 blur. The hero copy sits behind this box, so it needs a
+                  // more opaque, sharper pane to stay legible.
+                  fill: Colors.white.withValues(alpha: 0.92),
+                  blur: 12,
+                  padding: const EdgeInsets.all(6),
+                  // The hero's dark gradient is the only content behind this
+                  // box, so a cast shadow would land on nothing.
+                  shadows: const [],
+                  child: Row(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Icon(Icons.search,
+                            color: CScholarColors.textHint, size: 22),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _heroController,
+                          onChanged: _onHeroChanged,
+                          onSubmitted: (_) => _submitHero(),
+                          style: CScholarTextStyles.inter(14,
+                              FontWeight.w400, CScholarColors.textPrimary),
+                          decoration: const InputDecoration(
+                            hintText:
+                                'Try searching for a topic, technology, or keyword...',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding:
+                                EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                      FilledButton(
+                        onPressed: _submitHero,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: CScholarColors.primaryGreen,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  CScholarRadius.md)),
+                        ),
+                        child: const Icon(Icons.arrow_forward,
+                            size: 20, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Live filter boxes
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final boxes = [
+                    _heroFilterBox<String>(
+                      label: 'Research Type',
+                      value: _selectedType,
+                      items: const {
+                        null: 'All',
+                        'Thesis': 'Thesis',
+                        'Capstone': 'Capstone',
+                      },
+                      onChanged: (v) =>
+                          setState(() => _selectedType = v),
+                    ),
+                    _heroFilterBox<int>(
+                      label: 'Program',
+                      value: _selectedProgramId,
+                      asyncItems: programs,
+                      itemLabel: (p) => (p as Program).name,
+                      itemId: (p) => (p as Program).id,
+                      onChanged: (v) =>
+                          setState(() => _selectedProgramId = v),
+                    ),
+                    _heroFilterBox<int>(
+                      label: 'Academic Year',
+                      value: _selectedYearId,
+                      asyncItems: academicYears,
+                      itemLabel: (y) => (y as AcademicYear).label,
+                      itemId: (y) => (y as AcademicYear).id,
+                      onChanged: (v) =>
+                          setState(() => _selectedYearId = v),
+                    ),
+                    _heroFilterBox<int>(
+                      label: 'Category',
+                      value: _selectedCategoryId,
+                      asyncItems: categories,
+                      itemLabel: (c) => (c as Category).name,
+                      itemId: (c) => (c as Category).id,
+                      onChanged: (v) =>
+                          setState(() => _selectedCategoryId = v),
+                    ),
+                  ];
+                  if (constraints.maxWidth > 860) {
+                    return Row(
+                      children: [
+                        for (var i = 0; i < boxes.length; i++) ...[
+                          Expanded(child: boxes[i]),
+                          if (i < boxes.length - 1)
+                            const SizedBox(width: 10),
+                        ],
+                        const SizedBox(width: 10),
+                        TextButton.icon(
+                          onPressed: _activeFilterCount > 0
+                              ? _clearFilters
+                              : null,
+                          icon: const Icon(Icons.clear_all,
+                              size: 16, color: Colors.white70),
+                          label: const Text('Clear all',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.white70)),
+                        ),
+                      ],
+                    );
+                  }
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      ...boxes.map((b) => SizedBox(
+                          width: (constraints.maxWidth - 10) / 2, child: b)),
+                      if (_activeFilterCount > 0)
+                        TextButton.icon(
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.clear_all,
+                              size: 16, color: Colors.white70),
+                          label: const Text('Clear all',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.white70)),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _heroFilterBox<T>({
+    required String label,
+    required T? value,
+    Map<T?, String>? items,
+    AsyncValue<List<dynamic>>? asyncItems,
+    String Function(dynamic)? itemLabel,
+    T Function(dynamic)? itemId,
+    required ValueChanged<T?> onChanged,
+  }) {
+    Widget dropdown;
+    if (items != null) {
+      dropdown = NeumorphSelectField<T>(
+        // Controlled: the screen owns the filter value, so "Clear all" stays
+        // in sync by construction (a FormField would keep the stale pick).
+        value: value,
+        items: items.entries
+            .map((e) =>
+                DropdownMenuItem<T>(value: e.key, child: Text(e.value)))
+            .toList(),
+        onChanged: onChanged,
+        contentPadding: EdgeInsets.zero,
+      );
+    } else {
+      dropdown = asyncItems!.when(
+        data: (list) => NeumorphSelectField<T>(
+          value: value,
+          items: [
+            DropdownMenuItem<T>(value: null, child: const Text('All')),
+            for (final item in list)
+              DropdownMenuItem<T>(
+                  value: itemId!(item), child: Text(itemLabel!(item))),
+          ],
+          onChanged: onChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+        loading: () => const ClayLoader(height: 8),
+        error: (_, _) => NeumorphSelectField<T>(
+          value: value,
+          items: [DropdownMenuItem<T>(value: null, child: const Text('All'))],
+          onChanged: onChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+      );
+    }
+    // Floating chrome over the dark hero overlay is glass per the fusion law.
+    // Same recipe as the hero search box above (.92 fill / 12 blur, no cast
+    // shadow — a shadow here would land on the gradient, not on content).
+    return GlassPanel(
+      radius: CScholarRadius.md,
+      fill: Colors.white.withValues(alpha: 0.92),
+      blur: 12,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      shadows: const [],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              style: CScholarTextStyles.inter(
+                  10.5, FontWeight.w500, CScholarColors.textMuted)),
+          dropdown,
+        ],
+      ),
+    );
+  }
+
+  void _showMobileFilters(BuildContext context) {
+    final programs = ref.read(programsProvider);
+    final academicYears = ref.read(academicYearsProvider);
+    final categories = ref.read(categoriesProvider);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -760,14 +664,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Filters',
-                            style: CScholarTextStyles.poppins(
-                              18,
-                              FontWeight.w700,
-                              CScholarColors.textPrimary,
-                            ),
-                          ),
+                          Text('Filters',
+                              style: CScholarTextStyles.poppins(18,
+                                  FontWeight.w700, CScholarColors.textPrimary)),
                           IconButton(
                             icon: const Icon(Icons.close),
                             onPressed: () => Navigator.pop(context),
@@ -803,7 +702,121 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
-  /// Async-loaded dropdown for programs, years, categories from API
+  Widget _buildFilterContent({
+    required AsyncValue<List<Program>> programs,
+    required AsyncValue<List<AcademicYear>> academicYears,
+    required AsyncValue<List<Category>> categories,
+    VoidCallback? onChangedCallback,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildAsyncDropdown<int>(
+          label: 'Program',
+          value: _selectedProgramId,
+          asyncItems: programs,
+          itemLabel: (p) => p.name,
+          itemId: (p) => p.id,
+          onChanged: (v) {
+            setState(() => _selectedProgramId = v);
+            onChangedCallback?.call();
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildAsyncDropdown<int>(
+          label: 'Academic Year',
+          value: _selectedYearId,
+          asyncItems: academicYears,
+          itemLabel: (y) => y.label,
+          itemId: (y) => y.id,
+          onChanged: (v) {
+            setState(() => _selectedYearId = v);
+            onChangedCallback?.call();
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildAsyncDropdown<int>(
+          label: 'Category',
+          value: _selectedCategoryId,
+          asyncItems: categories,
+          itemLabel: (c) => c.name,
+          itemId: (c) => c.id,
+          onChanged: (v) {
+            setState(() => _selectedCategoryId = v);
+            onChangedCallback?.call();
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildStaticDropdown<String>(
+          label: 'Research Type',
+          value: _selectedType,
+          items: const {
+            'All': 'All',
+            'Thesis': 'Thesis',
+            'Capstone': 'Capstone',
+            'Applied Research': 'Applied Research',
+          },
+          allKey: 'All',
+          onChanged: (v) {
+            setState(() => _selectedType = v);
+            onChangedCallback?.call();
+          },
+        ),
+        const SizedBox(height: 16),
+        Text('Keywords',
+            style: CScholarTextStyles.inter(
+                11.5, FontWeight.w700, CScholarColors.textSecondary)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _keywordController,
+          onChanged: (v) {
+            setState(() => _keyword = v.trim());
+            onChangedCallback?.call();
+          },
+          onSubmitted: (v) {
+            setState(() => _keyword = v.trim());
+            onChangedCallback?.call();
+          },
+          style: CScholarTextStyles.inter(
+              13, FontWeight.w400, CScholarColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Enter keyword...',
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            suffixIcon: _keyword.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 16),
+                    onPressed: () {
+                      _keywordController.clear();
+                      setState(() => _keyword = '');
+                      onChangedCallback?.call();
+                    },
+                  )
+                : null,
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () {
+              _clearFilters();
+              onChangedCallback?.call();
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: CScholarColors.textSecondary,
+              side: const BorderSide(color: CScholarColors.borderLight),
+              padding: const EdgeInsets.symmetric(vertical: 11),
+            ),
+            child: Text('Clear Filters',
+                style: CScholarTextStyles.inter(
+                    12, FontWeight.w600, CScholarColors.textSecondary)),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAsyncDropdown<T>({
     required String label,
     required T? value,
@@ -815,14 +828,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: CScholarTextStyles.inter(
-            11.5,
-            FontWeight.w700,
-            CScholarColors.textSecondary,
-          ),
-        ),
+        Text(label,
+            style: CScholarTextStyles.inter(
+                11.5, FontWeight.w700, CScholarColors.textSecondary)),
         const SizedBox(height: 6),
         asyncItems.when(
           data: (list) {
@@ -830,36 +838,20 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
               DropdownMenuItem<T>(value: null, child: const Text('All')),
             ];
             for (final item in list) {
-              final id = itemId(item);
-              final lbl = itemLabel(item);
-              menuItems.add(DropdownMenuItem<T>(value: id, child: Text(lbl)));
+              menuItems.add(DropdownMenuItem<T>(
+                  value: itemId(item), child: Text(itemLabel(item))));
             }
-            return DropdownButtonFormField<T>(
-              initialValue: value,
-              isDense: true,
-              isExpanded: true,
-              style: CScholarTextStyles.inter(
-                13,
-                FontWeight.w400,
-                CScholarColors.textPrimary,
-              ),
+            return NeumorphSelectField<T>(
+              // Controlled: "Clear Filters" in the sheet resets the screen's
+              // value, and the well must follow it.
+              value: value,
               items: menuItems,
               onChanged: onChanged,
             );
           },
-          loading: () => const SizedBox(
-            height: 36,
-            child: Center(
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          ),
-          error: (err, stackTrace) => DropdownButtonFormField<T>(
-            initialValue: value,
-            isDense: true,
+          loading: () => const ClayLoader(height: 8),
+          error: (err, stackTrace) => NeumorphSelectField<T>(
+            value: value,
             items: [DropdownMenuItem<T>(value: null, child: const Text('All'))],
             onChanged: onChanged,
           ),
@@ -868,7 +860,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
-  /// Static dropdown for research type and other simple lists
   Widget _buildStaticDropdown<T>({
     required String label,
     required T? value,
@@ -879,24 +870,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: CScholarTextStyles.inter(
-            11.5,
-            FontWeight.w700,
-            CScholarColors.textSecondary,
-          ),
-        ),
+        Text(label,
+            style: CScholarTextStyles.inter(
+                11.5, FontWeight.w700, CScholarColors.textSecondary)),
         const SizedBox(height: 6),
-        DropdownButtonFormField<T>(
-          initialValue: value,
-          isDense: true,
-          isExpanded: true,
-          style: CScholarTextStyles.inter(
-            13,
-            FontWeight.w400,
-            CScholarColors.textPrimary,
-          ),
+        NeumorphSelectField<T>(
+          // Controlled: "Clear Filters" resets the screen's value, and the
+          // well must follow it. The 'All' entry maps to null — that
+          // null-vs-"All" semantics is preserved exactly.
+          value: value,
           items: items.entries
               .map(
                 (e) => DropdownMenuItem<T>(
@@ -922,16 +904,14 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, size: 18, color: Color(0xFFF57F17)),
+          const Icon(Icons.info_outline,
+              size: 18, color: Color(0xFFF57F17)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Semantic index unavailable — showing no AI matches.',
               style: CScholarTextStyles.inter(
-                12,
-                FontWeight.w500,
-                const Color(0xFF7A5C00),
-              ),
+                  12, FontWeight.w500, const Color(0xFF7A5C00)),
             ),
           ),
         ],
@@ -939,7 +919,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
-  /// Apply dropdown filters to semantic search results client-side.
   List<SemanticResult> _filterSemanticResults(List<SemanticResult> results) {
     return results.where((r) {
       if (_selectedProgramId != null &&
@@ -954,7 +933,8 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         return false;
       }
       if (_selectedCategoryId != null) {
-        final catIds = r.thesis.categories?.map((c) => c.id).toList() ?? [];
+        final catIds =
+            r.thesis.categories?.map((c) => c.id).toList() ?? [];
         if (!catIds.contains(_selectedCategoryId)) {
           return false;
         }
@@ -964,40 +944,11 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   }
 
   Widget _noResultsFound() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.search_off,
-              size: 56,
-              color: CScholarColors.textHint,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No studies found matching your filters',
-              style: CScholarTextStyles.poppins(
-                16,
-                FontWeight.w600,
-                CScholarColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _clearFilters,
-              child: Text(
-                'Reset all filters',
-                style: CScholarTextStyles.inter(
-                  13,
-                  FontWeight.w600,
-                  CScholarColors.primaryGreen,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: Icons.search_off,
+      title: 'No studies found matching your filters',
+      actionLabel: 'Reset all filters',
+      onAction: _clearFilters,
     );
   }
 }

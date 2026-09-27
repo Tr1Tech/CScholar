@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
+import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:file_picker/file_picker.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -145,59 +151,28 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          if (isDesktop) const AdminSidebar(currentPath: '/admin/thesis/new'),
-          Expanded(
-            child: Column(
-              children: [
-                // Top Header Bar
-                Container(
-                  height: 70,
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        widget.thesisId != null ? 'Edit Thesis Manuscript' : 'Add New Thesis / Capstone',
-                        style: CScholarTextStyles.poppins(18, FontWeight.w700, CScholarColors.textPrimary),
-                      ),
-                      const Spacer(),
-                      OutlinedButton.icon(
-                        onPressed: () => context.go('/admin/dashboard'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: CScholarColors.textPrimary,
-                          side: const BorderSide(color: CScholarColors.borderLight),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                        ),
-                        icon: const Icon(Icons.arrow_back, size: 16),
-                        label: Text('Back to Dashboard', style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Form Scrollable Container
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 1040),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+    return CScholarShell(
+      sidebar: const AdminSidebar(
+          currentPath: '/admin/thesis/management'),
+      topbar: const AdminTopbar(),
+      mobileTitle:
+          widget.thesisId != null ? 'Edit Thesis' : 'Add Thesis',
+      backRoute: '/admin/thesis/management',
+      maxWidth: 1040,
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextButton.icon(
+                onPressed: () => context.go('/admin/thesis/management'),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: Text('Back to list',
+                    style: CScholarTextStyles.inter(
+                        12.5, FontWeight.w600, CScholarColors.textSecondary)),
+              ),
+              const SizedBox(height: 12),
                               // Instructions Banner
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -273,12 +248,10 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     // Title Input
                                     _fieldLabel('TITLE', isRequired: true),
                                     const SizedBox(height: 6),
-                                    TextFormField(
+                                    NeumorphField(
                                       controller: _titleCtrl,
+                                      hintText: 'Enter complete thesis or capstone project title...',
                                       validator: (v) => (v == null || v.isEmpty) ? 'Please enter thesis title' : null,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Enter complete thesis or capstone project title...',
-                                      ),
                                     ),
 
                                     const SizedBox(height: 20),
@@ -292,13 +265,11 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                       ],
                                     ),
                                     const SizedBox(height: 6),
-                                    TextFormField(
+                                    NeumorphField(
                                       controller: _abstractCtrl,
                                       maxLines: 5,
+                                      hintText: 'Enter abstract summary, methodology, and primary conclusions...',
                                       validator: (v) => (v == null || v.isEmpty) ? 'Please provide the abstract' : null,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Enter abstract summary, methodology, and primary conclusions...',
-                                      ),
                                     ),
 
                                     const SizedBox(height: 24),
@@ -362,6 +333,10 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     const SizedBox(height: 20),
 
                                     // Authors (selected from the database)
+
+                                    const SizedBox(height: 20),
+
+                                    // Authors (selected from the database)
                                     _fieldLabel('AUTHORS', isRequired: true),
                                     const SizedBox(height: 6),
                                     _authorsPicker(),
@@ -388,11 +363,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                             children: [
                                               _fieldLabel('KEYWORDS / TAGS', isRequired: false),
                                               const SizedBox(height: 6),
-                                              TextFormField(
+                                              NeumorphField(
                                                 controller: _keywordsCtrl,
-                                                decoration: const InputDecoration(
-                                                  hintText: 'semicolon; separated; keywords',
-                                                ),
+                                                hintText: 'semicolon; separated; keywords',
                                               ),
                                             ],
                                           ),
@@ -468,15 +441,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+                    );
   }
 
   Widget _fieldLabel(String text, {bool isRequired = false}) {
@@ -498,7 +463,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: CScholarMaterial.clayDeep,
         borderRadius: BorderRadius.circular(CScholarRadius.lg),
         border: Border.all(color: CScholarColors.borderLight),
       ),
@@ -628,16 +593,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   }
 
   Widget _formLoading() {
-    return const SizedBox(
-      height: 48,
-      child: Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
+    // System-owned indeterminate chrome: recessed clay track + gel sweep,
+    // with the reduced-motion policy — not a bare Material spinner.
+    return const ClayLoader(height: 8);
   }
 
   Widget _programDropdown() {
@@ -647,7 +605,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return programsAsync.when(
           data: (programs) {
             if (programs.isEmpty) return const Text('No programs available');
-            return DropdownButtonFormField<Program>(
+            return NeumorphSelect<Program>(
               initialValue: _program != null && programs.any((p) => p.id == _program!.id)
                   ? programs.firstWhere((p) => p.id == _program!.id)
                   : null,
@@ -659,7 +617,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                   .toList(),
               onChanged: (v) => setState(() => _program = v),
               validator: (v) => v == null ? 'Select a program' : null,
-              hint: const Text('Select program'),
+              hintText: 'Select program',
             );
           },
           loading: _formLoading,
@@ -676,7 +634,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return yearsAsync.when(
           data: (years) {
             if (years.isEmpty) return const Text('No academic years available');
-            return DropdownButtonFormField<AcademicYear>(
+            return NeumorphSelect<AcademicYear>(
               initialValue: _year != null && years.any((y) => y.id == _year!.id)
                   ? years.firstWhere((y) => y.id == _year!.id)
                   : null,
@@ -688,7 +646,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                   .toList(),
               onChanged: (v) => setState(() => _year = v),
               validator: (v) => v == null ? 'Select an academic year' : null,
-              hint: const Text('Select academic year'),
+              hintText: 'Select academic year',
             );
           },
           loading: _formLoading,
@@ -705,14 +663,14 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return typesAsync.when(
           data: (types) {
             if (types.isEmpty) return const Text('No research types available');
-            return DropdownButtonFormField<String>(
+            return NeumorphSelect<String>(
               initialValue: _researchType,
               items: types
                   .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                   .toList(),
               onChanged: (v) => setState(() => _researchType = v),
               validator: (v) => v == null ? 'Select a research type' : null,
-              hint: const Text('Select research type'),
+              hintText: 'Select research type',
             );
           },
           loading: _formLoading,
@@ -729,7 +687,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return advisersAsync.when(
           data: (advisers) {
             if (advisers.isEmpty) return const Text('No advisers available');
-            return DropdownButtonFormField<Adviser>(
+            return NeumorphSelect<Adviser>(
               initialValue: _adviser != null && advisers.any((a) => a.id == _adviser!.id)
                   ? advisers.firstWhere((a) => a.id == _adviser!.id)
                   : null,
@@ -740,7 +698,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                       ))
                   .toList(),
               onChanged: (v) => setState(() => _adviser = v),
-              hint: const Text('Select adviser (optional)'),
+              hintText: 'Select adviser (optional)',
             );
           },
           loading: _formLoading,
@@ -757,7 +715,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
         return categoriesAsync.when(
           data: (categories) {
             if (categories.isEmpty) return const Text('No categories available');
-            return DropdownButtonFormField<Category>(
+            return NeumorphSelect<Category>(
               initialValue: _category != null &&
                       categories.any((c) => c.id == _category!.id)
                   ? categories.firstWhere((c) => c.id == _category!.id)
@@ -770,7 +728,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                   .toList(),
               onChanged: (v) => setState(() => _category = v),
               validator: (v) => v == null ? 'Select a category' : null,
-              hint: const Text('Select category'),
+              hintText: 'Select category',
             );
           },
           loading: _formLoading,
