@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -66,20 +67,33 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
             labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: CScholarColors.textSecondary, height: 1.4),
           ),
         ),
+        // Clay wells draw NO rim at rest — the tonal fill is the affordance.
+        // Only focus (and error, per-field) rings 1.5px. NeumorphField owns its
+        // own InputDecoration; this global recipe is the fallback for the
+        // allow-listed bespoke wells (hero search, topbar).
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: CScholarColors.surfaceLight,
+          fillColor: CScholarMaterial.clayDeep,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
-            borderSide: const BorderSide(color: CScholarColors.dividerLight),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
-            borderSide: const BorderSide(color: CScholarColors.dividerLight),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.lg),
-            borderSide: const BorderSide(color: CScholarColors.primaryGreen, width: 1.5),
+            borderSide:
+                const BorderSide(color: CScholarMaterial.gelTop, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.lg),
+            borderSide: const BorderSide(color: CScholarColors.error, width: 1.5),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.lg),
+            borderSide: const BorderSide(color: CScholarColors.error, width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           hintStyle: GoogleFonts.inter(color: CScholarColors.textHint, fontSize: 14),
@@ -157,7 +171,6 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            side: const BorderSide(color: CScholarColors.borderLight),
           ),
         ),
         dialogTheme: DialogThemeData(
@@ -166,7 +179,6 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            side: const BorderSide(color: CScholarColors.borderLight),
           ),
           titleTextStyle: GoogleFonts.poppins(
             fontSize: 18,
@@ -203,7 +215,6 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
         ),
         chipTheme: ChipThemeData(
           backgroundColor: CScholarColors.surfaceLight,
-          side: const BorderSide(color: CScholarColors.borderLight),
           labelStyle: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -226,10 +237,11 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           fillColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? CScholarColors.primaryGreen
-                : Colors.transparent,
+                // An unchecked box is a tonal well, not an outlined square —
+                // the fill IS the affordance, same law as every other control.
+                : CScholarMaterial.clayDeep,
           ),
           checkColor: WidgetStateProperty.all(CScholarColors.white),
-          side: const BorderSide(color: CScholarColors.borderLight, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CScholarRadius.sm),
           ),
@@ -243,10 +255,8 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           trackColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? CScholarColors.primaryGreen
-                : CScholarColors.surfaceLight,
+                : CScholarMaterial.clayDeep,
           ),
-          trackOutlineColor:
-              WidgetStateProperty.all(CScholarColors.borderLight),
         ),
         progressIndicatorTheme: const ProgressIndicatorThemeData(
           color: CScholarColors.primaryGreen,
