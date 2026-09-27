@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -12,8 +13,10 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 
@@ -68,13 +71,10 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
             PageHeader(
               title: 'Programs & Categories',
               subtitle: 'Curate programs, academic years, and categories.',
-              action: FilledButton.icon(
+              action: NeumorphButton(
                 onPressed: () => _addForTab(context),
-                style: FilledButton.styleFrom(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    foregroundColor: Colors.white),
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(_addLabels[_tabIndex]),
+                icon: Icons.add,
+                label: _addLabels[_tabIndex],
               ),
             ),
             const SizedBox(height: 20),
@@ -131,11 +131,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
               borderRadius: CScholarRadius.md,
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    child: Text(p.name[0],
-                        style: const TextStyle(color: Colors.white)),
-                  ),
+                  GelAvatar(name: p.name, size: 40),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -150,8 +146,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  NeumorphIconButton(
+                    icon: Icons.edit_outlined,
                     tooltip: 'Edit program',
                     onPressed: () =>
                         _showProgramDialog(context, ref, existing: p),
@@ -215,8 +211,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                               fontWeight: FontWeight.bold,
                               color: CScholarColors.textSecondary)),
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  NeumorphIconButton(
+                    icon: Icons.edit_outlined,
                     tooltip: 'Edit academic year',
                     onPressed: () =>
                         _showYearDialog(context, ref, existing: y),
@@ -264,8 +260,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  NeumorphIconButton(
+                    icon: Icons.edit_outlined,
                     tooltip: 'Edit category',
                     onPressed: () =>
                         _showCategoryDialog(context, ref, existing: c),
@@ -338,8 +334,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx),
+            label: 'Cancel',
+            gel: false,
+          ),
+          NeumorphButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) {
@@ -362,8 +362,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                 successMessage: existing == null ? 'Program added' : 'Program updated',
               );
             },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-            child: const Text('Save'),
+            label: 'Save',
           ),
         ],
       ),
@@ -401,8 +400,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx),
+              label: 'Cancel',
+              gel: false,
+            ),
+            NeumorphButton(
               onPressed: () {
                 final label = labelCtrl.text.trim();
                 final start = int.tryParse(startCtrl.text.trim());
@@ -423,8 +426,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                   successMessage: existing == null ? 'Academic year added' : 'Academic year updated',
                 );
               },
-              style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-              child: const Text('Save'),
+              label: 'Save',
             ),
           ],
         ),
@@ -448,8 +450,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx),
+            label: 'Cancel',
+            gel: false,
+          ),
+          NeumorphButton(
             onPressed: () {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) {
@@ -471,8 +477,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                 successMessage: existing == null ? 'Category added' : 'Category updated',
               );
             },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-            child: const Text('Save'),
+            label: 'Save',
           ),
         ],
       ),
@@ -483,7 +488,9 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CScholarMaterial.clay,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(
