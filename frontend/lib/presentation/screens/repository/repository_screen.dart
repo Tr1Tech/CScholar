@@ -319,20 +319,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 ),
               ),
             const SizedBox(width: 12),
-            Row(
-              children: [
-                Text('Semantic Search',
-                    style: CScholarTextStyles.inter(12,
-                        FontWeight.w600, CScholarColors.textSecondary)),
-                const SizedBox(width: 6),
-                // control-exempt: Task C.1 — semantic toggle is still a stock
-                // Switch; migrate to NeumorphToggle or record an exemption.
-                Switch(
-                  value: _isSemantic,
-                  onChanged: (v) => setState(() => _isSemantic = v),
-                  activeThumbColor: CScholarColors.primaryGreen,
-                ),
-              ],
+            NeumorphToggle(
+              label: 'Semantic Search',
+              value: _isSemantic,
+              onChanged: (v) => setState(() => _isSemantic = v),
             ),
             const SizedBox(width: 8),
             Row(

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
@@ -233,9 +234,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ],
           ),
         ),
-        // control-exempt: Task C.1 — settings toggles are still stock
-        // Switches; migrate to NeumorphToggle or record an exemption.
-        Switch(value: value, onChanged: onChanged, activeThumbColor: CScholarColors.primaryGreen),
+        NeumorphToggle(value: value, onChanged: onChanged),
       ],
     );
   }

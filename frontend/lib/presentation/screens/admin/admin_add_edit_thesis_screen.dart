@@ -7,6 +7,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -763,14 +764,14 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
           runSpacing: 8,
           children: authors.map((a) {
             final selected = _authorIds.contains(a.id);
-            return FilterChip(
-              label: Text(a.fullName),
+            return ClayChip(
+              label: a.fullName,
               selected: selected,
-              onSelected: (v) => setState(() {
-                if (v) {
-                  _authorIds.add(a.id);
-                } else {
+              onTap: () => setState(() {
+                if (selected) {
                   _authorIds.remove(a.id);
+                } else {
+                  _authorIds.add(a.id);
                 }
               }),
             );

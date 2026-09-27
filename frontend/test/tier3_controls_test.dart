@@ -639,9 +639,13 @@ void main() {
         'ClayProgressBar': 'clay_progress.dart',
         'ClayLoader': 'clay_progress.dart',
         'GlassPanel': 'glass_panel.dart',
+        'GlassGroup': 'glass_panel.dart',
         'HoverLift': 'hover_lift.dart',
         'NeumorphField': 'neumorph_field.dart',
         'NeumorphSelect': 'neumorph_select.dart',
+        'NeumorphToggle': 'neumorph_select.dart',
+        'NeumorphSegmented': 'neumorph_select.dart',
+        'ClayChip': 'clay_objects.dart',
       };
 
       final sources = <String, String>{};
@@ -687,6 +691,30 @@ void main() {
       expect(offences, isEmpty,
           reason: 'dropdowns must be NeumorphSelect (forms) or '
               'NeumorphSelectField (externally reset filters):\n'
+              '${offences.join('\n')}');
+    });
+
+    test('no stock filter chip survives outside the primitive', () {
+      // ClayChip owns the gel-tag treatment (selected = gel fill,
+      // unselected = raised clay with a rim). A stock FilterChip with
+      // per-site selectedColor/checkmarkColor overrides is the same defect
+      // class as the dropdowns — the last sites were the author picker, the
+      // faculty status row and the admin role filter.
+      final offences = <String>[];
+      for (final file in libSources()) {
+        final path = file.path.replaceAll('\\', '/');
+        if (path.endsWith('design_lab_screen.dart')) continue;
+        if (path.endsWith('material/clay_objects.dart')) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].contains('FilterChip(')) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'filter chips must be ClayChip (multi/single select) or '
+              'NeumorphSegmented (one choice among fixed options):\n'
               '${offences.join('\n')}');
     });
 

@@ -4,7 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/status_chips.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 
 /// Faculty: theses this faculty member advises (all statuses).
 class FacultyThesesScreen extends ConsumerStatefulWidget {
@@ -20,114 +28,79 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
+    final user = ref.watch(currentUserProvider);
     final thesesAsync = ref.watch(facultyThesesProvider);
 
-    final body = RefreshIndicator(
-      onRefresh: () => ref.refresh(facultyThesesProvider.future),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('My Theses',
-                              style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-                          const SizedBox(height: 4),
-                          Text('Studies you advise, across all statuses.',
-                              style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted)),
-                        ],
-                      ),
-                    ),
-                    FilledButton.icon(
-                      onPressed: () => context.go('/faculty/thesis/new'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: CScholarColors.primaryGreen,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                      ),
-                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                      label: Text('New Thesis',
-                          style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
-                    ),
-                  ],
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/theses'),
+      topbar: FacultyTopbar(user: user),
+      mobileTitle: 'My Theses',
+      backRoute: '/faculty/dashboard',
+      child: RefreshIndicator(
+        onRefresh: () => ref.refresh(facultyThesesProvider.future),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PageHeader(
+                title: 'My Theses',
+                subtitle: 'Studies you advise, across all statuses.',
+                action: FilledButton.icon(
+                  onPressed: () => context.go('/faculty/thesis/new'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: CScholarColors.primaryGreen,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
+                  ),
+                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                  label: Text('New Thesis',
+                      style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
                 ),
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _filters
-                      .map((f) => FilterChip(
-                            label: Text(f, style: const TextStyle(fontSize: 12)),
-                            selected: _statusFilter == f,
-                            onSelected: (_) => setState(() => _statusFilter = f),
-                            selectedColor: CScholarColors.primaryGreen,
-                            checkmarkColor: Colors.white,
-                            labelStyle: TextStyle(
-                                color: _statusFilter == f ? Colors.white : CScholarColors.textPrimary),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-                thesesAsync.when(
-                  data: (list) {
-                    final filtered = _statusFilter == 'All'
-                        ? list
-                        : list.where((t) => t.status.toLowerCase() == _statusFilter.toLowerCase()).toList();
-                    if (filtered.isEmpty) {
-                      return _emptyCard(
-                          _statusFilter == 'All' ? 'No advised theses yet' : 'No ${_statusFilter.toLowerCase()} theses');
-                    }
-                    return Column(
-                      children: filtered.map((t) => _thesisCard(context, t)).toList(),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _filters
+                    .map((f) => ClayChip(
+                          label: f,
+                          selected: _statusFilter == f,
+                          onTap: () => setState(() => _statusFilter = f),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              thesesAsync.when(
+                data: (list) {
+                  final filtered = _statusFilter == 'All'
+                      ? list
+                      : list.where((t) => t.status.toLowerCase() == _statusFilter.toLowerCase()).toList();
+                  if (filtered.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.article_outlined,
+                      title: _statusFilter == 'All' ? 'No advised theses yet' : 'No ${_statusFilter.toLowerCase()} theses',
+                      message: _statusFilter == 'All'
+                          ? 'Theses you submit or advise will appear here.'
+                          : 'Try a different status filter.',
                     );
-                  },
-                  loading: () => const Center(
-                      child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                  error: (err, _) => _emptyCard('Could not load theses: $err'),
+                  }
+                  return Column(
+                    children: filtered.map((t) => _thesisCard(context, t)).toList(),
+                  );
+                },
+                loading: () => const SkeletonList(count: 4, cardHeight: 110),
+                error: (err, _) => EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Could not load theses',
+                  message: err.toString(),
+                  actionLabel: 'Retry',
+                  onAction: () => ref.invalidate(facultyThesesProvider),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-
-    if (!isDesktop) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-            onPressed: () => context.go('/faculty/dashboard'),
-          ),
-          title: const Text('My Theses',
-              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        body: body,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          const FacultySidebar(currentPath: '/faculty/theses'),
-          Expanded(child: body),
-        ],
       ),
     );
   }
@@ -135,71 +108,84 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
   Widget _thesisCard(BuildContext context, Thesis t) {
     final me = ref.read(currentUserProvider);
     final mine = t.status == 'draft' && me != null && t.creatorId == me.id;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(t.title,
-                    style: CScholarTextStyles.inter(14, FontWeight.w700, CScholarColors.textPrimary),
+    final isOwner = me != null && t.creatorId == me.id;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: CScholarCard(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.title,
+                    style: CScholarTextStyles.inter(
+                        14, FontWeight.w700, CScholarColors.textPrimary),
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 6),
-                Text(
-                  '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
-                  style: CScholarTextStyles.inter(12, FontWeight.w400, CScholarColors.textMuted),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
+                    style: CScholarTextStyles.inter(
+                        12, FontWeight.w400, CScholarColors.textMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  _roleBadge(isOwner),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ThesisStatusChip(t.status),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () => context.go('/thesis/${t.id}'),
+                      child: Text(
+                        'View',
+                        style: CScholarTextStyles.inter(
+                            12, FontWeight.w600, CScholarColors.primaryGreen),
+                      ),
+                    ),
+                    if (mine) ...[
+                      TextButton(
+                        onPressed: () =>
+                            context.go('/faculty/thesis/${t.id}/edit'),
+                        child: const Text(
+                          'Edit',
+                          style: TextStyle(
+                              fontSize: 12, color: CScholarColors.orange),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: CScholarColors.error,
+                        ),
+                        constraints:
+                            const BoxConstraints.tightFor(width: 36, height: 36),
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Delete draft',
+                        onPressed: () => _deleteDraft(context, t),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _statusChip(t.status),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(
-                    onPressed: () => context.go('/thesis/${t.id}'),
-                    child: Text('View',
-                        style: CScholarTextStyles.inter(
-                            12, FontWeight.w600, CScholarColors.primaryGreen)),
-                  ),
-                  if (mine) ...[
-                    TextButton(
-                      onPressed: () => context.go('/faculty/thesis/${t.id}/edit'),
-                      child: const Text('Edit',
-                          style: TextStyle(fontSize: 12, color: CScholarColors.orange)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline,
-                          size: 18, color: CScholarColors.error),
-                      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-                      padding: EdgeInsets.zero,
-                      tooltip: 'Delete draft',
-                      onPressed: () => _deleteDraft(context, t),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -241,41 +227,19 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
     }
   }
 
-  Widget _statusChip(String status) {
-    Color color;
-    switch (status.toLowerCase()) {
-      case 'published':
-        color = CScholarColors.primaryGreen;
-        break;
-      case 'approved':
-        color = CScholarColors.info;
-        break;
-      case 'draft':
-        color = CScholarColors.orange;
-        break;
-      default:
-        color = CScholarColors.textSecondary;
-    }
+  Widget _roleBadge(bool isOwner) {
+    final color = isOwner ? CScholarColors.primaryGreen : CScholarColors.orange;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-      child: Text(status.toUpperCase(),
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
-    );
-  }
-
-  Widget _emptyCard(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-      ),
-      child: Center(
-        child: Text(message,
-            style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isOwner ? Icons.upload_file_outlined : Icons.people_outline, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(isOwner ? 'SUBMITTED BY YOU' : 'ASSIGNED TO YOU',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+        ],
       ),
     );
   }
