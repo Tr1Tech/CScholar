@@ -214,9 +214,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: CScholarMaterial.clayDeep,
                                       borderRadius: BorderRadius.circular(CScholarRadius.md),
-                                      border: Border.all(color: CScholarColors.borderLight),
+                                      border: Border.all(color: CScholarMaterial.rim),
                                     ),
                                     child: RichText(
                                       text: TextSpan(
@@ -238,9 +238,8 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                               Container(
                                 padding: const EdgeInsets.all(28),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: CScholarMaterial.clay,
                                   borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-                                  border: Border.all(color: CScholarColors.borderLight),
                                   boxShadow: CScholarShadows.card,
                                 ),
                                 child: Column(
@@ -466,7 +465,6 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       decoration: BoxDecoration(
         color: CScholarMaterial.clayDeep,
         borderRadius: BorderRadius.circular(CScholarRadius.lg),
-        border: Border.all(color: CScholarColors.borderLight),
       ),
       child: _pdfUrl != null
           ? Row(

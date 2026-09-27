@@ -83,8 +83,8 @@ class ThesisDetailScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                   decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
+                    color: CScholarMaterial.clay,
+                    border: Border(bottom: BorderSide(color: CScholarMaterial.rim)),
                   ),
                   child: Row(
                     children: [
@@ -128,9 +128,8 @@ class ThesisDetailScreen extends ConsumerWidget {
                       constraints: const BoxConstraints(maxWidth: 1120),
                       padding: EdgeInsets.all(isDesktop ? 36 : 22),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: CScholarMaterial.clay,
                         borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-                        border: Border.all(color: CScholarColors.borderLight),
                         boxShadow: CScholarShadows.card,
                       ),
                       child: Column(
@@ -258,7 +257,6 @@ class ThesisDetailScreen extends ConsumerWidget {
                                             decoration: BoxDecoration(
                                               color: CScholarMaterial.clayDeep,
                                               borderRadius: BorderRadius.circular(CScholarRadius.lg),
-                                              border: Border.all(color: CScholarColors.borderLight),
                                             ),
                                             child: Row(
                                               children: [
@@ -336,7 +334,7 @@ class ThesisDetailScreen extends ConsumerWidget {
       return Scaffold(
         backgroundColor: CScholarMaterial.canvas,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: CScholarMaterial.clay,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),

@@ -52,8 +52,8 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               height: 80,
               padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 20),
               decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: CScholarColors.borderLight)),
+                color: CScholarMaterial.clay,
+                border: Border(bottom: BorderSide(color: CScholarMaterial.rim)),
               ),
               child: Row(
                 children: [
@@ -315,9 +315,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
           SliverToBoxAdapter(
             child: Container(
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: CScholarMaterial.clay,
                 border: Border(
-                    bottom: BorderSide(color: CScholarColors.borderLight)),
+                    bottom: BorderSide(color: CScholarMaterial.rim)),
               ),
               child: Center(
                 child: Container(
@@ -427,8 +427,8 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: CScholarColors.borderLight)),
+                color: CScholarMaterial.clay,
+                border: Border(top: BorderSide(color: CScholarMaterial.rim)),
               ),
               child: Center(
                 child: Container(
