@@ -55,6 +55,20 @@ class CScholarMaterial {
   /// Rim used when high contrast is on: 6.92:1 on clay.
   static const Color rimStrong = Color(0xFF475569);
 
+  // ------------------------------------------------------- status-chip rims
+  /// Hairlines that seat the status / role chips on their tinted fills. These
+  /// are decoration (a 20px badge is too small for a shadow to define it), so
+  /// they stay well under 2:1 — the same contract as [rim]. Measured against
+  /// each chip fill: published 1.27:1, approved 1.16:1, draft 1.12:1,
+  /// faculty 1.15:1, neutral 1.12:1.
+  static const Color rimPublished = Color(0xFFB8E2B8);
+  static const Color rimApproved = Color(0xFFBFDBFE);
+  static const Color rimDraft = Color(0xFFFDE68A);
+  static const Color rimFaculty = Color(0xFFE9D5FF);
+
+  /// Neutral chip fill used by the "other / inactive" badge.
+  static const Color chipNeutral = Color(0xFFE2EAE1);
+
   // ------------------------------------------------------------------- gel
   /// Gel accent (clay-styled fills). White text is safe at/below [gelTop].
   static const Color gelTop = Color(0xFF007A14);

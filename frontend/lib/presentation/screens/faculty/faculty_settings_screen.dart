@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
@@ -38,14 +41,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: const Color(0xFFDCFCE7),
-                          child: Text(
-                            _initials(user?.username),
-                            style: CScholarTextStyles.inter(18, FontWeight.w800, CScholarColors.primaryGreen),
-                          ),
-                        ),
+                        GelAvatar(name: user?.username ?? '—', size: 56),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -64,8 +60,9 @@ class FacultySettingsScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: CScholarColors.primaryGreen.withValues(alpha: 0.1),
+                            color: CScholarColors.primaryGreenVeryLight,
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: CScholarMaterial.rimPublished),
                           ),
                           child: Text((user?.role ?? 'faculty').toUpperCase(),
                               style: CScholarTextStyles.inter(
@@ -73,7 +70,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const Divider(color: CScholarColors.borderLight, height: 32),
+                    const Divider(color: CScholarMaterial.rim, height: 32),
                     _infoRow('Username', user?.username ?? '—'),
                     _infoRow('Email', user?.email ?? '—'),
                     _infoRow('Role', user?.role ?? '—'),
@@ -91,7 +88,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton.icon(
+                      child: NeumorphButton(
                         onPressed: () async {
                           final token = ref.read(apiServiceProvider).token;
                           if (token != null) {
@@ -103,21 +100,24 @@ class FacultySettingsScreen extends ConsumerWidget {
                             );
                           }
                         },
-                        icon: const Icon(Icons.key_outlined, size: 18),
-                        label: const Text('Copy session token'),
+                        icon: Icons.key_outlined,
+                        label: 'Copy session token',
+                        gel: false,
+                        expand: true,
                       ),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton.icon(
+                      child: NeumorphButton(
                         onPressed: () {
                           ref.read(authProvider.notifier).logout();
                           context.go('/login');
                         },
-                        style: FilledButton.styleFrom(backgroundColor: CScholarColors.error),
-                        icon: const Icon(Icons.logout, size: 18, color: Colors.white),
-                        label: const Text('Log Out', style: TextStyle(color: Colors.white)),
+                        danger: true,
+                        icon: Icons.logout,
+                        label: 'Log Out',
+                        expand: true,
                       ),
                     ),
                   ],
@@ -144,12 +144,5 @@ class FacultySettingsScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  String _initials(String? name) {
-    final parts = (name ?? '').trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 }

@@ -42,14 +42,12 @@ class CScholarShell extends StatelessWidget {
         backgroundColor: CScholarColors.backgroundSoft,
         appBar: AppBar(
           // Clay, not white: the bar sits on the sage canvas and must share its
-          // hue family (see material_tokens). A rim replaces the elevation.
+          // hue family (see material_tokens). No elevation and no bottom
+          // hairline — the tonal fill and the canvas step are the boundary.
           backgroundColor: CScholarMaterial.clay,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
-          shape: const Border(
-            bottom: BorderSide(color: CScholarMaterial.rim, width: 1),
-          ),
           leading: backRoute == null
               ? null
               : IconButton(

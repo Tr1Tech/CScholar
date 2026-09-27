@@ -8,7 +8,9 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
@@ -64,15 +66,9 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. Hero Greeting & Prominent Search Banner
-                Container(
-                  width: double.infinity,
+                ClaySurface(
+                  radius: CScholarRadius.xl,
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                    border: Border.all(color: CScholarColors.borderLight),
-                    boxShadow: CScholarShadows.card,
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -109,15 +105,11 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                               ),
                             ),
                             const SizedBox(width: 8),
-                            FilledButton(
+                            NeumorphIconButton(
+                              icon: Icons.search,
+                              tooltip: 'Search',
+                              gel: true,
                               onPressed: _search,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: CScholarColors.primaryGreen,
-                                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                              ),
-                              child: const Icon(Icons.search, size: 20, color: Colors.white),
                             ),
                           ],
                         ),
@@ -151,28 +143,28 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                           title: 'Archived Studies',
                           value: '${stats.value?['studies'] ?? 0}',
                           icon: Icons.article_outlined,
-                          iconBg: const Color(0xFFDCFCE7),
+                          iconBg: CScholarColors.thesisChipBg,
                           iconColor: CScholarColors.primaryGreen,
                         ),
                         _metricCard(
                           title: 'CEIT Programs',
                           value: '${stats.value?['programs'] ?? 0}',
                           icon: Icons.account_balance_outlined,
-                          iconBg: const Color(0xFFE0F2FE),
-                          iconColor: const Color(0xFF0369A1),
+                          iconBg: CScholarColors.skyTint,
+                          iconColor: CScholarColors.skyInk,
                         ),
                         _metricCard(
                           title: 'Academic Years',
                           value: '${academicYears.value?.length ?? 0}',
                           icon: Icons.calendar_today_outlined,
-                          iconBg: const Color(0xFFEDE9FE),
-                          iconColor: const Color(0xFF6D28D9),
+                          iconBg: CScholarColors.violetTint,
+                          iconColor: CScholarColors.violetInk,
                         ),
                         _metricCard(
                           title: 'Your Saved',
                           value: '${savedIds.length}',
                           icon: Icons.bookmark_outline,
-                          iconBg: const Color(0xFFFEF3C7),
+                          iconBg: CScholarColors.capstoneChipBg,
                           iconColor: CScholarColors.warningFg,
                         ),
                       ],
@@ -285,19 +277,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 'Recent Studies',
                 style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
               ),
-              TextButton(
+              NeumorphButton(
                 onPressed: () => context.go('/repository'),
-                child: Row(
-                  children: [
-                    Text('View All', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward, size: 14, color: CScholarColors.primaryGreen),
-                  ],
-                ),
+                label: 'View All',
+                gel: false,
+                icon: Icons.arrow_forward,
               ),
             ],
           ),
-          const Divider(color: CScholarColors.borderLight, height: 16),
+          const Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
           recentTheses.when(
             data: (theses) {
@@ -319,7 +307,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         decoration: BoxDecoration(
                           color: CScholarMaterial.clayDeep,
                           borderRadius: BorderRadius.circular(CScholarRadius.md),
-                          border: Border.all(color: CScholarMaterial.rim),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,12 +336,12 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFE0F2FE),
+                                            color: CScholarColors.skyTint,
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             t.program!.name,
-                                            style: CScholarTextStyles.inter(10.5, FontWeight.w700, const Color(0xFF0369A1)),
+                                            style: CScholarTextStyles.inter(10.5, FontWeight.w700, CScholarColors.skyInk),
                                           ),
                                         ),
                                       if ((t.program?.name ?? '').isNotEmpty &&
@@ -398,19 +385,15 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 'Recommended for You',
                 style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
               ),
-              TextButton(
+              NeumorphButton(
                 onPressed: () => context.go('/repository'),
-                child: Row(
-                  children: [
-                    Text('View All', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward, size: 14, color: CScholarColors.primaryGreen),
-                  ],
-                ),
+                label: 'View All',
+                gel: false,
+                icon: Icons.arrow_forward,
               ),
             ],
           ),
-          const Divider(color: CScholarColors.borderLight, height: 16),
+          const Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
           recommended.when(
             data: (recs) {
@@ -437,7 +420,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         decoration: BoxDecoration(
                           color: CScholarMaterial.clayDeep,
                           borderRadius: BorderRadius.circular(CScholarRadius.md),
-                          border: Border.all(color: CScholarMaterial.rim),
                         ),
                         child: Row(
                           children: [
@@ -472,7 +454,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                               decoration: BoxDecoration(
                                 color: CScholarColors.primaryGreenVeryLight,
                                 borderRadius: BorderRadius.circular(CScholarRadius.full),
-                                border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.3)),
+                                border: Border.all(color: CScholarMaterial.rimPublished),
                               ),
                               child: Text(
                                 '${(r.similarity * 100).round()}%',

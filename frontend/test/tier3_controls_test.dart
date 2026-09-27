@@ -628,18 +628,24 @@ void main() {
       // A primitive only the lab can reach is dead weight. HoverLift shipped
       // that way, and ClayProgressBar and GlassPanel were in the same state
       // until this pass — the lab and the tests do not count as adoption.
-      const primitives = <String, String>{
-        'ClayProgressBar': 'clay_progress.dart',
-        'ClayLoader': 'clay_progress.dart',
-        'GlassPanel': 'glass_panel.dart',
-        'GlassGroup': 'glass_panel.dart',
-        'GlassDialog': 'glass_panel.dart',
-        'HoverLift': 'hover_lift.dart',
-        'NeumorphField': 'neumorph_field.dart',
-        'NeumorphSelect': 'neumorph_select.dart',
-        'NeumorphToggle': 'neumorph_select.dart',
-        'NeumorphSegmented': 'neumorph_select.dart',
-        'ClayChip': 'clay_objects.dart',
+      //
+      // The button primitives are the newest and most important adoption: a
+      // single adopter is a false positive for "the app uses clay buttons", so
+      // they are held to a real minimum number of shipping SCREENS.
+      const primitives = <String, (String, int)>{
+        'ClayProgressBar': ('clay_progress.dart', 1),
+        'ClayLoader': ('clay_progress.dart', 1),
+        'GlassPanel': ('glass_panel.dart', 1),
+        'GlassGroup': ('glass_panel.dart', 1),
+        'GlassDialog': ('glass_panel.dart', 1),
+        'HoverLift': ('hover_lift.dart', 1),
+        'NeumorphField': ('neumorph_field.dart', 1),
+        'NeumorphSelect': ('neumorph_select.dart', 1),
+        'NeumorphToggle': ('neumorph_select.dart', 1),
+        'NeumorphSegmented': ('neumorph_select.dart', 1),
+        'ClayChip': ('clay_objects.dart', 1),
+        'NeumorphButton': ('neumorph_controls.dart', 10),
+        'NeumorphIconButton': ('neumorph_controls.dart', 10),
       };
 
       final sources = <String, String>{};
@@ -652,14 +658,18 @@ void main() {
           reason: 'the scan found almost nothing — is lib/ at the root?');
 
       for (final entry in primitives.entries) {
+        final minAdopters = entry.value.$2;
         final adopters = sources.entries
-            .where((e) => !e.key.endsWith(entry.value))
+            .where((e) => !e.key.endsWith(entry.value.$1))
             .where((e) => e.value.contains(entry.key))
             .map((e) => e.key)
+            .where((p) => p.contains('/screens/') || p.contains('/widgets/'))
             .toList();
-        expect(adopters, isNotEmpty,
-            reason: '${entry.key} is reachable only from the design lab — '
-                'adopt it in a real screen or delete it');
+        expect(adopters.length, greaterThanOrEqualTo(minAdopters),
+            reason: '${entry.key} is adopted by only ${adopters.length} '
+                'shipping file(s), needs >= $minAdopters — a lab-only or '
+                'single-site primitive is a false positive. Adopters:\n'
+                '${adopters.join('\n')}');
       }
     });
 
@@ -942,6 +952,217 @@ void main() {
           greaterThan(4.5),
           reason: 'high contrast exists to supply the boundary the rest of the '
               'system omits');
+    });
+
+    test('no stock Material action button outside the primitive', () {
+      // The fusion law makes NeumorphButton / NeumorphIconButton the ONLY
+      // buttons: a stock Filled/Outlined/Elevated button draws its own shape,
+      // elevation and ripple and cannot be made clay by theming. TextButton is
+      // allowed only as an inline text link (it draws no surface), and the
+      // primitive layer itself names the stock widgets it replaces.
+      const allowed = {
+        'lib/presentation/widgets/material/neumorph_controls.dart',
+      };
+      final pattern = RegExp(
+          r'(^|[^_A-Za-z])(ElevatedButton|FilledButton|OutlinedButton)\s*[.(<]');
+      final offences = <String>[];
+      final files = libSources();
+      expect(files.length, greaterThan(40),
+          reason: 'the scan found almost no sources — is lib/ at the root?');
+
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (path.endsWith('design_lab_screen.dart')) continue;
+        if (allowed.any((a) => path.endsWith(a.substring(4)))) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (pattern.hasMatch(lines[i])) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'primary/secondary actions must be NeumorphButton (or '
+              'NeumorphIconButton for icon-only). Offenders:\n'
+              '${offences.join('\n')}');
+    });
+
+    test('no Colors.white fill inside a BoxDecoration', () {
+      // White is a FILL for two things only: the thesis type pill and brand
+      // art. Everywhere else the panel fill is clay, so a white box is the
+      // stock-Material look this pass removed. `Colors.transparent` and
+      // white-alpha glass are not white fills and stay allowed.
+      const allowed = {
+        // Brand art: the mark/wordmark are drawn in white by definition.
+        'lib/presentation/widgets/common/csu_mark.dart',
+        'lib/presentation/widgets/common/cscholar_logo.dart',
+        // The white thesis-type pill (17.85:1 dark ink) lives here.
+        'lib/presentation/widgets/thesis_card.dart',
+        // The button primitive paints white *text/glyph*, never a fill; the
+        // scan below only flags `color: Colors.white` inside a BoxDecoration
+        // and this file's occurrences are all foreground.
+        'lib/presentation/widgets/material/neumorph_controls.dart',
+      };
+      final offences = <String>[];
+      final files = libSources();
+      expect(files.length, greaterThan(40),
+          reason: 'the scan found almost no sources — is lib/ at the root?');
+      final whiteFill =
+          RegExp(r'^\s*color:\s*Colors\.white\s*,\s*$');
+
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (allowed.any((a) => path.endsWith(a.substring(4)))) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (!whiteFill.hasMatch(lines[i])) continue;
+          // Walk up to the nearest `BoxDecoration(` (or a small window) to
+          // confirm this is a decoration fill, not e.g. an Icon color.
+          final start = (i - 8).clamp(0, lines.length);
+          final window = lines.sublist(start, i + 1);
+          if (window.any((l) => l.contains('BoxDecoration('))) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'panels are clay, never white. Replace the fill with '
+              'CScholarCard/ClaySurface. Offenders:\n${offences.join('\n')}');
+    });
+
+    test('no hairline alias used as a panel or control side', () {
+      // borderLight / dividerLight / sidebarLightBorder are the 1.46:1
+      // hairline aliases. They belong on dividers and table-row separators —
+      // never as the side of a panel or control, where the fill plus a soft
+      // shadow is the boundary. `Divider(color: ...)` and small-token rims
+      // (chip/tag/avatar) are the legitimate remaining uses and are not
+      // matched here: this scan looks only at `Border.all` / `BorderSide`
+      // *sides* naming an alias.
+      final offences = <String>[];
+      final files = libSources();
+      expect(files.length, greaterThan(40),
+          reason: 'the scan found almost no sources — is lib/ at the root?');
+      final aliasSide = RegExp(
+          r'(border|side):\s*(const\s+)?(Border\.all\(color:\s*)?CScholarColors\.(borderLight|dividerLight|sidebarLightBorder)\b');
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (path.endsWith('core/constants/cscholar_constants.dart')) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (aliasSide.hasMatch(lines[i])) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'a hairline alias is not a panel/control boundary — use '
+              'ClaySurface (fill + one soft shadow), and keep the hairline for '
+              'dividers and small tokens. Offenders:\n${offences.join('\n')}');
+    });
+
+    test('no hardcoded animation Duration in screens', () {
+      // Every duration comes from CScholarDurations so the motion system stays
+      // coherent and nothing outlives the 300ms ceiling.
+      final offences = <String>[];
+      final files = libSources();
+      expect(files.length, greaterThan(40),
+          reason: 'the scan found almost no sources — is lib/ at the root?');
+      final literal = RegExp(r'Duration\(milliseconds:');
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (path.contains('presentation/screens/')) continue;
+        if (path.endsWith('core/constants/cscholar_constants.dart')) continue;
+        if (path.endsWith('material/clay_progress.dart')) continue;
+        if (path.endsWith('common/motion.dart')) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (literal.hasMatch(lines[i])) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'use CScholarDurations (the 300ms ceiling lives there):\n'
+              '${offences.join('\n')}');
+    });
+
+    test('no raw Color(0x...) in screens outside the token layer', () {
+      // Extends the tier 2 palette law: screens may only name tokens. The two
+      // token files own the literals, and brand art may carry its own measured
+      // gradient stops.
+      const allowed = {
+        'lib/core/material/material_tokens.dart',
+        'lib/core/constants/cscholar_constants.dart',
+        'lib/presentation/widgets/common/csu_mark.dart',
+        'lib/presentation/widgets/common/cscholar_logo.dart',
+        'lib/presentation/widgets/thesis_card.dart',
+        'lib/presentation/screens/design_lab_screen.dart',
+      };
+      final offences = <String>[];
+      final files = libSources();
+      expect(files.length, greaterThan(40),
+          reason: 'the scan found almost no sources — is lib/ at the root?');
+      final literal = RegExp(r'Color\(0x[0-9A-Fa-f]{8}\)');
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (allowed.any((a) => path.endsWith(a.substring(4)))) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (literal.hasMatch(lines[i])) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'add a named token to material_tokens.dart instead of an '
+              'inline literal. Offenders:\n${offences.join('\n')}');
+    });
+
+    test('the design lab mirrors the component catalogue', () {
+      // A primitive the lab never shows cannot be reviewed by feel, and a lab
+      // that looks perfect while the screens differ is a false positive. Every
+      // catalogued component must appear in design_lab_screen.dart.
+      const catalogue = <String>[
+        'CScholarCard',
+        'ClaySurface',
+        'ClayIconTile',
+        'ClayChip',
+        'GelAvatar',
+        'ClayProgressBar',
+        'ClayLoader',
+        'SkeletonCard',
+        'SkeletonList',
+        'GlassPanel',
+        'GlassGroup',
+        'GlassDialog',
+        'NeumorphField',
+        'NeumorphSelect',
+        'NeumorphSelectField',
+        'NeumorphToggle',
+        'NeumorphSegmented',
+        'NeumorphButton',
+        'NeumorphIconButton',
+        'HoverLift',
+        'EmptyState',
+        'KpiCard',
+        'PageHeader',
+        'ThesisStatusChip',
+        'RoleChip',
+        'ActiveChip',
+        'ThesisCard',
+        'ResultCard',
+        'RecRail',
+        'TopbarUserPill',
+        'CountUpText',
+        'EntranceReveal',
+      ];
+      final lab = File('lib/presentation/screens/design_lab_screen.dart')
+          .readAsStringSync();
+      final missing =
+          catalogue.where((c) => !lab.contains(c)).toList();
+      expect(missing, isEmpty,
+          reason: 'the design lab must demo every catalogued component so it is '
+              'the catalogue of record. Missing:\n${missing.join('\n')}');
     });
   });
 }

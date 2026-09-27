@@ -8,6 +8,10 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/clay_surface.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -34,20 +38,15 @@ class ProfileScreen extends ConsumerWidget {
                 PageHeader(
                   title: 'Profile',
                   subtitle: 'Manage your account details and review your repository activity',
-                  action: OutlinedButton.icon(
+                  action: NeumorphButton(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Profile edit mode enabled.')),
                       );
                     },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: CScholarColors.textPrimary,
-                      side: const BorderSide(color: CScholarColors.borderLight),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                    ),
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: Text('Edit Profile', style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
+                    icon: Icons.edit_outlined,
+                    label: 'Edit Profile',
+                    gel: false,
                   ),
                 ),
 
@@ -83,110 +82,97 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       children: [
         // 1. User Identity Profile Card
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
+        ClaySurface(
+          radius: CScholarRadius.xxl,
+          padding: EdgeInsets.zero,
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-            border: Border.all(color: CScholarColors.borderLight),
-            boxShadow: CScholarShadows.card,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              // Gradient Accent Bar at Top
-              Container(
-                height: 7,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      CScholarColors.primaryGreen,
-                      Color(0xFF34D399),
-                      CScholarColors.gold,
+            child: Column(
+              children: [
+                // Gradient Accent Bar at Top
+                Container(
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        CScholarColors.primaryGreen,
+                        CScholarMaterial.gelHigh,
+                        CScholarColors.gold,
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(26),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Avatar
+                      GelAvatar(name: user?.username ?? '', size: 88),
+                      const SizedBox(width: 24),
+                      // General Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  user?.username ?? '',
+                                  style: CScholarTextStyles.poppins(20, FontWeight.w700, CScholarColors.textPrimary),
+                                ),
+                                if ((user?.role ?? '').isNotEmpty) ...[
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: CScholarColors.primaryGreenVeryLight,
+                                      borderRadius: BorderRadius.circular(CScholarRadius.full),
+                                      border: Border.all(color: CScholarMaterial.rimPublished),
+                                    ),
+                                    child: Text(
+                                      _roleLabel(user?.role),
+                                      style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user?.email ?? '',
+                              style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textSecondary),
+                            ),
+                            if (user != null) ...[
+                              const SizedBox(height: 16),
+                              // Account metadata coming from the database
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _infoPill(
+                                    Icons.event_outlined,
+                                    'Member since ${_formatDate(user.createdAt)}',
+                                    CScholarMaterial.clayDeep,
+                                    CScholarColors.textSecondary,
+                                  ),
+                                  _infoPill(
+                                    Icons.verified_user_outlined,
+                                    user.isActive ? 'Account active' : 'Account inactive',
+                                    CScholarColors.primaryGreenVeryLight,
+                                    CScholarMaterial.textGreen,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(26),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Avatar
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: const Color(0xFFD1FAE5),
-                      child: Text(
-                        _initials(user?.username ?? ''),
-                        style: CScholarTextStyles.poppins(
-                          28,
-                          FontWeight.w800,
-                          const Color(0xFF065F46),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    // General Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                user?.username ?? '',
-                                style: CScholarTextStyles.poppins(20, FontWeight.w700, CScholarColors.textPrimary),
-                              ),
-                              if ((user?.role ?? '').isNotEmpty) ...[
-                                const SizedBox(width: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: CScholarColors.primaryGreenVeryLight,
-                                    borderRadius: BorderRadius.circular(CScholarRadius.full),
-                                    border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.2)),
-                                  ),
-                                  child: Text(
-                                    _roleLabel(user?.role),
-                                    style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? '',
-                            style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textSecondary),
-                          ),
-                          if (user != null) ...[
-                            const SizedBox(height: 16),
-                            // Account metadata coming from the database
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _infoPill(
-                                  Icons.event_outlined,
-                                  'Member since ${_formatDate(user.createdAt)}',
-                                  CScholarMaterial.clayDeep,
-                                  CScholarColors.textSecondary,
-                                ),
-                                _infoPill(
-                                  Icons.verified_user_outlined,
-                                  user.isActive ? 'Account active' : 'Account inactive',
-                                  CScholarColors.primaryGreenVeryLight,
-                                  const Color(0xFF065F46),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -202,15 +188,15 @@ class ProfileScreen extends ConsumerWidget {
                 style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
               ),
               const SizedBox(height: 16),
-              const Divider(color: CScholarColors.borderLight, height: 1),
+              const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Username', user?.username ?? '', hasDot: true),
-              const Divider(color: CScholarColors.borderLight, height: 1),
+              const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Role', _roleLabel(user?.role)),
-              const Divider(color: CScholarColors.borderLight, height: 1),
+              const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Email', user?.email ?? ''),
-              const Divider(color: CScholarColors.borderLight, height: 1),
+              const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Status', user == null ? '' : (user.isActive ? 'Active' : 'Inactive')),
-              const Divider(color: CScholarColors.borderLight, height: 1),
+              const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Member Since', user == null ? '' : _formatDate(user.createdAt)),
             ],
           ),
@@ -272,7 +258,7 @@ class ProfileScreen extends ConsumerWidget {
         if (savedTheses.isLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: CircularProgressIndicator()),
+            child: ClayLoader(height: 8),
           )
         else if (savedTheses.hasError)
           Padding(
@@ -298,14 +284,11 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
+          child: NeumorphButton(
             onPressed: () => context.go('/saved'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: CScholarColors.primaryGreen,
-              side: const BorderSide(color: CScholarColors.primaryGreen),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-            ),
-            child: Text('View All Saved', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+            label: 'View All Saved',
+            gel: false,
+            expand: true,
           ),
         ),
       ],
@@ -372,17 +355,16 @@ class ProfileScreen extends ConsumerWidget {
         decoration: BoxDecoration(
           color: CScholarMaterial.clayDeep,
           borderRadius: BorderRadius.circular(CScholarRadius.md),
-          border: Border.all(color: CScholarMaterial.rim),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
+                color: CScholarColors.skyTint,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Text(tag, style: CScholarTextStyles.inter(10, FontWeight.w700, const Color(0xFF0284C7))),
+              child: Text(tag, style: CScholarTextStyles.inter(10, FontWeight.w700, CScholarColors.skyInk)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -415,11 +397,4 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   String _formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return 'U';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
-  }
 }

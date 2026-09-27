@@ -34,7 +34,9 @@ class Topbar extends StatelessWidget {
       child: Row(
         children: [
           ?leading,
-          if (leading != null && trailing != null) const Spacer(),
+          // A trailing-only bar (faculty, student) must still sit right: the
+          // pill is an identity anchor in the top-right corner, not a left item.
+          if (trailing != null) const Spacer(),
           ?trailing,
         ],
       ),

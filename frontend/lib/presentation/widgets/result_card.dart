@@ -114,7 +114,7 @@ class ResultCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: CScholarColors.primaryGreenLight,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFB8E2B8)),
+                          border: Border.all(color: CScholarMaterial.rimPublished),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -167,7 +167,7 @@ class ResultCard extends StatelessWidget {
         ? CScholarColors.thesisChipFg
         : CScholarColors.capstoneChipFg;
     final rim =
-        _isThesis ? const Color(0xFFB8E2B8) : const Color(0xFFFDE68A);
+        _isThesis ? CScholarMaterial.rimPublished : CScholarMaterial.rimDraft;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
 
@@ -35,7 +36,7 @@ class _AdminTopbarState extends ConsumerState<AdminTopbar> {
 
   void _onChanged(String v) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () {
+    _debounce = Timer(CScholarDurations.debounce, () {
       if (!mounted) return;
       ref.read(adminThesisSearchProvider.notifier).setQuery(v.trim());
     });

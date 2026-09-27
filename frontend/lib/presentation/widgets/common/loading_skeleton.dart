@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 
 /// Shimmer skeletons shown while lists/cards load (design plan, item 8).
 /// Same card rhythm as real content so the swap doesn't jump the layout.
@@ -14,11 +15,11 @@ class SkeletonCard extends StatelessWidget {
       height: height,
       margin: const EdgeInsets.only(bottom: 12),
       child: Shimmer.fromColors(
-        baseColor: CScholarColors.surfaceLight,
-        highlightColor: Colors.white,
+        baseColor: CScholarMaterial.clayDeep,
+        highlightColor: CScholarMaterial.clayHigh,
         child: Container(
           decoration: BoxDecoration(
-            color: CScholarColors.surfaceLight,
+            color: CScholarMaterial.clayDeep,
             borderRadius: BorderRadius.circular(CScholarRadius.xl),
           ),
         ),

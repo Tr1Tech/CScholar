@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
+import 'package:frontend/presentation/widgets/common/topbar.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
 /// V2 light student shell (new design): airy wash background, light
 /// sidebar card with green-pill active item, pill search topbar.
@@ -52,91 +56,89 @@ class StudentLayout extends ConsumerWidget {
   }
 
   Widget _sidebar(BuildContext context, WidgetRef ref, User? user) {
-    return Container(
+    return SizedBox(
       width: 248,
-      decoration: BoxDecoration(
-        color: CScholarColors.sidebarLight,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: CScholarColors.sidebarLightBorder),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Column(
-        children: [
-          // Logo
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
-            child: CScholarLogo(
-              iconSize: 34,
-              subtitle: 'Search • Discover • Build',
+      child: ClaySurface(
+        radius: CScholarRadius.xxl,
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            // Logo
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
+              child: CScholarLogo(
+                iconSize: 34,
+                subtitle: 'Search • Discover • Build',
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // Navigation Links
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _navItem(
-                  context,
-                  icon: Icons.home_outlined,
-                  selectedIcon: Icons.home,
-                  label: 'Home',
-                  path: '/student/dashboard',
-                  index: 0,
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.menu_book_outlined,
-                  selectedIcon: Icons.menu_book,
-                  label: 'Research',
-                  path: '/repository',
-                  index: 1,
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.bookmark_outline,
-                  selectedIcon: Icons.bookmark,
-                  label: 'Saved',
-                  path: '/saved',
-                  index: 2,
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.person_outline,
-                  selectedIcon: Icons.person,
-                  label: 'Profile',
-                  path: '/profile',
-                  index: 3,
-                ),
-              ],
+            const SizedBox(height: 12),
+            // Navigation Links
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _navItem(
+                    context,
+                    icon: Icons.home_outlined,
+                    selectedIcon: Icons.home,
+                    label: 'Home',
+                    path: '/student/dashboard',
+                    index: 0,
+                  ),
+                  _navItem(
+                    context,
+                    icon: Icons.menu_book_outlined,
+                    selectedIcon: Icons.menu_book,
+                    label: 'Research',
+                    path: '/repository',
+                    index: 1,
+                  ),
+                  _navItem(
+                    context,
+                    icon: Icons.bookmark_outline,
+                    selectedIcon: Icons.bookmark,
+                    label: 'Saved',
+                    path: '/saved',
+                    index: 2,
+                  ),
+                  _navItem(
+                    context,
+                    icon: Icons.person_outline,
+                    selectedIcon: Icons.person,
+                    label: 'Profile',
+                    path: '/profile',
+                    index: 3,
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Logout
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                ref.read(authProvider.notifier).logout();
-                context.go('/login');
-              },
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(
-                  children: [
-                    const Icon(Icons.logout,
-                        size: 20, color: CScholarColors.textSecondary),
-                    const SizedBox(width: 12),
-                    Text('Log out',
-                        style: CScholarTextStyles.inter(13, FontWeight.w500,
-                            CScholarColors.textSecondary)),
-                  ],
+            // Logout
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  ref.read(authProvider.notifier).logout();
+                  context.go('/login');
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout,
+                          size: 20, color: CScholarColors.textSecondary),
+                      const SizedBox(width: 12),
+                      Text('Log out',
+                          style: CScholarTextStyles.inter(13, FontWeight.w500,
+                              CScholarColors.textSecondary)),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -196,61 +198,17 @@ class StudentLayout extends ConsumerWidget {
   }
 
   Widget _topBar(BuildContext context, WidgetRef ref, User? user) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(28, 16, 28, 12),
-      child: Row(
-        children: [
-          const Spacer(),
-          // User chip
-          InkWell(
-            borderRadius: BorderRadius.circular(CScholarRadius.full),
-            onTap: () => context.go('/profile'),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(CScholarRadius.full),
-                border:
-                    Border.all(color: CScholarColors.sidebarLightBorder),
-                boxShadow: CScholarShadows.card,
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 17,
-                    backgroundColor: CScholarColors.primaryGreen,
-                    child: Text(
-                      _initials(user?.username ?? ''),
-                      style: CScholarTextStyles.poppins(
-                          12, FontWeight.w700, CScholarColors.gold),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        user?.username ?? '',
-                        style: CScholarTextStyles.inter(13,
-                            FontWeight.w600, CScholarColors.textPrimary),
-                      ),
-                      Text(
-                        _roleLabel(user?.role),
-                        style: CScholarTextStyles.inter(11,
-                            FontWeight.w500, CScholarColors.textMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.keyboard_arrow_down,
-                      size: 18, color: CScholarColors.textHint),
-                ],
-              ),
-            ),
-          ),
-        ],
+    return Topbar(
+      // Shares the raised clay pill / gel avatar with the admin and faculty
+      // bars so every role's identity reads the same. Still taps through to the
+      // profile, as the old bespoke chip did.
+      trailing: InkWell(
+        borderRadius: BorderRadius.circular(CScholarRadius.full),
+        onTap: () => context.go('/profile'),
+        child: TopbarUserPill(
+          name: user?.username,
+          role: _roleLabel(user?.role),
+        ),
       ),
     );
   }
@@ -259,7 +217,9 @@ class StudentLayout extends ConsumerWidget {
     return Scaffold(
       backgroundColor: CScholarColors.shellWash,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CScholarMaterial.clay,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         toolbarHeight: 64,
         title: const CScholarLogo(iconSize: 28, subtitle: 'CEIT REPOSITORY'),
@@ -268,26 +228,16 @@ class StudentLayout extends ConsumerWidget {
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
               onTap: () => context.go('/profile'),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundColor: CScholarColors.primaryGreen,
-                child: Text(
-                  _initials(user?.username ?? ''),
-                  style: CScholarTextStyles.poppins(
-                      11, FontWeight.bold, CScholarColors.gold),
-                ),
-              ),
+              child: GelAvatar(name: user?.username ?? '', size: 34),
             ),
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: CScholarColors.borderLight),
-        ),
       ),
       body: child,
       bottomNavigationBar: NavigationBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CScholarMaterial.clay,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         // 4 tabs (0-3); desktop and mobile indices match.
         selectedIndex: currentIndex.clamp(0, 3),
         onDestinationSelected: (idx) {
@@ -337,13 +287,5 @@ class StudentLayout extends ConsumerWidget {
       default:
         return 'Student';
     }
-  }
-
-  String _initials(String name) {
-    final parts =
-        name.trim().split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return 'U';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 }

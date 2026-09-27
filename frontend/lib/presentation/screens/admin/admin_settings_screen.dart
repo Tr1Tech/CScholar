@@ -6,8 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
@@ -110,18 +113,10 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             PageHeader(
               title: 'System Settings',
               subtitle: 'Stored on this device.',
-              action: FilledButton(
+              action: NeumorphButton(
                 onPressed: _isSaving ? null : _save,
-                style: FilledButton.styleFrom(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    foregroundColor: Colors.white),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Save Settings'),
+                label: 'Save Settings',
+                loading: _isSaving,
               ),
             ),
             const SizedBox(height: 20),
@@ -135,16 +130,16 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                         // AI & Search
                         _sectionCard('AI & Search', Icons.auto_awesome, [
                           _toggleRow('Semantic Search', 'Enable AI-powered semantic search', _semanticEnabled, (v) => setState(() => _semanticEnabled = v)),
-                          const Divider(height: 24),
+                          const Divider(color: CScholarMaterial.rim, height: 24),
                           _toggleRow('Recommendations', 'Show AI recommendations on thesis detail', _recommendationsEnabled, (v) => setState(() => _recommendationsEnabled = v)),
-                          const Divider(height: 24),
+                          const Divider(color: CScholarMaterial.rim, height: 24),
                           _textField('Max Search Results', 'e.g., 20', _maxResultsCtrl),
                         ]),
                         const SizedBox(height: 20),
                         // Content & Access
                         _sectionCard('Content & Access', Icons.content_paste, [
                           _toggleRow('Auto-Archive', 'Automatically archive theses older than 3 years', _autoArchive, (v) => setState(() => _autoArchive = v)),
-                          const Divider(height: 24),
+                          const Divider(color: CScholarMaterial.rim, height: 24),
                           _toggleRow('Public Search', 'Allow non-logged-in users to search', _publicSearch, (v) => setState(() => _publicSearch = v)),
                         ]),
                         const SizedBox(height: 20),
@@ -169,20 +164,17 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   }
 
   Widget _sectionCard(String title, IconData icon, List<Widget> children) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CScholarColors.dividerLight),
-      ),
+    return CScholarCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: CScholarColors.backgroundLight,
-              border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: CScholarMaterial.rim),
+              ),
             ),
             child: Row(
               children: [
@@ -229,7 +221,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: CScholarMaterial.clay,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(

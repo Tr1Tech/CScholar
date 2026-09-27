@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -34,15 +36,10 @@ class AdminDashboardScreen extends ConsumerWidget {
             PageHeader(
               title: 'Admin Dashboard',
               subtitle: 'Manage repository entries, user submissions, and access activity.',
-              action: FilledButton.icon(
+              action: NeumorphButton(
                 onPressed: () => context.go('/admin/thesis/new'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: CScholarColors.primaryGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                ),
-                icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                label: Text('Add New Thesis', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                icon: Icons.add,
+                label: 'Add New Thesis',
               ),
             ),
 
@@ -64,7 +61,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       value: '${stats.value?['studies'] ?? 0}',
                       trend: '+${stats.value?['studies_this_week'] ?? 0} this week',
                       icon: Icons.article_outlined,
-                      iconBg: const Color(0xFFDCFCE7),
+                      iconBg: CScholarColors.thesisChipBg,
                       iconColor: CScholarColors.primaryGreen,
                     ),
                     KpiCard(
@@ -72,7 +69,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       value: '${stats.value?['programs'] ?? 0}',
                       trend: '${stats.value?['active_programs'] ?? 0} active',
                       icon: Icons.school_outlined,
-                      iconBg: const Color(0xFFFEF9C3),
+                      iconBg: CScholarColors.goldLight,
                       iconColor: CScholarColors.goldDeep,
                     ),
                     KpiCard(
@@ -80,7 +77,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       value: '${stats.value?['users'] ?? 0}',
                       trend: '${stats.value?['active_users'] ?? 0} active',
                       icon: Icons.people_outline,
-                      iconBg: const Color(0xFFFEF3C7),
+                      iconBg: CScholarColors.capstoneChipBg,
                       iconColor: CScholarColors.warningFg,
                     ),
                     KpiCard(
@@ -88,7 +85,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       value: '${stats.value?['searches'] ?? '0'}',
                       trend: '+${stats.value?['search_growth'] ?? 0}%',
                       icon: Icons.search,
-                      iconBg: const Color(0xFFDBEAFE),
+                      iconBg: CScholarColors.infoLight,
                       iconColor: CScholarColors.info,
                     ),
                   ],
@@ -207,13 +204,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final activityAsync = ref.watch(recentActivityProvider);
         return activityAsync.when(
-          loading: () => Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(CScholarRadius.xl),
-              border: Border.all(color: CScholarColors.borderLight),
-              boxShadow: CScholarShadows.card,
-            ),
+          loading: () => CScholarCard(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,18 +231,12 @@ class AdminDashboardScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const Divider(color: CScholarColors.borderLight, height: 20),
+                const Divider(color: CScholarMaterial.rim, height: 20),
                 const SkeletonList(count: 4, cardHeight: 56),
               ],
             ),
           ),
-          error: (_, _) => Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(CScholarRadius.xl),
-              border: Border.all(color: CScholarColors.borderLight),
-              boxShadow: CScholarShadows.card,
-            ),
+          error: (_, _) => CScholarCard(
             padding: const EdgeInsets.all(24),
             child: EmptyState(
               icon: Icons.error_outline,
@@ -260,13 +245,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               onAction: () => ref.invalidate(recentActivityProvider),
             ),
           ),
-          data: (items) => Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(CScholarRadius.xl),
-              border: Border.all(color: CScholarColors.borderLight),
-              boxShadow: CScholarShadows.card,
-            ),
+          data: (items) => CScholarCard(
             padding: const EdgeInsets.all(24),
             child: _activityList(items),
           ),
@@ -296,7 +275,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             ),
           ],
         ),
-        const Divider(color: CScholarColors.borderLight, height: 20),
+        const Divider(color: CScholarMaterial.rim, height: 20),
         if (items.isEmpty)
           const Padding(
             padding: EdgeInsets.all(24),
@@ -308,7 +287,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           final item = entry.value;
           final widgets = <Widget>[];
           if (idx > 0) {
-            widgets.add(const Divider(color: CScholarColors.dividerLight, height: 16));
+            widgets.add(const Divider(color: CScholarMaterial.rim, height: 16));
           }
           widgets.add(_activityItem(
             icon: _iconFor(item['icon'] as String? ?? 'info'),
@@ -385,13 +364,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   Widget _quickManagementPanel(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
+    return CScholarCard(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,7 +378,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             context,
             icon: Icons.add_circle_outline,
             iconColor: CScholarColors.primaryGreen,
-            iconBg: const Color(0xFFDCFCE7),
+            iconBg: CScholarColors.thesisChipBg,
             title: 'Add New Thesis',
             subtitle: 'Upload PDF & register metadata',
             onTap: () => context.go('/admin/thesis/new'),
@@ -414,8 +387,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           _managementTile(
             context,
             icon: Icons.people_alt_outlined,
-            iconColor: CScholarColors.orange,
-            iconBg: const Color(0xFFFEF3C7),
+            iconColor: CScholarColors.warningFg,
+            iconBg: CScholarColors.capstoneChipBg,
             title: 'Manage Users',
             subtitle: 'Review student approvals & roles',
             onTap: () => context.go('/admin/users'),
@@ -424,8 +397,8 @@ class AdminDashboardScreen extends ConsumerWidget {
           _managementTile(
             context,
             icon: Icons.category_outlined,
-            iconColor: const Color(0xFF2563EB),
-            iconBg: const Color(0xFFDBEAFE),
+            iconColor: CScholarColors.skyInk,
+            iconBg: CScholarColors.skyTint,
             title: 'Programs & Tags',
             subtitle: 'Organize college departments',
             onTap: () => context.go('/admin/programs'),
@@ -450,8 +423,10 @@ class AdminDashboardScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
+          // A recessed well: the row's shape comes from its tonal fill, not a
+          // drawn outline.
+          color: CScholarMaterial.clayDeep,
           borderRadius: BorderRadius.circular(CScholarRadius.lg),
-          border: Border.all(color: CScholarColors.borderLight),
         ),
         child: Row(
           children: [

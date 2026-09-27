@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
@@ -23,7 +26,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
     final isDesktop = size.width > 920;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: CScholarMaterial.canvas,
       body: Row(
         children: [
           // Sidebar
@@ -45,15 +48,10 @@ class FacultyDashboardScreen extends ConsumerWidget {
                             PageHeader(
                               title: 'Faculty Dashboard',
                               subtitle: 'Track your advisees, research activity, and student progress.',
-                              action: FilledButton.icon(
+                              action: NeumorphButton(
                                 onPressed: () => context.go('/faculty/thesis/new'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: CScholarColors.primaryGreen,
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                ),
-                                icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                                label: Text('New Thesis', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                                icon: Icons.add,
+                                label: 'New Thesis',
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -73,7 +71,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       value: '${stats.value?['advisees'] ?? 0}',
                                       trend: '${stats.value?['active_projects'] ?? 0} active projects',
                                       icon: Icons.people_outline,
-                                      iconBg: const Color(0xFFDCFCE7),
+                                      iconBg: CScholarColors.thesisChipBg,
                                       iconColor: CScholarColors.primaryGreen,
                                     ),
                                     KpiCard(
@@ -81,7 +79,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       value: '${stats.value?['theses'] ?? 0}',
                                       trend: '${stats.value?['published'] ?? 0} published',
                                       icon: Icons.article_outlined,
-                                      iconBg: const Color(0xFFFEF3C7),
+                                      iconBg: CScholarColors.capstoneChipBg,
                                       iconColor: CScholarColors.warningFg,
                                     ),
                                     KpiCard(
@@ -89,7 +87,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       value: '${stats.value?['programs'] ?? 0}',
                                       trend: '${stats.value?['programs'] ?? 0} CEIT programs',
                                       icon: Icons.school_outlined,
-                                      iconBg: const Color(0xFFFEF9C3),
+                                      iconBg: CScholarColors.goldLight,
                                       iconColor: CScholarColors.goldDeep,
                                     ),
                                     KpiCard(
@@ -97,7 +95,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       value: '${stats.value?['pending_reviews'] ?? 0}',
                                       trend: '${stats.value?['completed_reviews'] ?? 0} completed',
                                       icon: Icons.rate_review_outlined,
-                                      iconBg: const Color(0xFFDBEAFE),
+                                      iconBg: CScholarColors.infoLight,
                                       iconColor: CScholarColors.info,
                                     ),
                                   ],
@@ -146,14 +144,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
   }
 
   Widget _recentActivityPanel(BuildContext context, AsyncValue<List<Map<String, dynamic>>> activity) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
+    return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,13 +152,15 @@ class FacultyDashboardScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Recent Activity', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
-              TextButton(
+              NeumorphButton(
                 onPressed: () => context.go('/faculty/theses'),
-                child: Text('View All', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+                label: 'View All',
+                gel: false,
+                icon: Icons.arrow_forward,
               ),
             ],
           ),
-          const Divider(color: CScholarColors.borderLight, height: 20),
+          const Divider(color: CScholarMaterial.rim, height: 20),
           activity.when(
             data: (items) {
               if (items.isEmpty) {
@@ -181,7 +174,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
               return Column(
                 children: items.take(5).map((item) => _activityItem(
                   icon: Icons.article_outlined,
-                  iconBg: const Color(0xFFDCFCE7),
+                  iconBg: CScholarColors.thesisChipBg,
                   iconColor: CScholarColors.primaryGreen,
                   title: item['title'] ?? 'Untitled',
                   subtitle: item['subtitle'] ?? 'No details',
@@ -205,19 +198,12 @@ class FacultyDashboardScreen extends ConsumerWidget {
 
   Widget _adviseesPanel(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(facultyStatsProvider);
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
+    return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('My Advisees', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
-          const Divider(color: CScholarColors.borderLight, height: 20),
+          const Divider(color: CScholarMaterial.rim, height: 20),
           stats.when(
             data: (s) {
               final count = (s['advisees'] as num?)?.toInt() ?? 0;
@@ -257,9 +243,10 @@ class FacultyDashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Center(
-            child: TextButton(
+            child: NeumorphButton(
               onPressed: () => context.go('/faculty/students'),
-              child: Text('View All Advisees', style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.primaryGreen)),
+              label: 'View All Advisees',
+              gel: false,
             ),
           ),
         ],

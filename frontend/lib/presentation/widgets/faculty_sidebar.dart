@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
+import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
 /// Shared faculty sidebar — same look as the faculty dashboard sidebar.
 class FacultySidebar extends ConsumerWidget {
@@ -15,55 +16,53 @@ class FacultySidebar extends ConsumerWidget {
     // Floating card: the rounding needs breathing room inside parent Rows.
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Container(
-      width: 248,
-      decoration: BoxDecoration(
-        color: CScholarColors.sidebarLight,
-        borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-        border: Border.all(color: CScholarColors.sidebarLightBorder),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
-            child: CScholarLogo(
-              iconSize: 34,
-              subtitle: 'Search • Discover • Build',
-            ),
-          ),
-          const SizedBox(height: 12),
-          _item(context, Icons.dashboard_outlined, Icons.dashboard,
-              'Dashboard', '/faculty/dashboard'),
-          _item(context, Icons.article_outlined, Icons.article,
-              'My Theses', '/faculty/theses'),
-          _item(context, Icons.people_outlined, Icons.people,
-              'My Students', '/faculty/students'),
-          _item(context, Icons.analytics_outlined, Icons.analytics,
-              'Analytics', '/faculty/analytics'),
-          _item(context, Icons.settings_outlined, Icons.settings,
-              'Settings', '/faculty/settings'),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ListTile(
-              leading: const Icon(Icons.logout,
-                  size: 20, color: CScholarColors.textSecondary),
-              title: Text(
-                'Log Out',
-                style: CScholarTextStyles.inter(
-                    13, FontWeight.w500, CScholarColors.textSecondary),
+      child: SizedBox(
+        width: 248,
+        child: ClaySurface(
+          radius: CScholarRadius.xxl,
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
+                child: CScholarLogo(
+                  iconSize: 34,
+                  subtitle: 'Search • Discover • Build',
+                ),
               ),
-              dense: true,
-              onTap: () {
-                ref.read(authProvider.notifier).logout();
-                context.go('/login');
-              },
-            ),
+              const SizedBox(height: 12),
+              _item(context, Icons.dashboard_outlined, Icons.dashboard,
+                  'Dashboard', '/faculty/dashboard'),
+              _item(context, Icons.article_outlined, Icons.article,
+                  'My Theses', '/faculty/theses'),
+              _item(context, Icons.people_outlined, Icons.people,
+                  'My Students', '/faculty/students'),
+              _item(context, Icons.analytics_outlined, Icons.analytics,
+                  'Analytics', '/faculty/analytics'),
+              _item(context, Icons.settings_outlined, Icons.settings,
+                  'Settings', '/faculty/settings'),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: ListTile(
+                  leading: const Icon(Icons.logout,
+                      size: 20, color: CScholarColors.textSecondary),
+                  title: Text(
+                    'Log Out',
+                    style: CScholarTextStyles.inter(
+                        13, FontWeight.w500, CScholarColors.textSecondary),
+                  ),
+                  dense: true,
+                  onTap: () {
+                    ref.read(authProvider.notifier).logout();
+                    context.go('/login');
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-          const SizedBox(height: 8),
-        ],
-      ),
+        ),
       ),
     );
   }

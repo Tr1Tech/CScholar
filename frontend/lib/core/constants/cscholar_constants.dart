@@ -55,12 +55,30 @@ class CScholarColors {
   static const Color heroDeep = Color(0xFF003800);
   static const Color heroMid = Color(0xFF005A1E);
   static const Color heroGlow = Color(0xFF008000);
+  /// Mid stops of the auth brand panel gradient ([heroMid] -> [heroBase] ->
+  /// [heroFloor]); all three are dark enough that white and [heroText] clear
+  /// the 4.5:1 body floor on every stop.
+  static const Color heroBase = Color(0xFF00471B);
+  static const Color heroFloor = Color(0xFF043313);
+  /// Mint copy on the dark hero panels. Measured 7.46:1 on [heroMid] and
+  /// 12.44:1 on [heroFloor] — comfortably AA for the 13.5px body text.
+  static const Color heroText = Color(0xFFD1FAE5);
 
   // Research-type chips (v2 card language)
   static const Color thesisChipBg = Color(0xFFDCFCE7);
   static const Color thesisChipFg = Color(0xFF047857);
   static const Color capstoneChipBg = Color(0xFFFEF3C7);
   static const Color capstoneChipFg = Color(0xFFB45309);
+
+  // ---- Metric tile tints ----
+  // Icon-tile backgrounds for KPI / metric rows. Each INK must clear 3:1
+  // against its own TINT (WCAG 1.4.11) — sky #0369A1 is 5.17:1 on #E0F2FE and
+  // violet #6D28D9 is 5.98:1 on #EDE9FE. The green/amber tiles reuse the
+  // research-type tints above.
+  static const Color skyTint = Color(0xFFE0F2FE);
+  static const Color skyInk = Color(0xFF0369A1);
+  static const Color violetTint = Color(0xFFEDE9FE);
+  static const Color violetInk = Color(0xFF6D28D9);
 
   // ---- Canvas & neutral surfaces (sage-clay family) ----
   /// Literal white. For ink on green and for surfaces that must stay paper —
@@ -207,6 +225,11 @@ class CScholarDurations {
   static const Duration normal = Duration(milliseconds: 250);
   // Nothing animates longer than 300ms (motion plan, item 8).
   static const Duration slow = Duration(milliseconds: 300);
+
+  /// Input debounce. Not an animation — it never renders — so it sits outside
+  /// the 300ms motion ceiling, but it is still named here so no screen hand-
+  /// rolls a timer.
+  static const Duration debounce = Duration(milliseconds: 400);
 }
 
 class CScholarCurves {

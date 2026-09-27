@@ -165,7 +165,7 @@ class RecRail extends ConsumerWidget {
         borderRadius: BorderRadius.circular(CScholarRadius.md),
         // Solid rim, not a 40% alpha gold: an alpha rim on a light tint is a
         // ~1.2:1 edge and reads as a rendering artefact.
-        border: Border.all(color: const Color(0xFFFDE68A)),
+        border: Border.all(color: CScholarMaterial.rimDraft),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

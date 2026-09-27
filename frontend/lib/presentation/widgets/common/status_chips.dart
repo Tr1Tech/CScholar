@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 
 /// Tactile status chip for the thesis system.
 ///
@@ -11,6 +12,10 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 /// - Approved:  #1D4ED8 on #DBEAFE (5.49:1)
 /// - Draft:     #A34A08 on #FEF3C7 (5.33:1)
 /// - Other:     #556377 on #E2EAE1 (4.97:1)
+///
+/// Every colour comes from the token layer: the fills are CScholarColors
+/// tokens and the hairline rims are CScholarMaterial tokens, so the palette
+/// law scan has no literal to flag.
 class ThesisStatusChip extends StatelessWidget {
   final String status;
   const ThesisStatusChip(this.status, {super.key});
@@ -25,22 +30,22 @@ class ThesisStatusChip extends StatelessWidget {
       case 'published':
         bg = CScholarColors.primaryGreenLight;
         fg = CScholarColors.primaryGreen;
-        rim = const Color(0xFFB8E2B8);
+        rim = CScholarMaterial.rimPublished;
         break;
       case 'approved':
         bg = CScholarColors.infoLight;
         fg = CScholarColors.info;
-        rim = const Color(0xFFBFDBFE);
+        rim = CScholarMaterial.rimApproved;
         break;
       case 'draft':
         bg = CScholarColors.adminLight;
         fg = CScholarColors.adminColor;
-        rim = const Color(0xFFFDE68A);
+        rim = CScholarMaterial.rimDraft;
         break;
       default:
-        bg = const Color(0xFFE2EAE1);
+        bg = CScholarMaterial.chipNeutral;
         fg = CScholarColors.textMuted;
-        rim = CScholarColors.borderLight;
+        rim = CScholarMaterial.rim;
     }
     return _TactileChip(text: status.toUpperCase(), bg: bg, fg: fg, rim: rim);
   }
@@ -62,17 +67,17 @@ class RoleChip extends StatelessWidget {
       case 'admin':
         bg = CScholarColors.adminLight;
         fg = CScholarColors.adminColor;
-        rim = const Color(0xFFFDE68A);
+        rim = CScholarMaterial.rimDraft;
         break;
       case 'faculty':
         bg = CScholarColors.facultyLight;
         fg = CScholarColors.facultyColor;
-        rim = const Color(0xFFE9D5FF);
+        rim = CScholarMaterial.rimFaculty;
         break;
       default:
         bg = CScholarColors.infoLight;
         fg = CScholarColors.studentColor;
-        rim = const Color(0xFFBFDBFE);
+        rim = CScholarMaterial.rimApproved;
     }
     return _TactileChip(
       text: role.toLowerCase(),
@@ -90,12 +95,11 @@ class ActiveChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = isActive
-        ? CScholarColors.primaryGreenLight
-        : const Color(0xFFE2EAE1);
+    final bg =
+        isActive ? CScholarColors.primaryGreenLight : CScholarMaterial.chipNeutral;
     final fg =
         isActive ? CScholarColors.primaryGreen : CScholarColors.textMuted;
-    final rim = isActive ? const Color(0xFFB8E2B8) : CScholarColors.borderLight;
+    final rim = isActive ? CScholarMaterial.rimPublished : CScholarMaterial.rim;
 
     return _TactileChip(
       text: isActive ? 'ACTIVE' : 'INACTIVE',
@@ -140,15 +144,9 @@ class _TactileChip extends StatelessWidget {
           color: highContrast ? CScholarColors.textPrimary : rim,
           width: highContrast ? 1.5 : 1,
         ),
-        boxShadow: highContrast
-            ? null
-            : const [
-                BoxShadow(
-                  color: Color(0x18000000),
-                  offset: Offset(0, 1),
-                  blurRadius: 2,
-                ),
-              ],
+        // The shadow is the tinted clay token, never black. A 20px badge is too
+        // small for the shadow to define it, hence the hairline rim alongside.
+        boxShadow: highContrast ? null : CScholarMaterial.clayDrop(depth: 0.18),
       ),
       child: Text(
         text,
@@ -156,10 +154,9 @@ class _TactileChip extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: isPill ? 0.2 : 0.4,
-          color: highContrast ? CScholarColors.textPrimary : fg,
+          color: highContrast ? CScholarMaterial.textPrimary : fg,
         ),
       ),
     );
   }
 }
-

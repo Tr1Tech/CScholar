@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 
 /// Five states, not two. [previewState] exists so the design lab can render
 /// every state side by side; leave it null everywhere in the app.
@@ -22,6 +23,7 @@ class _NeumorphBase extends StatefulWidget {
     required this.child,
     required this.radius,
     required this.gel,
+    this.danger = false,
     this.onTap,
     this.previewState,
     this.semanticLabel,
@@ -30,6 +32,7 @@ class _NeumorphBase extends StatefulWidget {
   final Widget child;
   final double radius;
   final bool gel;
+  final bool danger;
   final VoidCallback? onTap;
   final NeumorphState? previewState;
   final String? semanticLabel;
@@ -114,16 +117,21 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 
   BoxDecoration _decoration(double t) {
     if (widget.gel) {
+      final top = widget.danger ? CScholarColors.error : CScholarMaterial.gelTop;
+      final bottom = widget.danger
+          ? Color.lerp(CScholarColors.error, CScholarMaterial.textPrimary, 0.22)!
+          : CScholarMaterial.gelBottom;
+      final deep = widget.danger
+          ? Color.lerp(CScholarColors.error, CScholarMaterial.textPrimary, 0.4)!
+          : CScholarMaterial.gelDeep;
       return BoxDecoration(
         borderRadius: BorderRadius.circular(widget.radius),
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color.lerp(CScholarMaterial.gelTop, CScholarMaterial.gelBottom,
-                0.25 + 0.65 * t)!,
-            Color.lerp(
-                CScholarMaterial.gelBottom, CScholarMaterial.gelDeep, t)!,
+            Color.lerp(top, bottom, 0.25 + 0.65 * t)!,
+            Color.lerp(bottom, deep, t)!,
           ],
         ),
         boxShadow: [
@@ -247,7 +255,11 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 }
 
 /// Action button. `gel: true` = primary (green, white text);
-/// `gel: false` = secondary (clay, dark text).
+/// `gel: false` = secondary (clay, dark text); `danger: true` = destructive
+/// (deep red, white text — the only other gel fill in the system).
+///
+/// [loading] blocks taps and swaps the label for an inline clay sweep, so a
+/// double submit is impossible while a request is in flight.
 class NeumorphButton extends StatelessWidget {
   const NeumorphButton({
     super.key,
@@ -255,7 +267,9 @@ class NeumorphButton extends StatelessWidget {
     this.onPressed,
     this.icon,
     this.gel = true,
+    this.danger = false,
     this.expand = false,
+    this.loading = false,
     this.previewState,
   });
 
@@ -263,16 +277,22 @@ class NeumorphButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool gel;
+  final bool danger;
   final bool expand;
+
+  /// In-flight state: the button ignores taps and shows progress in place.
+  final bool loading;
   final NeumorphState? previewState;
 
   @override
   Widget build(BuildContext context) {
-    final foreground = gel ? Colors.white : CScholarMaterial.textPrimary;
+    final isGel = gel || danger;
+    final foreground = isGel ? Colors.white : CScholarMaterial.textPrimary;
     final button = _NeumorphBase(
       radius: CScholarRadius.md,
-      gel: gel,
-      onTap: onPressed,
+      gel: isGel,
+      danger: danger,
+      onTap: loading ? null : onPressed,
       previewState: previewState,
       semanticLabel: label,
       child: Padding(
@@ -281,14 +301,22 @@ class NeumorphButton extends StatelessWidget {
           mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18, color: foreground),
-              const SizedBox(width: 8),
+            if (loading)
+              SizedBox(
+                width: 48,
+                child: ClayLoader(height: 5, tint: isGel ? Colors.white : null),
+              )
+            else ...[
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: foreground),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style:
+                    CScholarTextStyles.inter(14, FontWeight.w600, foreground),
+              ),
             ],
-            Text(
-              label,
-              style: CScholarTextStyles.inter(14, FontWeight.w600, foreground),
-            ),
           ],
         ),
       ),

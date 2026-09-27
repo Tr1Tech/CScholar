@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
+import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
 class AdminSidebar extends ConsumerWidget {
   final String currentPath;
@@ -13,114 +15,113 @@ class AdminSidebar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Container(
+      child: SizedBox(
         width: 248,
-        decoration: BoxDecoration(
-          color: CScholarColors.sidebarLight,
-          borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-          border: Border.all(color: CScholarColors.sidebarLightBorder),
-          boxShadow: CScholarShadows.card,
-        ),
-      child: Column(
-        children: [
-          // Logo
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
-            child: CScholarLogo(
-              iconSize: 34,
-              subtitle: 'Search • Discover • Build',
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-            // Navigation Links
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                _navItem(
-                  context,
-                  icon: Icons.dashboard_outlined,
-                  selectedIcon: Icons.dashboard,
-                  label: 'Dashboard',
-                  path: '/admin/dashboard',
+        child: ClaySurface(
+          radius: CScholarRadius.xxl,
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              // Logo
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 22, 20, 6),
+                child: CScholarLogo(
+                  iconSize: 34,
+                  subtitle: 'Search • Discover • Build',
                 ),
-                _navItem(
-                  context,
-                  icon: Icons.article_outlined,
-                  selectedIcon: Icons.article,
-                  label: 'Theses / Capstone',
-                  path: '/admin/thesis/management',
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.people_outline,
-                  selectedIcon: Icons.people,
-                  label: 'Users',
-                  path: '/admin/users',
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.school_outlined,
-                  selectedIcon: Icons.school,
-                  label: 'Programs',
-                  path: '/admin/programs',
-                ),
-                _navItem(
-                  context,
-                  icon: Icons.settings_outlined,
-                  selectedIcon: Icons.settings,
-                  label: 'Settings',
-                  path: '/admin/settings',
-                ),
-              ],
-            ),
-          ),
-
-          // Bottom Sidebar Footer with Logout
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: CScholarColors.sidebarLightBorder, width: 1),
               ),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(CScholarRadius.md),
-                onTap: () {
-                  ref.read(authProvider.notifier).logout();
-                  context.go('/login');
-                },
-                hoverColor: CScholarColors.primaryGreenVeryLight,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.logout,
-                        size: 20,
-                        color: CScholarColors.textSecondary,
+
+              const SizedBox(height: 12),
+
+              // Navigation Links
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    _navItem(
+                      context,
+                      icon: Icons.dashboard_outlined,
+                      selectedIcon: Icons.dashboard,
+                      label: 'Dashboard',
+                      path: '/admin/dashboard',
+                    ),
+                    _navItem(
+                      context,
+                      icon: Icons.article_outlined,
+                      selectedIcon: Icons.article,
+                      label: 'Theses / Capstone',
+                      path: '/admin/thesis/management',
+                    ),
+                    _navItem(
+                      context,
+                      icon: Icons.people_outline,
+                      selectedIcon: Icons.people,
+                      label: 'Users',
+                      path: '/admin/users',
+                    ),
+                    _navItem(
+                      context,
+                      icon: Icons.school_outlined,
+                      selectedIcon: Icons.school,
+                      label: 'Programs',
+                      path: '/admin/programs',
+                    ),
+                    _navItem(
+                      context,
+                      icon: Icons.settings_outlined,
+                      selectedIcon: Icons.settings,
+                      label: 'Settings',
+                      path: '/admin/settings',
+                    ),
+                  ],
+                ),
+              ),
+
+              // Bottom Sidebar Footer with Logout
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: CScholarMaterial.rim, width: 1),
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(CScholarRadius.md),
+                    onTap: () {
+                      ref.read(authProvider.notifier).logout();
+                      context.go('/login');
+                    },
+                    hoverColor: CScholarColors.primaryGreenVeryLight,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.logout,
+                            size: 20,
+                            color: CScholarColors.textSecondary,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Log Out',
+                            style: CScholarTextStyles.inter(
+                              13,
+                              FontWeight.w500,
+                              CScholarColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Log Out',
-                        style: CScholarTextStyles.inter(
-                          13,
-                          FontWeight.w500,
-                          CScholarColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
       ),
     );
   }
