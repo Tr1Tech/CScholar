@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 
 /// Identity objects — the claymorphism half of the system: the "made" objects
 /// (avatars, icon tiles, badges) that make the app feel physical without
@@ -84,7 +83,9 @@ class ClayChip extends StatelessWidget {
 }
 
 /// Moulded tile that holds an icon — KPI cards, list leads, nav affordances.
-/// The inner top-light is what makes it look pressed out of the canvas.
+/// The gradient fill and its soft shadow give it the clay read; the glyph sits
+/// straight on the tile (the old inner white shine belonged to the neumorphic
+/// layer and is gone).
 ///
 /// [gold] turns it into the prestige mark: gold gradient, DARK glyph (white on
 /// gold is 1.38:1) and the system's only coloured shadow. Use it on two or
@@ -154,19 +155,8 @@ class ClayIconTile extends StatelessWidget {
                     ? CScholarMaterial.gelDrop(depth: 0.7)
                     : CScholarMaterial.clayDrop(depth: 0.5),
       ),
-      child: InsetShadow(
-        borderRadius: radius,
-        shadows: [
-          BoxShadow(
-            // gold gets a stronger inner shine so the halo has a source
-            color: Colors.white.withValues(alpha: gold ? 0.55 : 0.35),
-            blurRadius: 6,
-            offset: const Offset(0, -3),
-          ),
-        ],
-        child: Center(
-          child: Icon(icon, size: size * 0.46, color: glyph),
-        ),
+      child: Center(
+        child: Icon(icon, size: size * 0.46, color: glyph),
       ),
     );
   }
@@ -188,7 +178,6 @@ class GelAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(size / 2);
     return Container(
       width: size,
       height: size,
@@ -201,21 +190,11 @@ class GelAvatar extends StatelessWidget {
         ),
         boxShadow: CScholarMaterial.gelDrop(depth: 0.7),
       ),
-      child: InsetShadow(
-        borderRadius: radius,
-        shadows: [
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.40),
-            blurRadius: 8,
-            offset: const Offset(0, -4),
-          ),
-        ],
-        child: Center(
-          child: Text(
-            _initials,
-            style: CScholarTextStyles.inter(
-                size * 0.32, FontWeight.w700, Colors.white),
-          ),
+      child: Center(
+        child: Text(
+          _initials,
+          style: CScholarTextStyles.inter(
+              size * 0.32, FontWeight.w700, Colors.white),
         ),
       ),
     );

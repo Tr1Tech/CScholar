@@ -5,10 +5,10 @@ import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 
 /// The single content card — every panel, section and table wrapper.
 ///
-/// Delegates to [ClaySurface] (material system v3), so the tinted shadow pair,
-/// the inflate gradient, the inner bottom shadow and the automatic high-contrast
-/// fallback all come from one place. Screens must never hand-roll card
-/// decoration; that is what produced three different card looks before.
+/// Delegates to [ClaySurface] (material system v3), so the soft shadow, the
+/// inflate gradient and the automatic high-contrast fallback all come from one
+/// place. Screens must never hand-roll card decoration; that is what produced
+/// three different card looks before.
 class CScholarCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;

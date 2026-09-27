@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart'
     show NeumorphState;
 
-/// Recessed input field — the system's ONE text input.
+/// Tonal input well — the system's ONE text input.
 ///
 /// It is a [FormField], not a bare `TextField`, so screens can keep their
 /// `Form` + `validator` + `Form.validate()` flow. (Every validated form in this
@@ -184,15 +183,17 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
     final hasError = (error ?? '').isNotEmpty;
     final radius = BorderRadius.circular(CScholarRadius.md);
 
-    final borderColor = disabled
-        ? CScholarMaterial.rim
+    // No outline at rest: the tonal well IS the affordance, and a drawn rim on
+    // every field is exactly what the clay pass removed. Focus and error still
+    // ring (they must stay visible), and high contrast keeps a strong rim as
+    // its fallback — the whole no-rim-at-rest decision leans on that one.
+    final Color? borderColor = flat
+        ? CScholarMaterial.rimStrong
         : hasError
             ? CScholarColors.error
             : focused
                 ? CScholarMaterial.gelTop
-                : flat
-                    ? CScholarMaterial.rimStrong
-                    : CScholarMaterial.rim;
+                : null;
 
     return Opacity(
       opacity: disabled ? 0.5 : 1,
@@ -211,71 +212,52 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             decoration: BoxDecoration(
               color: CScholarMaterial.clayDeep,
               borderRadius: radius,
-              border: Border.all(
-                color: borderColor,
-                width: (focused || hasError) ? 1.5 : 1,
-              ),
+              border: borderColor == null
+                  ? null
+                  // Any rim we DO draw is 1.5px. Focus and error are state, and
+                  // the high-contrast fallback is what the no-rim decision
+                  // leans on, so it gets a state ring's weight — not a thinner
+                  // hairline that reads as a leftover from the old pass.
+                  : Border.all(color: borderColor, width: 1.5),
             ),
-            child: InsetShadow(
-              borderRadius: radius,
-              shadows: flat
-                  // High contrast: the rim is the whole affordance.
-                  ? const []
-                  : [
-                      // Recessed well: dark from the top-left, faint light
-                      // opposite — the inverse of the raised clay pair.
-                      BoxShadow(
-                        color: CScholarMaterial.shadowDark
-                            .withValues(alpha: 0.85),
-                        blurRadius: 6,
-                        offset: const Offset(2, 2),
-                      ),
-                      BoxShadow(
-                        color: CScholarMaterial.shadowLight
-                            .withValues(alpha: 0.70),
-                        blurRadius: 5,
-                        offset: const Offset(-2, -2),
-                      ),
-                    ],
-              child: TextField(
+            child: TextField(
                 controller: widget.controller,
-                focusNode: _focus,
-                enabled: !disabled,
-                obscureText: widget.obscureText,
-                keyboardType: widget.keyboardType,
-                textInputAction: widget.textInputAction,
-                autofillHints: widget.autofillHints,
-                textCapitalization: widget.textCapitalization,
-                // A multiline maxLines and obscureText are mutually exclusive
-                // in Flutter's TextField, so obscure wins.
-                maxLines: widget.obscureText ? 1 : widget.maxLines,
-                minLines: widget.minLines,
-                cursorColor: CScholarMaterial.gelTop,
-                style: CScholarTextStyles.inter(
-                    14, FontWeight.w400, CScholarMaterial.textPrimary),
-                onChanged: (v) {
-                  field.didChange(v);
-                  widget.onChanged?.call(v);
-                },
-                onSubmitted: widget.onSubmitted,
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  hintText: widget.hintText,
-                  hintStyle: CScholarTextStyles.inter(
-                      13.5, FontWeight.w400, CScholarMaterial.textFaint),
-                  prefixIcon: widget.prefixIcon == null
-                      ? null
-                      : Icon(widget.prefixIcon,
-                          size: 18, color: CScholarMaterial.textMuted),
-                  suffixIcon: widget.suffixIcon,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                ),
+              focusNode: _focus,
+              enabled: !disabled,
+              obscureText: widget.obscureText,
+              keyboardType: widget.keyboardType,
+              textInputAction: widget.textInputAction,
+              autofillHints: widget.autofillHints,
+              textCapitalization: widget.textCapitalization,
+              // A multiline maxLines and obscureText are mutually exclusive
+              // in Flutter's TextField, so obscure wins.
+              maxLines: widget.obscureText ? 1 : widget.maxLines,
+              minLines: widget.minLines,
+              cursorColor: CScholarMaterial.gelTop,
+              style: CScholarTextStyles.inter(
+                  14, FontWeight.w400, CScholarMaterial.textPrimary),
+              onChanged: (v) {
+                field.didChange(v);
+                widget.onChanged?.call(v);
+              },
+              onSubmitted: widget.onSubmitted,
+              decoration: InputDecoration(
+                isDense: true,
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                hintText: widget.hintText,
+                hintStyle: CScholarTextStyles.inter(
+                    13.5, FontWeight.w400, CScholarMaterial.textFaint),
+                prefixIcon: widget.prefixIcon == null
+                    ? null
+                    : Icon(widget.prefixIcon,
+                        size: 18, color: CScholarMaterial.textMuted),
+                suffixIcon: widget.suffixIcon,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
           ),

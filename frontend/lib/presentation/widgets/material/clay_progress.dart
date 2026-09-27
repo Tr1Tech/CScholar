@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 
 /// Recessed track + gel fill, painted instead of laid out: the animation costs
 /// one small repaint (inside its own RepaintBoundary), never a layout pass.
@@ -48,31 +47,21 @@ class ClayProgressBar extends StatelessWidget {
           ),
         );
 
-    return InsetShadow(
-      borderRadius: radius,
-      shadows: [
-        BoxShadow(
-          color: CScholarMaterial.shadowDark.withValues(alpha: 0.85),
-          blurRadius: 5,
-          offset: const Offset(1.5, 1.5),
-        ),
-      ],
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CScholarMaterial.clayDeep,
-          borderRadius: radius,
-        ),
-        child: animate
-            ? TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: target),
-                duration: motionEnabled(context)
-                    ? CScholarDurations.slow
-                    : Duration.zero,
-                curve: CScholarCurves.standard,
-                builder: (context, v, _) => paint(v),
-              )
-            : paint(target),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CScholarMaterial.clayDeep,
+        borderRadius: radius,
       ),
+      child: animate
+          ? TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: target),
+              duration: motionEnabled(context)
+                  ? CScholarDurations.slow
+                  : Duration.zero,
+              curve: CScholarCurves.standard,
+              builder: (context, v, _) => paint(v),
+            )
+          : paint(target),
     );
   }
 }
@@ -179,34 +168,24 @@ class _ClayLoaderState extends State<ClayLoader>
     final radius = BorderRadius.circular(widget.height / 2);
     final ramp = _gelRamp(widget.tint);
 
-    return InsetShadow(
-      borderRadius: radius,
-      shadows: [
-        BoxShadow(
-          color: CScholarMaterial.shadowDark.withValues(alpha: 0.85),
-          blurRadius: 5,
-          offset: const Offset(1.5, 1.5),
-        ),
-      ],
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: CScholarMaterial.clayDeep,
-          borderRadius: radius,
-        ),
-        child: SizedBox(
-          height: widget.height,
-          width: double.infinity,
-          child: RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) => CustomPaint(
-                // Read the phase inside this builder: the controller drives this
-                // callback rather than the enclosing State, so a phase captured
-                // outside it would freeze at the widget's last rebuild.
-                painter: _SweepPainter(
-                  motionEnabled(context) ? _controller.value : _pinnedPhase,
-                  ramp,
-                ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CScholarMaterial.clayDeep,
+        borderRadius: radius,
+      ),
+      child: SizedBox(
+        height: widget.height,
+        width: double.infinity,
+        child: RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => CustomPaint(
+              // Read the phase inside this builder: the controller drives this
+              // callback rather than the enclosing State, so a phase captured
+              // outside it would freeze at the widget's last rebuild.
+              painter: _SweepPainter(
+                motionEnabled(context) ? _controller.value : _pinnedPhase,
+                ramp,
               ),
             ),
           ),

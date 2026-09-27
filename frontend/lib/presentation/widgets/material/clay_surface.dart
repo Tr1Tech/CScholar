@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 
 /// Clay panel — the standard content surface (cards, sections, tiles).
 ///
-/// Three cues make clay read as a physical object rather than a flat card:
-///   1. a same-hue gradient (light top-left -> base) = the "inflate"
-///   2. a tinted drop shadow + white top-left highlight = raised, not dropped
-///   3. an inset bottom shadow = the dome
+/// Clay reads as a physical slab from three things, none of which is an
+/// outline or an inner shadow:
+///   1. its own fill, lighter than the canvas
+///   2. a same-hue gradient (light top-left -> base) = the "inflate" shading
+///   3. ONE soft downward shadow that seats it on the canvas
 ///
-/// When high contrast is on (or [CScholarMaterial.glassEnabled] is off) it
-/// degrades to a solid surface with a strong rim — no shadows, no gradient.
+/// No border and no inset by default. A drawn rim on every surface is what made
+/// the earlier neumorphic pass look boxed-in; the slab IS the boundary now. Pass
+/// [showRim] only where a small or low-contrast surface genuinely needs one.
+///
+/// When high contrast is on it degrades to a solid fill + a strong rim — no
+/// shadows, no gradient. That is the one place a drawn boundary is the point.
 class ClaySurface extends StatelessWidget {
   const ClaySurface({
     super.key,
@@ -19,9 +23,8 @@ class ClaySurface extends StatelessWidget {
     this.radius = CScholarRadius.xl,
     this.padding = const EdgeInsets.all(20),
     this.depth = 1,
-    this.inset = true,
     this.color = CScholarMaterial.clay,
-    this.showRim = true,
+    this.showRim = false,
     this.shadows,
   });
 
@@ -29,21 +32,19 @@ class ClaySurface extends StatelessWidget {
   final double radius;
   final EdgeInsetsGeometry padding;
   final double depth;
-  final bool inset;
   final Color color;
   final bool showRim;
 
-  /// Rare override for the drop shadow. Null uses the clay pair for [depth].
+  /// Rare override for the drop shadow. Null uses the clay shadow for [depth].
   final List<BoxShadow>? shadows;
 
   @override
   Widget build(BuildContext context) {
     final flat = MediaQuery.highContrastOf(context);
-    final borderRadius = BorderRadius.circular(radius);
 
-    final body = DecoratedBox(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: borderRadius,
+        borderRadius: BorderRadius.circular(radius),
         gradient: flat
             ? null
             : LinearGradient(
@@ -52,7 +53,7 @@ class ClaySurface extends StatelessWidget {
                 colors: [CScholarMaterial.clayHigh, color],
               ),
         color: flat ? color : null,
-        border: showRim
+        border: flat || showRim
             ? Border.all(
                 color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
               )
@@ -62,13 +63,6 @@ class ClaySurface extends StatelessWidget {
             : (shadows ?? CScholarMaterial.clayDrop(depth: depth)),
       ),
       child: Padding(padding: padding, child: child),
-    );
-
-    if (flat || !inset) return body;
-    return InsetShadow(
-      borderRadius: borderRadius,
-      shadows: CScholarMaterial.clayInset(),
-      child: body,
     );
   }
 }

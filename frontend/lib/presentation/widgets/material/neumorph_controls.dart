@@ -3,21 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 
 /// Five states, not two. [previewState] exists so the design lab can render
 /// every state side by side; leave it null everywhere in the app.
 enum NeumorphState { rest, hover, pressed, focus, disabled }
 
-/// One progress value drives every visual channel (gradient, shadows, inset
-/// depth, the 1px sink). That is why press and release can never de-sync — and
-/// why this looks smoother than swapping two `BoxDecoration`s, since Flutter
-/// can only interpolate shadow lists of equal length.
+/// One progress value drives every visual channel (gradient, shadow depth, the
+/// 1.5px sink). That is why press and release can never de-sync — and why this
+/// looks smoother than swapping two `BoxDecoration`s, since Flutter can only
+/// interpolate shadow lists of equal length.
 const double _kRest = 0;
 const double _kHover = 0.35;
 const double _kPressed = 1;
 
-/// Shared state machine for every pressable neumorphic control.
+/// Shared state machine for every pressable clay control.
 class _NeumorphBase extends StatefulWidget {
   const _NeumorphBase({
     required this.child,
@@ -134,11 +133,6 @@ class _NeumorphBaseState extends State<_NeumorphBase>
             offset: Offset(0, 6 * (1 - t)),
             spreadRadius: -2,
           ),
-          BoxShadow(
-            color: CScholarMaterial.shadowLight.withValues(alpha: 0.45 * (1 - t)),
-            blurRadius: 8 * (1 - t),
-            offset: const Offset(-4, -4),
-          ),
         ],
       );
     }
@@ -161,11 +155,6 @@ class _NeumorphBaseState extends State<_NeumorphBase>
           blurRadius: 14 * (1 - t) + 2,
           offset: Offset(0, 7 * (1 - t)),
           spreadRadius: -4,
-        ),
-        BoxShadow(
-          color: CScholarMaterial.shadowLight.withValues(alpha: 0.80 * (1 - t)),
-          blurRadius: 10 * (1 - t),
-          offset: const Offset(-6, -6),
         ),
       ],
     );
@@ -200,8 +189,6 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(widget.radius);
-
     return AnimatedBuilder(
       animation: _c,
       builder: (context, _) {
@@ -211,7 +198,8 @@ class _NeumorphBaseState extends State<_NeumorphBase>
           child: Opacity(
             opacity: _disabled ? 0.45 : 1,
             child: Transform.translate(
-              // 1.5px sink: the surface travels into the well when pressed
+              // 1.5px sink: the surface presses toward the canvas. Clay has no
+              // inset well to travel into, so the sink is the whole gesture.
               offset: Offset(0, 1.5 * t),
               child: widget.child,
             ),
@@ -248,15 +236,7 @@ class _NeumorphBaseState extends State<_NeumorphBase>
                 onTapUp: _disabled ? null : (_) => _setDown(false),
                 onTapCancel: _disabled ? null : () => _setDown(false),
                 onTap: _disabled ? null : widget.onTap,
-                child: _focusRing(
-                  InsetShadow(
-                    borderRadius: radius,
-                    shadows: _disabled
-                        ? const []
-                        : CScholarMaterial.pressInset(strength: t),
-                    child: content,
-                  ),
-                ),
+                child: _focusRing(content),
               ),
             ),
           ),

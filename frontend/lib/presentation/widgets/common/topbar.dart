@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 
 /// Shared topbar chrome for every role shell (admin / faculty / student).
 ///
@@ -43,11 +42,11 @@ class Topbar extends StatelessWidget {
   }
 }
 
-/// Recessed clay search well — replaces the hardcoded `#F9FAFB` white box that
+/// Tonal clay search well — replaces the hardcoded `#F9FAFB` white box that
 /// read as a hole punched in the sage canvas.
 ///
-/// The inner shadow is painted UNDER the text (a `Stack`, not [InsetShadow]
-/// wrapping the field) so keystrokes never sit behind a vignette.
+/// Flat fill, no outline at rest: the fill IS the field. A drawn rim on every
+/// search box was part of what made the earlier pass look boxed-in.
 class TopbarSearchField extends StatelessWidget {
   const TopbarSearchField({
     super.key,
@@ -96,7 +95,7 @@ class TopbarSearchField extends StatelessWidget {
                     size: 18, color: CScholarColors.textSecondary),
                 onPressed: onClear,
               ),
-        // The well's fill, rim and inset are all painted by the Container below.
+        // The well's fill and rim are painted by the Container below.
         filled: false,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
@@ -115,31 +114,13 @@ class TopbarSearchField extends StatelessWidget {
           decoration: BoxDecoration(
             color: CScholarMaterial.clayDeep,
             borderRadius: radius,
-            border: Border.all(
-              color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
-              width: flat ? 1.5 : 1,
-            ),
+            // No outline at rest — the tonal fill is the field. High contrast
+            // keeps a strong rim as its fallback.
+            border: flat
+                ? Border.all(color: CScholarMaterial.rimStrong, width: 1.5)
+                : null,
           ),
-          child: Stack(
-            children: [
-              if (!flat)
-                Positioned.fill(
-                  child: InsetShadow(
-                    borderRadius: radius,
-                    shadows: [
-                      BoxShadow(
-                        color: CScholarMaterial.shadowDark
-                            .withValues(alpha: 0.30),
-                        blurRadius: 9,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-              field,
-            ],
-          ),
+          child: field,
         ),
       ),
     );
