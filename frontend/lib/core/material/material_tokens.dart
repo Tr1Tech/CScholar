@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// CScholar Material System — clay + neumorphism + glass (design lab v3).
+/// CScholar Material System — claymorphism + glassmorphism.
 ///
 /// THE FUSION LAW: one style per structural role, never two on one element.
-///   canvas + content panels -> clay        (matte, tinted, same hue family)
-///   anything pressable      -> neumorphism (raised <-> pressed inset)
+///   canvas + content panels -> clay        (a soft slab: its own fill, a
+///                                           same-hue top-left gradient, ONE
+///                                           soft downward shadow)
+///   anything pressable      -> clay + gel  (press darkens the fill and sinks
+///                                           the surface — no inset, no rim)
 ///   identity objects        -> clay + gel  (avatars, tiles, covers, badges)
 ///   floating chrome/overlay -> glass       (topbar, rail, search, dialogs)
 ///
-/// Clay and canvas MUST share a hue family. Neumorphism only reads as light +
-/// shadow when the surface and its background are the same colour — this is
-/// why the canvas moved off the old near-white (#F8FAFC / #F2F7F1).
+/// There is no neumorphic layer. Neumorphism only reads when a surface is the
+/// SAME colour as its background with two opposing shadows, which is exactly
+/// why it always needed a drawn outline to be findable — those outlines are
+/// what this pass removed. Clay gives every surface its own fill instead, and
+/// seats it on the canvas with a single soft shadow.
 ///
 /// Contrast values in [ratios] were measured (WCAG 2.1). Keep them in sync.
 class CScholarMaterial {
@@ -29,14 +34,22 @@ class CScholarMaterial {
   /// Recessed wells: input fields, tracks, table stripes.
   static const Color clayDeep = Color(0xFFE3EBE1);
 
-  /// Shadows are TINTED, never black. Black-alpha shadows on white are what
-  /// stop neumorphism from reading correctly.
+  /// Shadows are TINTED, never black. A black-alpha shadow on a sage canvas
+  /// reads as dirt rather than depth.
   static const Color shadowDark = Color(0xFFC9D6C6);
+
+  /// Pure white — a FILL, not a shadow: the white thesis type pill and the
+  /// result-card badge. No shadow in this system is white.
   static const Color shadowLight = Color(0xFFFFFFFF);
 
-  /// 1px affordance backstop (subtle by design: 1.46:1 on clay).
-  /// Neumorphic controls always carry this — shadows alone are not an
-  /// affordance (high contrast, cheap panels, low vision).
+  /// Hairline for small tokens (chips, pills, tiles, avatars) and glass edges,
+  /// where a 20-40px object is too small for a shadow to define it.
+  ///
+  /// 1.46:1 on clay — deliberately soft. This is NOT a control boundary: clay
+  /// carries an edge through its own fill + soft shadow, and a drawn outline
+  /// on every surface is what made the first pass look boxed-in. Fields and
+  /// buttons therefore have no rim at rest; focus and error rings (which do
+  /// clear 3:1) are what mark state. High contrast swaps this for [rimStrong].
   static const Color rim = Color(0xFFC3D0C0);
 
   /// Rim used when high contrast is on: 6.92:1 on clay.
@@ -96,37 +109,19 @@ class CScholarMaterial {
   static bool glassEnabled = true;
 
   // ------------------------------------------------------------- recipes
-  /// Raised clay shadow pair: tinted dark bottom-right + white top-left.
+  /// Clay drop shadow: ONE soft, tinted, downward shadow.
+  ///
+  /// A slab seats itself with a single light from above. The white top-left
+  /// highlight that used to sit here (and the `clayInset` "dome" it paired
+  /// with) were the neumorphic layer: two opposing lights only read when the
+  /// surface matches its background exactly, which is why that style always
+  /// needed a drawn rim to be legible. Depth now comes from fill + one shadow.
   static List<BoxShadow> clayDrop({double depth = 1}) => [
         BoxShadow(
           color: shadowDark.withValues(alpha: (0.55 * depth).clamp(0.0, 1.0)),
           blurRadius: 18 * depth,
           offset: Offset(0, 10 * depth),
           spreadRadius: -6 * depth,
-        ),
-        BoxShadow(
-          color: shadowLight.withValues(alpha: (0.85 * depth).clamp(0.0, 1.0)),
-          blurRadius: 10 * depth,
-          offset: const Offset(-6, -6),
-        ),
-      ];
-
-  /// Inner bottom shadow — this is what makes clay look inflated rather
-  /// than merely dropped. Painted by `InsetShadow`.
-  static List<BoxShadow> clayInset({double strength = 1}) => [
-        BoxShadow(
-          color: shadowDark.withValues(alpha: (0.28 * strength).clamp(0.0, 1.0)),
-          blurRadius: 12,
-          offset: const Offset(0, 6),
-        ),
-      ];
-
-  /// Inner shadow for pressed neumorphic controls (top-left, like a well).
-  static List<BoxShadow> pressInset({double strength = 1}) => [
-        BoxShadow(
-          color: const Color(0xFF003F09).withValues(alpha: (0.42 * strength).clamp(0.0, 1.0)),
-          blurRadius: 8,
-          offset: const Offset(0, 3),
         ),
       ];
 

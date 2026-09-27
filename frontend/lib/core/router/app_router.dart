@@ -104,7 +104,7 @@ final appRouter = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
 
-      // DEV ONLY design lab (clay / neumorphism / glass) — stripped from
+      // DEV ONLY design lab (clay / glass) — stripped from
       // release builds. Open at /design-lab to review the material system.
       if (kEnableDesignLab)
         GoRoute(

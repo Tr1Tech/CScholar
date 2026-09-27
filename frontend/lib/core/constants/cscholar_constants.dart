@@ -9,7 +9,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 ///
 ///  1. The canvas moved from near-white to a sage **clay** tone, and the shadow
 ///     language became tinted instead of black. Clay and canvas must share a hue
-///     family or neumorphism reads as mud, so surfaces, borders and dividers
+///     family or a tinted shadow reads as mud, so surfaces, borders and dividers
 ///     were retargeted together.
 ///  2. The greens were darkened so they pass WCAG AA on that canvas. The old
 ///     #009900 was 3.78:1 in BOTH directions (as text on white, and white text
@@ -215,8 +215,8 @@ class CScholarCurves {
 }
 
 /// Elevation recipes — now sourced from the material system, so shadows are
-/// TINTED (#C9D6C6) rather than black. Black-alpha shadows on a tinted canvas
-/// are what stop clay/neumorphism from reading as light and shadow.
+/// TINTED (#C9D6C6) rather than black. A black-alpha shadow on a tinted canvas
+/// stops clay from reading as a lit surface.
 class CScholarShadows {
   /// Resting panel.
   static List<BoxShadow> get card => CScholarMaterial.clayDrop(depth: 0.8);
