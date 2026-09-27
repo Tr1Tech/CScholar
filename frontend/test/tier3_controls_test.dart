@@ -847,18 +847,16 @@ void main() {
     });
 
     test('no stock text field outside the primitives and the allow-list', () {
-      // NeumorphField is the system's ONE text input. The remaining stock
-      // TextFields live in dialogs and panels the first pass never scanned —
-      // Task C.2 backlog. The primitive's own internal field and the lab are
-      // not offenders.
+      // NeumorphField is the system's ONE text input. Two deliberate
+      // exceptions remain, both decided — not overlooked:
+      //   * the landing + repository hero searches are borderless interiors
+      //     of a GlassPanel; a clay well nested inside glass would put two
+      //     styles on one element;
+      //   * TopbarSearchField is a bespoke pill-radius recessed well (the
+      //     primitive only ships md radius), flat-aware with its own inset.
       const allowed = {
         'lib/presentation/screens/landing_screen.dart',
-        'lib/presentation/screens/admin/admin_programs_screen.dart',
-        'lib/presentation/screens/admin/admin_settings_screen.dart',
-        'lib/presentation/screens/admin/admin_user_management_screen.dart',
         'lib/presentation/screens/repository/repository_screen.dart',
-        'lib/presentation/screens/student/student_dashboard_screen.dart',
-        // The topbar search may belong to glass; deliberately undecided.
         'lib/presentation/widgets/common/topbar.dart',
       };
       final offences = <String>[];

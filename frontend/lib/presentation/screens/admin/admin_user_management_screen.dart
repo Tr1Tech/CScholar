@@ -12,6 +12,7 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
@@ -185,14 +186,14 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           content: SizedBox(
             width: 360,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
+              NeumorphField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Username'),
+                label: 'Username',
               ),
               const SizedBox(height: 12),
-              TextField(
+              NeumorphField(
                 controller: emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
+                label: 'Email',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 12),
@@ -241,27 +242,25 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           content: SizedBox(
             width: 380,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
+              NeumorphField(
                 controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Username'),
+                label: 'Username',
               ),
               const SizedBox(height: 12),
-              TextField(
+              NeumorphField(
                 controller: emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
+                label: 'Email',
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 12),
-              TextField(
+              NeumorphField(
                 controller: passCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Password (min 6 characters)',
-                  suffixIcon: IconButton(
-                    icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setDialog(() => obscure = !obscure),
-                  ),
-                ),
+                label: 'Password (min 6 characters)',
                 obscureText: obscure,
+                suffixIcon: IconButton(
+                  icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setDialog(() => obscure = !obscure),
+                ),
               ),
               const SizedBox(height: 12),
               NeumorphSelect<String>(

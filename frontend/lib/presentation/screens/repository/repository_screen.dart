@@ -9,6 +9,7 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
@@ -757,8 +758,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             style: CScholarTextStyles.inter(
                 11.5, FontWeight.w700, CScholarColors.textSecondary)),
         const SizedBox(height: 6),
-        TextField(
+        NeumorphField(
           controller: _keywordController,
+          hintText: 'Enter keyword...',
           onChanged: (v) {
             setState(() => _keyword = v.trim());
             onChangedCallback?.call();
@@ -767,23 +769,16 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             setState(() => _keyword = v.trim());
             onChangedCallback?.call();
           },
-          style: CScholarTextStyles.inter(
-              13, FontWeight.w400, CScholarColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Enter keyword...',
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            suffixIcon: _keyword.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 16),
-                    onPressed: () {
-                      _keywordController.clear();
-                      setState(() => _keyword = '');
-                      onChangedCallback?.call();
-                    },
-                  )
-                : null,
-          ),
+          suffixIcon: _keyword.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () {
+                    _keywordController.clear();
+                    setState(() => _keyword = '');
+                    onChangedCallback?.call();
+                  },
+                )
+              : null,
         ),
         const SizedBox(height: 20),
         SizedBox(
