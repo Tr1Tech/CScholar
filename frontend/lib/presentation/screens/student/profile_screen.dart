@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -17,7 +21,7 @@ class ProfileScreen extends ConsumerWidget {
     final isDesktop = size.width > 900;
 
     return StudentLayout(
-      currentIndex: 4,
+      currentIndex: 3,
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
         child: Center(
@@ -27,39 +31,24 @@ class ProfileScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header with "Edit Profile" button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Profile',
-                          style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Manage your account details and review your repository activity',
-                          style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
-                        ),
-                      ],
+                PageHeader(
+                  title: 'Profile',
+                  subtitle: 'Manage your account details and review your repository activity',
+                  action: OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Profile edit mode enabled.')),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: CScholarColors.textPrimary,
+                      side: const BorderSide(color: CScholarColors.borderLight),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Profile edit mode enabled.')),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: CScholarColors.textPrimary,
-                        side: const BorderSide(color: CScholarColors.borderLight),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                      ),
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: Text('Edit Profile', style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
-                    ),
-                  ],
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text('Edit Profile', style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
+                  ),
                 ),
 
                 const SizedBox(height: 28),
@@ -81,6 +70,7 @@ class ProfileScreen extends ConsumerWidget {
                           _rightColumn(context, savedTheses),
                         ],
                       ),
+                const CScholarFooter(),
               ],
             ),
           ),
@@ -178,7 +168,7 @@ class ProfileScreen extends ConsumerWidget {
                                 _infoPill(
                                   Icons.event_outlined,
                                   'Member since ${_formatDate(user.createdAt)}',
-                                  const Color(0xFFF1F5F9),
+                                  CScholarMaterial.clayDeep,
                                   CScholarColors.textSecondary,
                                 ),
                                 _infoPill(
@@ -203,14 +193,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 20),
 
         // 2. Academic & Department Details Card
-        Container(
-          padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(CScholarRadius.xxl),
-            border: Border.all(color: CScholarColors.borderLight),
-            boxShadow: CScholarShadows.card,
-          ),
+        CScholarCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -240,28 +223,14 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       children: [
         // Saved Studies Widget
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            border: Border.all(color: CScholarColors.borderLight),
-            boxShadow: CScholarShadows.card,
-          ),
+        CScholarCard(
           child: _savedStudiesList(savedTheses, context),
         ),
 
         const SizedBox(height: 20),
 
         // Recent Search Activity
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            border: Border.all(color: CScholarColors.borderLight),
-            boxShadow: CScholarShadows.card,
-          ),
+        CScholarCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -349,6 +318,9 @@ class ProfileScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(CScholarRadius.md),
+        // Every pill carries a rim: on a tinted canvas a borderless pill reads
+        // as a colour smudge rather than a token (see common/status_chips.dart).
+        border: Border.all(color: CScholarMaterial.rim),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -368,14 +340,23 @@ class ProfileScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: CScholarTextStyles.inter(12.5, FontWeight.w500, CScholarColors.textMuted)),
-          Row(
-            children: [
-              if (hasDot) ...[
-                Container(width: 6, height: 6, decoration: const BoxDecoration(color: CScholarColors.primaryGreen, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasDot) ...[
+                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: CScholarColors.primaryGreen, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
+                ),
               ],
-              Text(value, style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
-            ],
+            ),
           ),
         ],
       ),
@@ -389,9 +370,9 @@ class ProfileScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9FAFB),
+          color: CScholarMaterial.clayDeep,
           borderRadius: BorderRadius.circular(CScholarRadius.md),
-          border: Border.all(color: const Color(0xFFF1F5F9)),
+          border: Border.all(color: CScholarMaterial.rim),
         ),
         child: Row(
           children: [
@@ -436,10 +417,9 @@ class ProfileScreen extends ConsumerWidget {
   String _formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : 'U';
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 }

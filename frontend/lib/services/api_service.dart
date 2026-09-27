@@ -136,7 +136,7 @@ class ThesisApi {
   }
 
   Future<Map<String, dynamic>> updateStatus(int id, String status) async {
-    return await _api.put('/api/theses/$id/status', {'status': status});
+    return await _api.put('/api/theses/$id', {'status': status});
   }
 
   Future<void> delete(int id) async {

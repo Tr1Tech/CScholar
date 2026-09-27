@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class SavedThesesScreen extends ConsumerStatefulWidget {
@@ -30,34 +37,19 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Page Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Saved Studies',
-                          style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Your bookmarked research studies and reference papers',
-                          style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
-                        ),
-                      ],
+                PageHeader(
+                  title: 'Saved Studies',
+                  subtitle: 'Your bookmarked research studies and reference papers',
+                  action: FilledButton.icon(
+                    onPressed: () => context.go('/repository'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: CScholarColors.primaryGreen,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
                     ),
-                    FilledButton.icon(
-                      onPressed: () => context.go('/repository'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: CScholarColors.primaryGreen,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                      ),
-                      icon: const Icon(Icons.search, size: 18),
-                      label: Text('Find More', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
-                    ),
-                  ],
+                    icon: const Icon(Icons.search, size: 18),
+                    label: Text('Find More', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -88,7 +80,14 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                     }
 
                     if (filtered.isEmpty) {
-                      return _emptyState('No saved studies');
+                      return EmptyState(
+                        icon: Icons.bookmark_border,
+                        title: 'No saved studies',
+                        message:
+                            'Browse the repository to save research papers and capstone projects for later reference.',
+                        actionLabel: 'Browse Repository',
+                        onAction: () => context.go('/repository'),
+                      );
                     }
 
                     return ListView.builder(
@@ -101,32 +100,23 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14),
-                          child: Container(
+                          child: CScholarCard(
                             padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                              border: Border.all(color: CScholarColors.borderLight),
-                              boxShadow: CScholarShadows.card,
-                            ),
                             child: Row(
                               children: [
                                 // Thumbnail device illustration icon
-                                Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: isTeal ? const Color(0xFFCCFBF1) : const Color(0xFFCFFAFE),
-                                    borderRadius: BorderRadius.circular(CScholarRadius.lg),
-                                    border: Border.all(
-                                      color: isTeal ? const Color(0xFF99F6E4) : const Color(0xFFA5F3FC),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    isTeal ? Icons.smartphone_outlined : Icons.laptop_chromebook_outlined,
-                                    color: isTeal ? const Color(0xFF0D9488) : const Color(0xFF0891B2),
-                                    size: 28,
-                                  ),
+                                ClayIconTile(
+                                  icon: isTeal
+                                      ? Icons.smartphone_outlined
+                                      : Icons.laptop_chromebook_outlined,
+                                  size: 60,
+                                  gel: false,
+                                  background: isTeal
+                                      ? const Color(0xFFCCFBF1)
+                                      : const Color(0xFFCFFAFE),
+                                  tint: isTeal
+                                      ? const Color(0xFF0F766E)
+                                      : const Color(0xFF0E7490),
                                 ),
                                 const SizedBox(width: 18),
 
@@ -153,8 +143,9 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(4),
+                                                color: CScholarMaterial.clayDeep,
+                                                borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                                                border: Border.all(color: CScholarMaterial.rim),
                                               ),
                                               child: Text(
                                                 thesis.program!.name,
@@ -219,18 +210,16 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                       },
                     );
                   },
-                  loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                  error: (err, _) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Text(
-                        'Unable to load saved studies: $err',
-                        textAlign: TextAlign.center,
-                        style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.error),
-                      ),
-                    ),
+                  loading: () => const SkeletonList(count: 3, cardHeight: 96),
+                  error: (err, _) => EmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Unable to load saved studies',
+                    message: err.toString(),
+                    actionLabel: 'Retry',
+                    onAction: () => ref.invalidate(savedThesesProvider),
                   ),
                 ),
+                const CScholarFooter(),
               ],
             ),
           ),
@@ -262,35 +251,6 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
             isSelected ? FontWeight.w700 : FontWeight.w500,
             isSelected ? Colors.white : CScholarColors.textSecondary,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _emptyState(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Column(
-          children: [
-            const Icon(Icons.bookmark_border, size: 56, color: CScholarColors.textHint),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: CScholarTextStyles.poppins(16, FontWeight.w600, CScholarColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Browse the repository to save research papers and capstone projects for later reference.',
-              style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => context.go('/repository'),
-              style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-              child: const Text('Browse Repository'),
-            ),
-          ],
         ),
       ),
     );

@@ -1,86 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
 /// Faculty: status / program / year breakdown of advised theses.
 class FacultyAnalyticsScreen extends ConsumerWidget {
   const FacultyAnalyticsScreen({super.key});
 
-  static const _statusColors = {
-    'published': CScholarColors.primaryGreen,
-    'approved': CScholarColors.info,
-    'draft': CScholarColors.orange,
-    'archived': CScholarColors.textSecondary,
-  };
+  // Status bar fills come from CScholarColors.statusFill: measured against the
+  // clayDeep track (WCAG 1.4.11), so the two dashboards cannot drift apart.
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
+    final user = ref.watch(currentUserProvider);
     final analyticsAsync = ref.watch(facultyAnalyticsProvider);
 
-    final body = RefreshIndicator(
-      onRefresh: () => ref.refresh(facultyAnalyticsProvider.future),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Analytics',
-                    style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-                const SizedBox(height: 4),
-                Text('Breakdown of your supervised studies.',
-                    style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted)),
-                const SizedBox(height: 20),
-                analyticsAsync.when(
-                  data: (a) => _content(context, a),
-                  loading: () => const Center(
-                      child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                  error: (err, _) => _card(
-                    child: Center(
-                        child: Text('Could not load analytics: $err',
-                            style: CScholarTextStyles.inter(
-                                13, FontWeight.w500, CScholarColors.textMuted))),
-                  ),
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/analytics'),
+      topbar: FacultyTopbar(user: user),
+      mobileTitle: 'Analytics',
+      backRoute: '/faculty/dashboard',
+      child: RefreshIndicator(
+        onRefresh: () => ref.refresh(facultyAnalyticsProvider.future),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PageHeader(
+                title: 'Analytics',
+                subtitle: 'Breakdown of your supervised studies.',
+              ),
+              const SizedBox(height: 20),
+              analyticsAsync.when(
+                data: (a) => _content(context, a),
+                loading: () => const SkeletonList(count: 3, cardHeight: 220),
+                error: (err, _) => EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Could not load analytics',
+                  message: err.toString(),
+                  actionLabel: 'Retry',
+                  onAction: () => ref.invalidate(facultyAnalyticsProvider),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-
-    if (!isDesktop) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-            onPressed: () => context.go('/faculty/dashboard'),
-          ),
-          title: const Text('Analytics',
-              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        body: body,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          const FacultySidebar(currentPath: '/faculty/analytics'),
-          Expanded(child: body),
-        ],
       ),
     );
   }
@@ -111,7 +84,8 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               for (final s in order)
                 if ((byStatus[s] as num?)?.toInt() != null && (byStatus[s] as num).toInt() > 0)
                   _barRow(s.toUpperCase(), (byStatus[s] as num).toInt(), total,
-                      _statusColors[s] ?? CScholarColors.textSecondary),
+                      CScholarColors.statusFill[s] ??
+                          CScholarColors.textSecondary),
             ],
           ),
         );
@@ -171,17 +145,8 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
   }
 
   Widget _card({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-        boxShadow: CScholarShadows.card,
-      ),
-      child: child,
-    );
+    // CScholarCard sizes to content — stretch it full width like before.
+    return SizedBox(width: double.infinity, child: CScholarCard(child: child));
   }
 
   Widget _barRow(String label, int count, int total, Color color) {
@@ -201,15 +166,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: frac,
-              minHeight: 8,
-              backgroundColor: CScholarColors.borderLight,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
+          ClayProgressBar(value: frac, height: 8, tint: color),
         ],
       ),
     );

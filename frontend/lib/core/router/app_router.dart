@@ -24,9 +24,16 @@ import 'package:frontend/presentation/screens/faculty/faculty_thesis_form_screen
 import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
+import 'package:frontend/presentation/screens/design_lab_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
+/// DEV ONLY — the design lab is compiled out of release builds.
+/// `dart.vm.product` is true only in AOT/release, so this stays on under
+/// `flutter run` and `flutter run --profile` (so blur cost can be measured)
+/// and disappears from `flutter build --release`.
+const bool kEnableDesignLab = !bool.fromEnvironment('dart.vm.product');
 
 final appRouter = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -43,7 +50,12 @@ final appRouter = Provider<GoRouter>((ref) {
 
       // Not signed in: only public routes allowed
       if (authState.value == null) {
-        if (loc == '/login' || loc == '/register' || loc == '/') return null;
+        if (loc == '/login' ||
+            loc == '/register' ||
+            loc == '/' ||
+            (kEnableDesignLab && loc == '/design-lab')) {
+          return null;
+        }
         return '/login';
       }
 
@@ -61,6 +73,12 @@ final appRouter = Provider<GoRouter>((ref) {
 
       // Faculty trying to access admin routes
       if (role == 'faculty' && loc.startsWith('/admin')) {
+        return '/faculty/dashboard';
+      }
+
+      // Faculty trying to access student-only routes (/thesis/:id is shared
+      // and role-aware, so it stays accessible)
+      if (role == 'faculty' && (loc.startsWith('/student') || loc == '/repository' || loc == '/saved' || loc == '/profile' || loc == '/recommendations')) {
         return '/faculty/dashboard';
       }
 
@@ -85,6 +103,14 @@ final appRouter = Provider<GoRouter>((ref) {
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
       ),
+
+      // DEV ONLY design lab (clay / neumorphism / glass) — stripped from
+      // release builds. Open at /design-lab to review the material system.
+      if (kEnableDesignLab)
+        GoRoute(
+          path: '/design-lab',
+          builder: (context, state) => const DesignLabScreen(),
+        ),
 
       // Student shell
       ShellRoute(
@@ -134,10 +160,6 @@ final appRouter = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
-          ),
-          GoRoute(
-            path: '/recommendations',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Recommendations'))),
           ),
         ],
       ),

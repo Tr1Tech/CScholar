@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
 /// Faculty: account profile + session actions.
 class FacultySettingsScreen extends ConsumerWidget {
@@ -12,32 +16,24 @@ class FacultySettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
     final user = ref.watch(currentUserProvider);
 
-    final body = SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Settings',
-                  style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-              const SizedBox(height: 4),
-              Text('Your faculty account.',
-                  style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted)),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                  border: Border.all(color: CScholarColors.borderLight),
-                  boxShadow: CScholarShadows.card,
-                ),
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/settings'),
+      topbar: FacultyTopbar(user: user),
+      mobileTitle: 'Settings',
+      backRoute: '/faculty/dashboard',
+      maxWidth: 720,
+      child: SingleChildScrollView(
+        child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const PageHeader(
+            title: 'Settings',
+            subtitle: 'Your faculty account.',
+          ),
+          const SizedBox(height: 20),
+          CScholarCard(
                 child: Column(
                   children: [
                     Row(
@@ -86,14 +82,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                  border: Border.all(color: CScholarColors.borderLight),
-                  boxShadow: CScholarShadows.card,
-                ),
+              CScholarCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -137,34 +126,6 @@ class FacultySettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-
-    if (!isDesktop) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-            onPressed: () => context.go('/faculty/dashboard'),
-          ),
-          title: const Text('Settings',
-              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        body: body,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          const FacultySidebar(currentPath: '/faculty/settings'),
-          Expanded(child: body),
-        ],
-      ),
     );
   }
 

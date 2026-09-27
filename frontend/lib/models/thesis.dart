@@ -25,7 +25,7 @@ class Program {
     id: json['id'] as int,
     code: json['code'] as String,
     name: json['name'] as String,
-    college: json['college'] as String?,
+    college: (json['college'] ?? json['description']) as String?,
     createdAt: _parseDate(json['created_at']),
   );
 

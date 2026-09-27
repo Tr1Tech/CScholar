@@ -510,6 +510,21 @@ class SearchQueryNotifier extends Notifier<String> {
   void setQuery(String q) => state = q;
 }
 
+/// Admin thesis-table search text, written by AdminTopbar and consumed by
+/// the thesis management list (kept separate from the student search box).
+final adminThesisSearchProvider =
+    NotifierProvider<AdminThesisSearchNotifier, String>(
+  () => AdminThesisSearchNotifier(),
+);
+
+class AdminThesisSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void setQuery(String q) => state = q;
+  void clear() => state = '';
+}
+
 class SearchFilters {
   final int? programId;
   final int? academicYearId;

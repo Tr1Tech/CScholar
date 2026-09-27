@@ -1,11 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 
+/// Design tokens for the whole app.
+///
+/// MATERIAL SYSTEM v3 — see `core/material/material_tokens.dart`, which is the
+/// single source of truth for the material layer. Two things changed here:
+///
+///  1. The canvas moved from near-white to a sage **clay** tone, and the shadow
+///     language became tinted instead of black. Clay and canvas must share a hue
+///     family or neumorphism reads as mud, so surfaces, borders and dividers
+///     were retargeted together.
+///  2. The greens were darkened so they pass WCAG AA on that canvas. The old
+///     #009900 was 3.78:1 in BOTH directions (as text on white, and white text
+///     on it); #007A14 is 5.54:1 / 5.06:1 / 4.73:1.
+///
+/// Measured ratios are recorded next to each token. Do not change one of these
+/// values without re-measuring against the canvas (#E8EFE7) and the clay panel
+/// (#F1F6F0).
 class CScholarColors {
-  // Primary brand palette from Stitch
-  static const Color primaryGreen = Color(0xFF009900);
-  static const Color primaryGreenHover = Color(0xFF008000);
-  static const Color primaryGreenDark = Color(0xFF007300);
+  // ---- Brand green: ONE green for fills and for text --------------------
+  static const Color primaryGreen = Color(0xFF007A14);
+  static const Color primaryGreenHover = CScholarMaterial.gelBottom;
+  static const Color primaryGreenDark = CScholarMaterial.gelDeep;
   static const Color primaryGreenLight = Color(0xFFE6F5E6);
   static const Color primaryGreenVeryLight = Color(0xFFF0FDF4);
 
@@ -21,42 +38,96 @@ class CScholarColors {
   static const Color forest = Color(0xFF043E18);
 
   // Accents
-  static const Color gold = Color(0xFFF9DC07);
+  static const Color gold = CScholarMaterial.goldTop;
   static const Color goldLight = Color(0xFFFEF9C3);
+  static const Color goldDeep = CScholarMaterial.goldBottom;
+  static const Color goldSoft = Color(0xFFFEF3C7);
+  /// Bright orange: fills/tints only — 2.2:1 as text on clay. Use [warningFg]
+  /// for warning copy.
   static const Color orange = Color(0xFFFF9900);
   static const Color orangeLight = Color(0xFFFFEDD5);
 
-  // Backgrounds & Neutrals
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color backgroundLight = Color(0xFFF8FAFC);
-  static const Color backgroundSoft = Color(0xFFF8FAF9);
-  static const Color backgroundDark = Color(0xFF0F172A);
-  static const Color surfaceWhite = Color(0xFFFFFFFF);
-  static const Color surfaceLight = Color(0xFFE5E7EB);
-  static const Color cardBg = Color(0xFFFFFFFF);
-  static const Color dividerLight = Color(0xFFE2E8F0);
-  static const Color borderLight = Color(0xFFE2E8F0);
-  static const Color inputBg = Color(0xFFF8FAFC);
+  // Light shell: clay canvas, floating clay sidebar, gel active pill.
+  static const Color shellWash = CScholarMaterial.canvas;
+  static const Color sidebarLight = CScholarMaterial.clay;
+  static const Color sidebarLightBorder = CScholarMaterial.rim;
+  static const Color navActiveBg = primaryGreen;
+  static const Color heroDeep = Color(0xFF003800);
+  static const Color heroMid = Color(0xFF005A1E);
+  static const Color heroGlow = Color(0xFF008000);
 
-  // Text
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
-  static const Color textMuted = Color(0xFF64748B);
+  // Research-type chips (v2 card language)
+  static const Color thesisChipBg = Color(0xFFDCFCE7);
+  static const Color thesisChipFg = Color(0xFF047857);
+  static const Color capstoneChipBg = Color(0xFFFEF3C7);
+  static const Color capstoneChipFg = Color(0xFFB45309);
+
+  // ---- Canvas & neutral surfaces (sage-clay family) ----
+  /// Literal white. For ink on green and for surfaces that must stay paper —
+  /// never for the app canvas anymore.
+  static const Color white = Color(0xFFFFFFFF);
+  /// Page canvas: #E8EFE7.
+  static const Color backgroundLight = CScholarMaterial.canvas;
+  static const Color backgroundSoft = CScholarMaterial.canvas;
+  static const Color backgroundDark = Color(0xFF0F172A);
+  /// Clay panel surface (#F1F6F0). Name is historical — this is no longer
+  /// pure white, because clay panels must share a hue with the canvas.
+  static const Color surfaceWhite = CScholarMaterial.clay;
+  /// Recessed wells, inset panels and skeleton bases (#E3EBE1).
+  static const Color surfaceLight = CScholarMaterial.clayDeep;
+  static const Color cardBg = CScholarMaterial.clay;
+  /// Row separators: soft sage, deliberately quieter than [borderLight].
+  static const Color dividerLight = Color(0xFFD5E0D3);
+  /// Component rim / affordance backstop: 1.46:1 on clay by design.
+  static const Color borderLight = CScholarMaterial.rim;
+  static const Color inputBg = CScholarMaterial.clayDeep;
+  /// Preferred alias for new code: the panel surface.
+  static const Color surface = CScholarMaterial.clay;
+
+  // ---- Text ----
+  static const Color textPrimary = Color(0xFF0F172A); // 16.31:1 on clay
+  static const Color textSecondary = CScholarMaterial.textMuted; // 6.92:1
+  /// #556377: 5.22:1 on canvas, 5.58:1 on clay. The old #64748B dropped to
+  /// 4.06:1 once the canvas darkened.
+  static const Color textMuted = Color(0xFF556377);
+  /// Placeholders only — 2.56:1 on clay, never for content.
   static const Color textHint = Color(0xFF94A3B8);
   static const Color shadowColor = Color(0x1A000000);
 
-  // Status
-  static const Color success = Color(0xFF009900);
-  static const Color warning = Color(0xFFF9DC07);
-  static const Color error = Color(0xFFEF4444);
+  // ---- Status ----
+  static const Color success = primaryGreen;
+  /// Decorative amber (gold). Never text.
+  static const Color warning = CScholarMaterial.goldTop;
+  /// Warning copy: 5.06:1 on canvas, 5.42:1 on clay.
+  static const Color warningFg = Color(0xFFA34A08);
+  /// #B91C1C: 5.52:1 on canvas, 5.91:1 on clay, 5.30:1 on [errorLight].
+  /// The old #EF4444 was 3.44:1 on clay.
+  static const Color error = Color(0xFFB91C1C);
   static const Color errorLight = Color(0xFFFEE2E2);
-  static const Color info = Color(0xFF2563EB);
+  static const Color info = Color(0xFF1D4ED8);
   static const Color infoLight = Color(0xFFDBEAFE);
 
   // Roles
-  static const Color studentColor = Color(0xFF2563EB);
-  static const Color facultyColor = Color(0xFF9333EA);
-  static const Color adminColor = Color(0xFFFF9900);
+  static const Color studentColor = Color(0xFF1D4ED8);
+  static const Color facultyColor = Color(0xFF7E22CE);
+  static const Color facultyLight = Color(0xFFF3E8FF);
+  static const Color adminColor = Color(0xFFA34A08);
+  static const Color adminLight = goldSoft;
+
+  // ---- Chart / progress fills ----
+  /// Status fills for bars and charts. A bar is a graphical object, so every
+  /// stop must clear 3:1 against the [CScholarMaterial.clayDeep] track
+  /// (WCAG 1.4.11). Measured on that track: published 4.54:1, approved 5.50:1,
+  /// draft 4.87:1, archived 5.01:1.
+  ///
+  /// `draft` is [warningFg], never [orange]: #FF9900 is only 1.76:1 there, so
+  /// it reads as a gap in the bar rather than a low value.
+  static const Map<String, Color> statusFill = {
+    'published': primaryGreen,
+    'approved': info,
+    'draft': warningFg,
+    'archived': textSecondary,
+  };
 }
 
 class CScholarTextStyles {
@@ -103,6 +174,14 @@ class CScholarTextStyles {
 
   static TextStyle get label => inter(11, FontWeight.w600, CScholarColors.textSecondary, height: 1.4);
   static TextStyle get labelUppercase => inter(11, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 0.5);
+
+  // Canonical page/card/section styles — prefer these over ad-hoc sizes so
+  // every screen shares one scale (design plan, item 1).
+  static TextStyle get pageTitle => poppins(24, FontWeight.w800, CScholarColors.textPrimary, height: 1.25);
+  static TextStyle get pageSubtitle => inter(13, FontWeight.w400, CScholarColors.textMuted);
+  static TextStyle get cardTitle => poppins(16, FontWeight.w700, CScholarColors.textPrimary);
+  static TextStyle get sectionLabel =>
+      inter(12, FontWeight.w700, CScholarColors.textSecondary, letterSpacing: 1.0);
 }
 
 class CScholarRadius {
@@ -126,41 +205,38 @@ class CScholarSpacing {
 class CScholarDurations {
   static const Duration fast = Duration(milliseconds: 150);
   static const Duration normal = Duration(milliseconds: 250);
-  static const Duration slow = Duration(milliseconds: 350);
+  // Nothing animates longer than 300ms (motion plan, item 8).
+  static const Duration slow = Duration(milliseconds: 300);
 }
 
+class CScholarCurves {
+  static const Curve standard = Curves.easeOutCubic;
+  static const Curve entrance = Curves.easeOut;
+}
+
+/// Elevation recipes — now sourced from the material system, so shadows are
+/// TINTED (#C9D6C6) rather than black. Black-alpha shadows on a tinted canvas
+/// are what stop clay/neumorphism from reading as light and shadow.
 class CScholarShadows {
-  static List<BoxShadow> get card => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.02),
-          blurRadius: 2,
-          offset: const Offset(0, 1),
-        ),
-      ];
+  /// Resting panel.
+  static List<BoxShadow> get card => CScholarMaterial.clayDrop(depth: 0.8);
 
-  static List<BoxShadow> get elevated => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.08),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
-        ),
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.03),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-      ];
+  /// Hover / raised.
+  static List<BoxShadow> get elevated => CScholarMaterial.clayDrop(depth: 1.2);
 
-  static List<BoxShadow> get subtle => [
+  /// Hairline elevation (inline rows, chips).
+  static List<BoxShadow> get subtle => CScholarMaterial.clayDrop(depth: 0.4);
+
+  /// Gold halo — the only coloured shadow in the system. Prestige / AI marks
+  /// only: max 2-3 per screen, never behind text.
+  static List<BoxShadow> get goldGlow => CScholarMaterial.goldGlow();
+
+  /// Green halo for the active nav pill and selected states.
+  static List<BoxShadow> get primaryGlow => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.03),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
+          color: CScholarColors.primaryGreen.withValues(alpha: 0.28),
+          blurRadius: 14,
+          offset: const Offset(0, 4),
         ),
       ];
 }
@@ -177,10 +253,11 @@ class CScholarSimilarity {
     return 'Related';
   }
 
+  /// Colour for a similarity LABEL — must stay text-safe on clay.
   static Color colorFor(double score) {
     if (score >= high) return CScholarColors.success;
-    if (score >= medium) return CScholarColors.warning;
+    if (score >= medium) return CScholarColors.warningFg;
     if (score >= low) return CScholarColors.info;
-    return CScholarColors.textHint;
+    return CScholarColors.textMuted;
   }
 }

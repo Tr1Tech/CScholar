@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 
 void main() {
   runApp(const ProviderScope(child: CScholarApp()));
@@ -40,6 +41,17 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           surface: CScholarColors.surfaceWhite,
         ),
         scaffoldBackgroundColor: CScholarColors.backgroundLight,
+        // One transition for every route: fade + slight rise (motion plan).
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CScholarTransitionBuilder(),
+            TargetPlatform.iOS: CScholarTransitionBuilder(),
+            TargetPlatform.linux: CScholarTransitionBuilder(),
+            TargetPlatform.macOS: CScholarTransitionBuilder(),
+            TargetPlatform.windows: CScholarTransitionBuilder(),
+            TargetPlatform.fuchsia: CScholarTransitionBuilder(),
+          },
+        ),
         textTheme: GoogleFonts.interTextTheme(
           ThemeData.light().textTheme.copyWith(
             displayLarge: GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w800, color: CScholarColors.textPrimary),
@@ -92,6 +104,187 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
             textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: CScholarColors.primaryGreen,
+            disabledForegroundColor: CScholarColors.textHint,
+            side: const BorderSide(
+              color: CScholarColors.primaryGreen,
+              width: 1.5,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(CScholarRadius.md),
+            ),
+            textStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: CScholarColors.primaryGreen,
+            disabledForegroundColor: CScholarColors.textHint,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(CScholarRadius.md),
+            ),
+            textStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+
+        // ---- Material system v3: control themes -------------------------
+        // Without these, dialogs, menus, chips, snackbars, checkboxes and
+        // progress bars fall back to stock Material and break the material
+        // language. This is the ONE source of control theming: the old
+        // `core/theme/app_theme.dart` was never imported by anything and has
+        // been deleted, so there is no second definition to drift against.
+        dividerTheme: const DividerThemeData(
+          color: CScholarColors.dividerLight,
+          thickness: 1,
+          space: 1,
+        ),
+        cardTheme: CardThemeData(
+          color: CScholarColors.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.xl),
+            side: const BorderSide(color: CScholarColors.borderLight),
+          ),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: CScholarColors.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.xl),
+            side: const BorderSide(color: CScholarColors.borderLight),
+          ),
+          titleTextStyle: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: CScholarColors.textPrimary,
+          ),
+          contentTextStyle: GoogleFonts.inter(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w400,
+            color: CScholarColors.textSecondary,
+          ),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: CScholarColors.surface,
+          modalBackgroundColor: CScholarColors.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(CScholarRadius.xxl)),
+          ),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: CScholarColors.textPrimary,
+          contentTextStyle: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: CScholarColors.white,
+          ),
+          behavior: SnackBarBehavior.floating,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.md),
+          ),
+        ),
+        chipTheme: ChipThemeData(
+          backgroundColor: CScholarColors.surfaceLight,
+          side: const BorderSide(color: CScholarColors.borderLight),
+          labelStyle: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CScholarColors.textPrimary,
+          ),
+          secondaryLabelStyle: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: CScholarColors.white,
+          ),
+          selectedColor: CScholarColors.primaryGreen,
+          checkmarkColor: CScholarColors.white,
+          showCheckmark: false,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.full),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? CScholarColors.primaryGreen
+                : Colors.transparent,
+          ),
+          checkColor: WidgetStateProperty.all(CScholarColors.white),
+          side: const BorderSide(color: CScholarColors.borderLight, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.sm),
+          ),
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? CScholarColors.white
+                : CScholarColors.textMuted,
+          ),
+          trackColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? CScholarColors.primaryGreen
+                : CScholarColors.surfaceLight,
+          ),
+          trackOutlineColor:
+              WidgetStateProperty.all(CScholarColors.borderLight),
+        ),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: CScholarColors.primaryGreen,
+          linearTrackColor: CScholarColors.surfaceLight,
+          circularTrackColor: CScholarColors.surfaceLight,
+        ),
+        tooltipTheme: TooltipThemeData(
+          decoration: BoxDecoration(
+            color: CScholarColors.textPrimary,
+            borderRadius: BorderRadius.circular(CScholarRadius.sm),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: CScholarColors.white,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        ),
+        listTileTheme: ListTileThemeData(
+          iconColor: CScholarColors.textSecondary,
+          textColor: CScholarColors.textPrimary,
+          titleTextStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: CScholarColors.textPrimary,
+          ),
+          subtitleTextStyle: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w400,
+            color: CScholarColors.textMuted,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CScholarRadius.md),
+          ),
+          selectedTileColor: CScholarColors.primaryGreenVeryLight,
+          selectedColor: CScholarColors.primaryGreen,
+        ),
+        iconTheme: const IconThemeData(color: CScholarColors.textSecondary),
       ),
       routerConfig: router,
     );
