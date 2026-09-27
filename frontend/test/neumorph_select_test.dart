@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 
 Widget _host(
@@ -140,7 +139,7 @@ void main() {
   });
 
   group('NeumorphSelect well invariants', () {
-    testWidgets('rest state is a recessed clay well with a rim',
+    testWidgets('rest state is a tonal clay well with no outline',
         (tester) async {
       await tester.pumpWidget(
         _host(NeumorphSelectField<String>(
@@ -153,7 +152,8 @@ void main() {
 
       final well = _wellDecoration(tester);
       expect(well.color, CScholarMaterial.clayDeep);
-      expect((well.border as Border).top.color, CScholarMaterial.rim);
+      expect(well.border, isNull,
+          reason: 'the well grew an outline back — see NeumorphField');
       expect(find.text('Thesis'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -197,7 +197,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('high contrast drops the inset and strengthens the rim',
+    testWidgets('high contrast draws the boundary the rest of the system omits',
         (tester) async {
       await tester.pumpWidget(
         _host(
@@ -212,14 +212,7 @@ void main() {
 
       final border = _wellDecoration(tester).border as Border;
       expect(border.top.color, CScholarMaterial.rimStrong);
-
-      final inset = tester.widget<InsetShadow>(
-        find.descendant(
-          of: find.byType(NeumorphSelectField<String>),
-          matching: find.byType(InsetShadow),
-        ),
-      );
-      expect(inset.shadows, isEmpty);
+      expect(border.top.width, 1.5);
       expect(tester.takeException(), isNull);
     });
 

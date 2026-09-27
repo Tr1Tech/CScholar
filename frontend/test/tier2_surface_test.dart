@@ -4,7 +4,7 @@
 // lock in the four migrations and, most importantly, the palette law that the
 // migration exists to enforce:
 //   1. topbar chrome is one shared clay kit (admin + faculty can't drift)
-//   2. content cards are clay with rims, not white with black-alpha shadows
+//   2. content cards are clay: a tonal fill + ONE soft shadow, no white box
 //   3. banner/tint pairs that carry text stay at WCAG AA
 //   4. no black-alpha shadows and no off-palette cool greys anywhere in lib/
 //
@@ -84,7 +84,7 @@ BoxDecoration _decorationOf(WidgetTester tester, Finder finder) {
 
 void main() {
   group('tier 2 — shared topbar chrome', () {
-    testWidgets('search is a recessed clay well, not a white box',
+    testWidgets('search is a tonal clay well, not a white box',
         (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
@@ -95,9 +95,10 @@ void main() {
 
       final well = _decorationOf(tester, find.byType(TextField));
       expect(well.color, CScholarMaterial.clayDeep,
-          reason: 'the search well lost its recessed clay fill');
-      expect(well.border, isNotNull, reason: 'the search well lost its rim');
-      expect((well.border as Border).top.color, CScholarMaterial.rim);
+          reason: 'the search well lost its tonal clay fill');
+      expect(well.border, isNull,
+          reason: 'the search well grew an outline back — clay draws none at '
+              'rest');
       expect(tester.takeException(), isNull);
     });
 
@@ -125,7 +126,7 @@ void main() {
       expect(clears, 1);
     });
 
-    testWidgets('the search well drops its inset under high contrast',
+    testWidgets('the search well draws a border only under high contrast',
         (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
@@ -155,10 +156,12 @@ void main() {
       expect(find.text('Faculty'), findsOneWidget);
 
       final pill = _decorationOf(tester, find.text('Juan Dela Cruz'));
-      expect(pill.border, isNotNull);
-      expect(pill.boxShadow?.length, 2, reason: 'lost the tinted clay pair');
+      expect(pill.border, isNotNull,
+          reason: 'a 40px pill is too small for a shadow alone to define it');
+      expect(pill.boxShadow, hasLength(1),
+          reason: 'a raised pill is seated by ONE soft clay shadow');
       // The shadow must be the tinted clay token, never a black alpha.
-      expect(pill.boxShadow!.first.color.toARGB32(),
+      expect(pill.boxShadow!.single.color.toARGB32(),
           isNot(const Color(0xFF000000).toARGB32()));
       expect(tester.takeException(), isNull);
     });
@@ -190,9 +193,9 @@ void main() {
     });
 
     testWidgets('the search well fills its declared width', (tester) async {
-      // The well is a Stack (inset painted under the text). A non-positioned
-      // Stack child gets LOOSE constraints, which would collapse the field to
-      // its intrinsic width — so pin the rendered width.
+      // The well is a fixed-width pill around a bare TextField. A loose
+      // constraint would collapse the field to its intrinsic width, so pin the
+      // rendered width instead.
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
@@ -202,10 +205,10 @@ void main() {
         )),
       );
 
-      // 320 minus the 1px rim on each side: the field fills the well instead of
-      // collapsing to its intrinsic width.
+      // 320 wide, edge to edge: the well draws no rim at rest, and the field's
+      // own 14px content padding is what keeps the text off the curve.
       expect(tester.getSize(find.byType(TextField)).width,
-          closeTo(320 - 2, 1.5));
+          closeTo(320, 1.5));
       expect(tester.takeException(), isNull);
     });
   });
@@ -260,7 +263,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('result card keyword tokens are recessed wells',
+    testWidgets('result card keyword tokens are tonal wells',
         (tester) async {
       final thesis = Thesis(
         id: 3,
@@ -323,6 +326,29 @@ void main() {
   });
 
   group('tier 2 — palette law', () {
+    test('clay casts ONE tinted shadow — no second light source', () {
+      // clayDrop used to pair its tinted dark shadow with a white top-left
+      // highlight. Two opposing lights only read as depth when the surface
+      // matches its background exactly, which is why that style always needed a
+      // drawn rim to be findable — and why the rim / inset / highlight trio went
+      // out together. Clay seats a slab with a single light from above.
+      final drop = CScholarMaterial.clayDrop();
+      expect(drop, hasLength(1),
+          reason: 'clay is ONE soft shadow; a second (light) shadow means the '
+              'neumorphic layer is coming back');
+
+      final shade = drop.single;
+      // Tinted, never black-alpha: black on sage reads as dirt, not depth.
+      expect(shade.color.r, greaterThan(0.5),
+          reason: 'the shadow must be the tinted clay token');
+      expect(shade.color, isNot(CScholarMaterial.shadowLight),
+          reason: 'white is not a shadow');
+      // It falls DOWNWARD. A shadow that creeps sideways or upward is a second
+      // light source wearing a shadow's clothes.
+      expect(shade.offset.dy, greaterThan(0));
+      expect(shade.offset.dx, 0);
+    });
+
     test('no black-alpha shadows or off-palette greys remain in lib/', () {
       // The exact literals tier 2 removed. A black-alpha shadow on the sage
       // canvas reads as dirt rather than depth, and these cool greys belong to
@@ -330,7 +356,8 @@ void main() {
       const banned = <String, String>{
         'Colors.black': 'black-alpha shadow — use the tinted clay/scrim tokens',
         '0xFFF9FAFB': 'off-palette cool white — use CScholarMaterial.clayHigh',
-        '0xFFF1F5F9': 'off-palette slate — use clayDeep / rim / dividerLight',
+        '0xFFF1F5F9': 'off-palette slate — use clayDeep / dividerLight, or '
+            'CScholarMaterial.rim for a hairline',
         '0xFFF3F4F6': 'off-palette grey canvas — use CScholarMaterial.canvas',
         '0xFFE2E8F0': 'off-palette slate — use CScholarMaterial.rim',
         '0xFFF8FAFC': 'off-palette cool canvas — use CScholarMaterial.canvas',

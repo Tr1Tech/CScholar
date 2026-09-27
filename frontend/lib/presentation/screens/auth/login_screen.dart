@@ -90,7 +90,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               color: CScholarMaterial.clay,
               borderRadius: BorderRadius.circular(CScholarRadius.xxl),
               boxShadow: CScholarMaterial.clayDrop(depth: 1.2),
-              border: Border.all(color: CScholarMaterial.rim),
+              // No drawn outline: at 980px the clay slab and its shadow are the
+              // boundary, and a rim this long just reads as a heavy frame.
             ),
             clipBehavior: Clip.antiAlias,
             child: isDesktop

@@ -21,7 +21,6 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/hover_lift.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
-import 'package:frontend/presentation/widgets/material/inset_shadow.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 
 Widget _host(
@@ -196,7 +195,7 @@ void main() {
   });
 
   group('tier 3 — the recessed well reacts to state', () {
-    testWidgets('rest state is a recessed clay well with a rim',
+    testWidgets('rest state is a tonal clay well with no outline',
         (tester) async {
       await tester.pumpWidget(
         _host(NeumorphField(label: 'Email', hintText: 'you@csu.edu.ph')),
@@ -204,7 +203,11 @@ void main() {
 
       final well = _wellDecoration(tester);
       expect(well.color, CScholarMaterial.clayDeep);
-      expect((well.border as Border).top.color, CScholarMaterial.rim);
+      // No drawn outline at rest: the tonal fill IS the affordance, and a rim
+      // on every control is exactly what the clay pass removed.
+      expect(well.border, isNull,
+          reason: 'the well grew an outline back — only focus, error and high '
+              'contrast draw one');
 
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(field.decoration!.hintText, 'you@csu.edu.ph');
@@ -231,26 +234,17 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('high contrast drops the inset and strengthens the rim',
+    testWidgets('high contrast draws the boundary the rest of the system omits',
         (tester) async {
       await tester.pumpWidget(
         _host(NeumorphField(label: 'Email'), highContrast: true),
       );
 
+      // Clay draws no outline at rest, so high contrast is the mode that has to
+      // supply one — the whole no-rim decision leans on this fallback.
       final border = _wellDecoration(tester).border as Border;
       expect(border.top.color, CScholarMaterial.rimStrong);
-
-      // The inset is painted by InsetShadow, which collapses to a bare child
-      // when its shadow list is empty — so nothing overlays the well. Assert on
-      // the shadow list itself: TextField paints its own CustomPaint, so a
-      // `findsNothing` on CustomPaint could never hold.
-      final inset = tester.widget<InsetShadow>(
-        find.descendant(
-          of: find.byType(NeumorphField),
-          matching: find.byType(InsetShadow),
-        ),
-      );
-      expect(inset.shadows, isEmpty);
+      expect(border.top.width, 1.5);
       expect(tester.takeException(), isNull);
     });
 
@@ -344,9 +338,8 @@ void main() {
   });
 
   group('tier 3 — the indeterminate loader', () {
-    /// The sweep painter inside [ClayLoader]. Scoped to the loader because
-    /// InsetShadow paints its own CustomPaint; the segment's painter is the
-    /// first one down the tree (Stack draws its child before the overlay).
+    /// The sweep painter inside [ClayLoader]. Scoped to the loader so this scan can
+    /// never latch onto an unrelated CustomPaint elsewhere in the tree.
     CustomPainter sweepOf(WidgetTester tester) => tester
         .widget<CustomPaint>(find
             .descendant(
@@ -866,8 +859,8 @@ void main() {
       //   * the landing + repository hero searches are borderless interiors
       //     of a GlassPanel; a clay well nested inside glass would put two
       //     styles on one element;
-      //   * TopbarSearchField is a bespoke pill-radius recessed well (the
-      //     primitive only ships md radius), flat-aware with its own inset.
+      //   * TopbarSearchField is a bespoke pill-radius tonal well (the
+      //     primitive only ships md radius), flat-aware with its own rim.
       const allowed = {
         'lib/presentation/screens/landing_screen.dart',
         'lib/presentation/screens/repository/repository_screen.dart',
@@ -912,6 +905,43 @@ void main() {
       expect(_contrast(CScholarColors.orange, CScholarMaterial.clayDeep),
           lessThan(3.0),
           reason: '#FF9900 is decoration-only (1.76:1 as a bar fill)');
+    });
+
+    test('state rings clear 3:1 and the hairline stays decoration', () {
+      // Clay draws NO outline at rest — a surface's own fill plus a soft shadow
+      // is the edge, and a rim on every control is what made the earlier pass
+      // look boxed-in. What must still be perceivable is STATE: focus and error
+      // are the indicators a keyboard user navigates by, so they owe the 3:1
+      // floor WCAG 1.4.11 sets for component boundaries.
+      const surfaces = <String, Color>{
+        'clayDeep': CScholarMaterial.clayDeep,
+        'clay': CScholarMaterial.clay,
+      };
+      surfaces.forEach((name, surface) {
+        final focus = _contrast(CScholarMaterial.gelTop, surface);
+        expect(focus, greaterThanOrEqualTo(3.0),
+            reason: 'the focus ring is ${focus.toStringAsFixed(2)}:1 on $name '
+                '— a focused field must not look unfocused');
+        final error = _contrast(CScholarColors.error, surface);
+        expect(error, greaterThanOrEqualTo(3.0),
+            reason: 'the error ring is ${error.toStringAsFixed(2)}:1 on $name');
+      });
+
+      // The hairline is decoration and must STAY decoration. If it climbs to
+      // the floor it stops being a hairline and becomes the outline this pass
+      // deliberately removed — so this is the assertion that stops the two
+      // from quietly collapsing into each other.
+      expect(_contrast(CScholarMaterial.rim, CScholarMaterial.clay),
+          lessThan(2.0),
+          reason: 'rim is the hairline for small tokens and dividers, not a '
+              'control boundary');
+
+      // High contrast is the mode that DOES draw boundaries, so it has to be
+      // unmistakably stronger than the hairline it stands in for.
+      expect(_contrast(CScholarMaterial.rimStrong, CScholarMaterial.clay),
+          greaterThan(4.5),
+          reason: 'high contrast exists to supply the boundary the rest of the '
+              'system omits');
     });
   });
 }

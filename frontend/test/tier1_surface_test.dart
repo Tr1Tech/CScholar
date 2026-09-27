@@ -239,10 +239,11 @@ void main() {
       expect(find.text('128'), findsOneWidget);
       expect(find.text('+4 this week'), findsOneWidget);
 
-      // The panel keeps the tinted clay shadow pair; the tile is a moulded
-      // object with its own gradient + rim.
+      // The panel is clay: ONE soft shadow and no rim (the slab is the
+      // boundary). The tile is a moulded object with its own gradient + rim.
       final panel = _decorationOf(tester, find.text('STUDIES'));
-      expect(panel.boxShadow!.length, 2);
+      expect(panel.boxShadow, hasLength(1),
+          reason: 'the KPI slab is clay — one shadow, not a light/dark pair');
       final tile = _decorationOf(tester, find.byIcon(Icons.article_outlined));
       expect(tile.gradient, isNotNull);
       expect(tile.border, isNotNull);

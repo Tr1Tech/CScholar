@@ -1,9 +1,9 @@
-// Material system smoke tests (clay / neumorphism / glass).
+// Material system smoke tests (clay / glass).
 //
 // These render the primitives in the states that are hardest to verify by eye:
 // high contrast, global glass off, 200% text, and the smallest viewport. They
-// exist to catch assertions (BackdropFilter.grouped, the inset shadow painter)
-// and layout overflows — not to assert pixel output.
+// exist to catch state-dependent throws (BackdropFilter.grouped, the glass
+// switch, high contrast) and layout overflows — not to assert pixel output.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/material/material_tokens.dart';
@@ -51,11 +51,15 @@ BoxDecoration _decorationOf(WidgetTester tester, Finder descendant) {
 }
 
 void main() {
-  testWidgets('clay surface carries the tinted shadow pair', (tester) async {
+  testWidgets('clay surface casts one tinted shadow', (tester) async {
     await tester.pumpWidget(_host(const ClaySurface(child: Text('clay'))));
     final decoration = _decorationOf(tester, find.text('clay'));
     expect(decoration.boxShadow, isNotNull);
-    expect(decoration.boxShadow!.length, 2);
+    expect(decoration.boxShadow, hasLength(1),
+        reason: 'clay is seated by ONE soft shadow — a second (light) shadow '
+            'means the neumorphic pair is back');
+    // The slab IS the boundary at rest; only high contrast draws a rim.
+    expect(decoration.border, isNull);
     expect(tester.takeException(), isNull);
   });
 
@@ -100,7 +104,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('all five neumorphic states render without throwing',
+  testWidgets('all five control states render without throwing',
       (tester) async {
     for (final state in NeumorphState.values) {
       await tester.pumpWidget(
@@ -205,8 +209,8 @@ void main() {
       ),
     );
 
-    // InsetShadow wraps its child in a Stack — a Stack defaults to topStart,
-    // which used to pin the glyph to the top-left corner.
+    // The tile must centre its glyph. A Stack defaults to topStart, which is
+    // why the old InsetShadow wrapper silently pinned the glyph to the corner.
     for (final probe in const [
       (0, Icons.article_outlined),
       (1, Icons.school_outlined),

@@ -11,7 +11,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 
 /// DEV ONLY — CScholar design lab (route: `/design-lab`).
 ///
-/// Renders every material (clay / neumorphism / glass), every component state
+/// Renders every material (clay / glass), every component state
 /// (rest, hover, pressed, focus, disabled) and every accessibility fallback
 /// (high contrast, reduced motion, 200% text) in one place, so the look can be
 /// judged by feel before it is applied across the app.
@@ -123,7 +123,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                             16, FontWeight.w700, CScholarMaterial.textPrimary),
                       ),
                       Text(
-                        'clay · neumorphism · glass · DEV ONLY',
+                        'clay · glass · DEV ONLY',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: CScholarTextStyles.inter(
@@ -217,7 +217,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
       );
 
   /// Every state of one control, side by side — this is why `previewState`
-  /// exists on the neumorphic controls.
+  /// exists on the clay controls.
   Widget _stateRow(String label, Widget Function(NeumorphState) build) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
@@ -349,7 +349,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _swatchBoard() {
     return _section(
       title: '1 · Tokens',
-      note: 'Canvas and clay share a hue family on purpose — neumorphism only reads as light and shadow when the surface and its background match. Shadows are tinted (#C9D6C6), never black.',
+      note: 'Canvas and clay share a hue family on purpose: a tinted shadow (#C9D6C6, never black) only reads as depth when the surface and the canvas under it come from the same family.',
       child: Wrap(
         spacing: 14,
         runSpacing: 16,
@@ -365,7 +365,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           _swatch('gold core · halo centre', '#FFE066', CScholarMaterial.goldCore,
               glow: true, glowStrength: 1.4),
           _swatch('gold deep', '#CA8A04', CScholarMaterial.goldBottom),
-          _swatch('rim · 1px backstop', '#C3D0C0', CScholarMaterial.rim),
+          _swatch('rim · hairline', '#C3D0C0', CScholarMaterial.rim),
           _swatch('rim strong · high contrast', '#475569',
               CScholarMaterial.rimStrong),
           _swatch('glass chrome · 62% white', 'FFFFFF 62%',
@@ -542,23 +542,24 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _clayLadder() {
     return _section(
       title: '4 · Clay depth & radius',
-      note: 'Depth controls how inflated a panel looks. Cards sit at 0.5–1.0; 1.5 is a hero moment and should stay rare. Compare "no inset" — that is how much of the clay read comes from one inner shadow.',
+      note: 'Depth controls how far a panel floats. Cards sit at 0.5–1.0; 1.5 is a hero moment and should stay rare. Clay is a fill + ONE soft shadow — compare the rimmed sample to see what a drawn outline adds, and why only high contrast uses one.',
       child: Wrap(
         spacing: 18,
         runSpacing: 18,
         children: [
-          _claySample('depth 0.5 · r16', 0.5, 16, true),
-          _claySample('depth 1.0 · r16', 1, 16, true),
-          _claySample('depth 1.5 · r16', 1.5, 16, true),
-          _claySample('depth 1.0 · no inset', 1, 16, false),
-          _claySample('depth 1.0 · r8', 1, 8, true),
-          _claySample('depth 1.0 · r24', 1, 24, true),
+          _claySample('depth 0.5 · r16', 0.5, 16),
+          _claySample('depth 1.0 · r16', 1, 16),
+          _claySample('depth 1.5 · r16', 1.5, 16),
+          _claySample('depth 1.0 · rimmed', 1, 16, rim: true),
+          _claySample('depth 1.0 · r8', 1, 8),
+          _claySample('depth 1.0 · r24', 1, 24),
         ],
       ),
     );
   }
 
-  Widget _claySample(String label, double depth, double radius, bool inset) {
+  Widget _claySample(String label, double depth, double radius,
+      {bool rim = false}) {
     return SizedBox(
       width: 168,
       child: Column(
@@ -568,7 +569,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           ClaySurface(
             depth: depth,
             radius: radius,
-            inset: inset,
+            showRim: rim,
             padding: const EdgeInsets.all(18),
             child: const Center(
               child: Icon(Icons.dashboard_outlined,
@@ -703,8 +704,8 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
 
   Widget _stateBoard() {
     return _section(
-      title: '6 · Neumorphic controls — all five states',
-      note: 'Press and hold anything below: one progress value drives the gradient, both shadows, the inner well and a 1.5px sink, so the states can never de-sync. Tab through them to see the focus ring appear.',
+      title: '6 · Clay controls — all five states',
+      note: 'Press and hold anything below: one progress value drives the gradient, the shadow depth and a 1.5px sink, so the states can never de-sync. Tab through them to see the focus ring appear.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -907,12 +908,12 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _rulesBoard() {
     return _section(
       title: '8 · Rules this system obeys',
-      note: 'The guardrails that stop clay + neumorphism + glass from turning into mush — and where not to use them at all.',
+      note: 'The guardrails that stop clay + glass from turning into mush — and where not to use them at all.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _bullet(
-              'One style per structural role: clay = content, neumorphism = pressable, glass = floating, gel = identity. Never two on one element.'),
+              'One style per structural role: clay = content and pressable, glass = floating, gel = identity. Never two on one element.'),
           _bullet(
               'Lightest text on clay or glass is #475569 (6.92:1). #64748B is 4.35:1 on clay — white surfaces only.'),
           _bullet(
@@ -922,7 +923,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           _bullet(
               'Gold objects carry a DARK glyph: #0F172A is 12.98:1 on the top stop and 6.08:1 on the bottom. White on gold is 1.38:1 — never.'),
           _bullet(
-              'Every neumorphic control keeps a 1px rim, because shadow alone is not an affordance.'),
+              'Controls draw NO rim at rest — the fill plus one soft shadow is the edge. Focus, error and high contrast draw a 1.5px rim, because shadow alone is not an affordance.'),
           _bullet(
               'No glass inside scrolling list items, and never more than two glass layers per screen — wrap them in one BackdropGroup.'),
           _bullet(

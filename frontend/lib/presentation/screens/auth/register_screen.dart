@@ -94,7 +94,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               color: CScholarMaterial.clay,
               borderRadius: BorderRadius.circular(CScholarRadius.xxl),
               boxShadow: CScholarMaterial.clayDrop(depth: 1.2),
-              border: Border.all(color: CScholarMaterial.rim),
+              // No drawn outline — see login_screen for why a panel this large
+              // does not take the control hairline.
             ),
             clipBehavior: Clip.antiAlias,
             child: isDesktop
