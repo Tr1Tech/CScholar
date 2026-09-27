@@ -95,7 +95,7 @@ class FacultyStudentsScreen extends ConsumerWidget {
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: const Color(0xFFDCFCE7),
+              backgroundColor: CScholarColors.thesisChipBg,
               child: Text(
                 _initials(name),
                 style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.primaryGreen),

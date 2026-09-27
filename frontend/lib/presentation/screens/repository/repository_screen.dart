@@ -883,20 +883,20 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
+        color: CScholarColors.noteBg,
         borderRadius: BorderRadius.circular(CScholarRadius.md),
-        border: Border.all(color: const Color(0xFFFFE082)),
+        border: Border.all(color: CScholarColors.noteRim),
       ),
       child: Row(
         children: [
           const Icon(Icons.info_outline,
-              size: 18, color: Color(0xFFF57F17)),
+              size: 18, color: CScholarColors.noteIcon),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Semantic index unavailable — showing no AI matches.',
               style: CScholarTextStyles.inter(
-                  12, FontWeight.w500, const Color(0xFF7A5C00)),
+                  12, FontWeight.w500, CScholarColors.noteInk),
             ),
           ),
         ],

@@ -108,6 +108,11 @@ class CScholarMaterial {
   /// 4.35:1 on clay — white surfaces only, never clay/glass.
   static const Color textFaint = Color(0xFF64748B);
 
+  /// Long-form body copy on clay: 9.46:1. Sits between [textPrimary] and
+  /// [textMuted] in weight for reading blocks (e.g. a thesis abstract) where
+  /// fully-black text is too hard.
+  static const Color textBody = Color(0xFF334155);
+
   // ----------------------------------------------------------------- glass
   static const Color glassChrome = Color(0x9EFFFFFF); // ~.62 white
   static const Color glassOverlay = Color(0xB8FFFFFF); // ~.72 white
@@ -190,5 +195,10 @@ class CScholarMaterial {
     'dark glyph #0F172A on gold bottom': 6.08,
     'white glyph on gold (never)': 1.38,
     'text faint #64748B on clay (avoid)': 4.35,
+    'text body #334155 on clay': 9.46,
+    'teal ink #0F766E on teal tint': 4.86,
+    'cyan ink #0E7490 on cyan tint': 4.79,
+    'note ink #7A5C00 on note bg': 5.89,
+    'cover white on #0B6B3A (lightest cover stop)': 6.61,
   };
 }

@@ -124,9 +124,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF005A1E),
-            Color(0xFF00471B),
-            Color(0xFF043313),
+            CScholarColors.heroMid,
+            CScholarColors.heroBase,
+            CScholarColors.heroFloor,
           ],
         ),
       ),
@@ -149,7 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: CScholarTextStyles.inter(
                   13.5,
                   FontWeight.w400,
-                  const Color(0xFFD1FAE5),
+                  CScholarColors.heroText,
                   height: 1.6,
                 ),
               ),
@@ -186,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'CSU CEIT Campus Portal',
-                  style: CScholarTextStyles.inter(11, FontWeight.w600, const Color(0xFFD1FAE5)),
+                  style: CScholarTextStyles.inter(11, FontWeight.w600, CScholarColors.heroText),
                 ),
               ],
             ),

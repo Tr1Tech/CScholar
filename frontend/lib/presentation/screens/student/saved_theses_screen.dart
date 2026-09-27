@@ -112,11 +112,11 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                   size: 60,
                                   gel: false,
                                   background: isTeal
-                                      ? const Color(0xFFCCFBF1)
-                                      : const Color(0xFFCFFAFE),
+                                      ? CScholarColors.tealTint
+                                      : CScholarColors.cyanTint,
                                   tint: isTeal
-                                      ? const Color(0xFF0F766E)
-                                      : const Color(0xFF0E7490),
+                                      ? CScholarColors.tealInk
+                                      : CScholarColors.cyanInk,
                                 ),
                                 const SizedBox(width: 18),
 

@@ -128,9 +128,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF005A1E),
-            Color(0xFF00471B),
-            Color(0xFF043313),
+            CScholarColors.heroMid,
+            CScholarColors.heroBase,
+            CScholarColors.heroFloor,
           ],
         ),
       ),
@@ -149,7 +149,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             style: CScholarTextStyles.inter(
               13.5,
               FontWeight.w400,
-              const Color(0xFFD1FAE5),
+              CScholarColors.heroText,
               height: 1.6,
             ),
           ),

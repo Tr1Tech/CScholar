@@ -123,9 +123,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF003800),
-                    Color(0xFF005A1E),
-                    Color(0xFF008000),
+                    CScholarColors.heroDeep,
+                    CScholarColors.heroMid,
+                    CScholarColors.heroGlow,
                   ],
                 ),
               ),
@@ -153,9 +153,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0x33000000),
+                          color: CScholarColors.heroBadgeFill,
                           borderRadius: BorderRadius.circular(CScholarRadius.full),
-                          border: Border.all(color: const Color(0x4DF9DC07), width: 1.2),
+                          border: Border.all(color: CScholarColors.heroBadgeRim, width: 1.2),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -290,7 +290,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                 children: [
                                   Text(
                                     'Popular searches:',
-                                    style: CScholarTextStyles.inter(12, FontWeight.w500, const Color(0xFFD1FAE5)),
+                                    style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.heroText),
                                   ),
                                   ...keywords
                                       .take(4)

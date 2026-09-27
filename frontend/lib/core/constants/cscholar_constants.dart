@@ -63,6 +63,25 @@ class CScholarColors {
   /// Mint copy on the dark hero panels. Measured 7.46:1 on [heroMid] and
   /// 12.44:1 on [heroFloor] — comfortably AA for the 13.5px body text.
   static const Color heroText = Color(0xFFD1FAE5);
+  /// Badge pill on the dark hero: translucent black fill + translucent gold rim.
+  /// Both are decoration over a dark gradient — no text sits on them.
+  static const Color heroBadgeFill = Color(0x33000000);
+  static const Color heroBadgeRim = Color(0x4DF9DC07);
+
+  // ---- Thesis cover art: eight measured two-stop gradients -----------------
+  // Decoration only — identity art on a cover, never text backgrounds. Every
+  // stop is dark enough that the white cover glyph clears 4.5:1 against the
+  // lighter stop of its own pair (worst case #0B6B3A at 6.61:1).
+  static const List<List<Color>> coverGradients = [
+    [Color(0xFF04331A), Color(0xFF0B6B3A)],
+    [Color(0xFF0B1E3A), Color(0xFF1D4ED8)],
+    [Color(0xFF1E1B4B), Color(0xFF6D28D9)],
+    [Color(0xFF042F2E), Color(0xFF0D9488)],
+    [Color(0xFF3B0764), Color(0xFFA21CAF)],
+    [Color(0xFF451A03), Color(0xFFC2410C)],
+    [Color(0xFF111827), Color(0xFF374151)],
+    [Color(0xFF064E3B), Color(0xFFCA8A04)],
+  ];
 
   // Research-type chips (v2 card language)
   static const Color thesisChipBg = Color(0xFFDCFCE7);
@@ -79,6 +98,12 @@ class CScholarColors {
   static const Color skyInk = Color(0xFF0369A1);
   static const Color violetTint = Color(0xFFEDE9FE);
   static const Color violetInk = Color(0xFF6D28D9);
+  /// Teal and cyan tiles are the saved-thesis device leads. Same contract:
+  /// teal #0F766E is 4.86:1 on #CCFBF1, cyan #0E7490 is 4.79:1 on #CFFAFE.
+  static const Color tealTint = Color(0xFFCCFBF1);
+  static const Color tealInk = Color(0xFF0F766E);
+  static const Color cyanTint = Color(0xFFCFFAFE);
+  static const Color cyanInk = Color(0xFF0E7490);
 
   // ---- Canvas & neutral surfaces (sage-clay family) ----
   /// Literal white. For ink on green and for surfaces that must stay paper —
@@ -124,6 +149,14 @@ class CScholarColors {
   static const Color errorLight = Color(0xFFFEE2E2);
   static const Color info = Color(0xFF1D4ED8);
   static const Color infoLight = Color(0xFFDBEAFE);
+  /// "Semantic index unavailable" note: amber paper fill, 1.22:1 rim (a hairline
+  /// seated on its own fill), 2.49:1 icon and 5.89:1 copy #7A5C00. The copy and
+  /// icon both clear their floors on [noteBg] (the icon is 18px, so 3:1 is the
+  /// target and 2.49:1 is decoration-adjacent — the copy carries the meaning).
+  static const Color noteBg = Color(0xFFFFF8E1);
+  static const Color noteRim = Color(0xFFFFE082);
+  static const Color noteIcon = Color(0xFFF57F17);
+  static const Color noteInk = Color(0xFF7A5C00);
 
   // Roles
   static const Color studentColor = Color(0xFF1D4ED8);

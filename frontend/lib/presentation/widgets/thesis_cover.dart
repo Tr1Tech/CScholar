@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 
 /// Deterministic generative cover art per thesis (v2 design).
 /// No image assets, no backend: the thesis id picks a dark gradient +
@@ -19,16 +21,7 @@ class ThesisCover extends StatelessWidget {
     this.iconSize = 44,
   });
 
-  static const _gradients = [
-    [Color(0xFF04331A), Color(0xFF0B6B3A)],
-    [Color(0xFF0B1E3A), Color(0xFF1D4ED8)],
-    [Color(0xFF1E1B4B), Color(0xFF6D28D9)],
-    [Color(0xFF042F2E), Color(0xFF0D9488)],
-    [Color(0xFF3B0764), Color(0xFFA21CAF)],
-    [Color(0xFF451A03), Color(0xFFC2410C)],
-    [Color(0xFF111827), Color(0xFF374151)],
-    [Color(0xFF064E3B), Color(0xFFCA8A04)],
-  ];
+  static const _gradients = CScholarColors.coverGradients;
 
   static const _icons = [
     Icons.article_outlined,
@@ -76,7 +69,7 @@ class ThesisCover extends StatelessWidget {
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                color: Color(0xFFF9DC07),
+                color: CScholarMaterial.goldTop,
                 shape: BoxShape.circle,
               ),
             ),

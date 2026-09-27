@@ -174,7 +174,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                     style: CScholarTextStyles.inter(
                                       14.5,
                                       FontWeight.w400,
-                                      const Color(0xFF334155),
+                                      CScholarMaterial.textBody,
                                       height: 1.7,
                                     ),
                                   ),
@@ -334,7 +334,7 @@ class ThesisDetailScreen extends ConsumerWidget {
 
     if (!isDesktop) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
+        backgroundColor: CScholarMaterial.canvas,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -350,7 +350,7 @@ class ThesisDetailScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
+      backgroundColor: CScholarMaterial.canvas,
       body: Row(
         children: [
           sidebar,
