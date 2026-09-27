@@ -14,6 +14,7 @@ import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 
 class AdminProgramsScreen extends ConsumerStatefulWidget {
@@ -324,7 +325,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     final descCtrl = TextEditingController(text: existing?.college ?? '');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: Text(existing == null ? 'Add Program' : 'Edit Program'),
         content: SizedBox(
           width: 360,
@@ -377,7 +378,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
+        builder: (ctx, setDialog) => GlassDialog(
           title: Text(existing == null ? 'Add Academic Year' : 'Edit Academic Year'),
           content: SizedBox(
             width: 360,
@@ -436,7 +437,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: Text(existing == null ? 'Add Category' : 'Edit Category'),
         content: SizedBox(
           width: 360,

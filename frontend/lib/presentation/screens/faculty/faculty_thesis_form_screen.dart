@@ -4,9 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/services/api_service.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
 /// Faculty: submit a new thesis, or edit your own draft. Creates always save
 /// as a draft for admin review (the backend forces `draft` for faculty
@@ -27,11 +36,9 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
   String? _researchType;
   int? _programId;
   int? _yearId;
-  int? _adviserId;
   final Set<int> _authorIds = {};
   final Set<int> _categoryIds = {};
   bool _submitting = false;
-  bool _adviserPreselected = false;
   int? _prefilledFor;
   String? _pdfUrl;
   String? _pdfFileName;
@@ -47,8 +54,6 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
     final isEdit = widget.thesisId != null;
     final me = ref.watch(currentUserProvider);
 
@@ -87,65 +92,42 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
         (loaded.status != 'draft' || (loaded.creatorId != null && loaded.creatorId != me?.id));
 
     final body = SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isEdit ? 'Edit Thesis' : 'New Thesis',
-                  style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-              const SizedBox(height: 4),
-              Text(
-                  isEdit
-                      ? 'Only drafts you submitted can be edited — saving keeps it a draft.'
-                      : 'Submits as a draft — an admin reviews and publishes it.',
-                  style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted)),
-              const SizedBox(height: 20),
-              if (notMine)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                    border: Border.all(color: CScholarColors.borderLight),
-                  ),
-                  child: Text(
-                    'Only drafts you submitted can be edited.',
-                    style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted),
-                  ),
-                )
-              else
-              Container(
-                padding: EdgeInsets.all(isDesktop ? 28 : 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(CScholarRadius.xl),
-                  border: Border.all(color: CScholarColors.borderLight),
-                  boxShadow: CScholarShadows.card,
-                ),
-                child: Form(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageHeader(
+            title: isEdit ? 'Edit Thesis' : 'New Thesis',
+            subtitle: isEdit
+                ? 'Only drafts you submitted can be edited — saving keeps it a draft.'
+                : 'Submits as a draft — an admin reviews and publishes it.',
+          ),
+          const SizedBox(height: 20),
+          if (notMine)
+            const EmptyState(
+              icon: Icons.lock_outline,
+              title: 'Not editable',
+              message: 'Only drafts you submitted can be edited.',
+            )
+          else
+            CScholarCard(
+              child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label('Title *'),
-                      TextFormField(
+                      NeumorphField(
                         controller: _titleCtrl,
-                        decoration: const InputDecoration(
-                            hintText: 'Study title', border: OutlineInputBorder()),
+                        hintText: 'Study title',
                         validator: (v) =>
                             (v == null || v.trim().isEmpty) ? 'Title is required' : null,
                       ),
                       const SizedBox(height: 16),
                       _label('Abstract *'),
-                      TextFormField(
+                      NeumorphField(
                         controller: _abstractCtrl,
                         maxLines: 6,
-                        decoration: const InputDecoration(
-                            hintText: 'Summary of the study', border: OutlineInputBorder()),
+                        hintText: 'Summary of the study',
                         validator: (v) =>
                             (v == null || v.trim().isEmpty) ? 'Abstract is required' : null,
                       ),
@@ -156,18 +138,16 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
                       const SizedBox(height: 16),
                       _yearField(),
                       const SizedBox(height: 16),
-                      if (!isEdit) _adviserField(),
-                      if (!isEdit) const SizedBox(height: 16),
+                      _adviserField(),
+                      const SizedBox(height: 16),
                       _authorsField(),
                       const SizedBox(height: 16),
                       _categoriesField(),
                       const SizedBox(height: 16),
                       _label('Keywords (comma-separated)'),
-                      TextFormField(
+                      NeumorphField(
                         controller: _keywordsCtrl,
-                        decoration: const InputDecoration(
-                            hintText: 'e.g. machine learning, OCR, summarization',
-                            border: OutlineInputBorder()),
+                        hintText: 'e.g. machine learning, OCR, summarization',
                       ),
                       const SizedBox(height: 16),
                       _label('Manuscript (PDF, optional)'),
@@ -210,35 +190,15 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
 
-    if (!isDesktop) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-            onPressed: () => context.go('/faculty/theses'),
-          ),
-          title: Text(isEdit ? 'Edit Thesis' : 'New Thesis',
-              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        body: body,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          const FacultySidebar(currentPath: '/faculty/thesis/new'),
-          Expanded(child: body),
-        ],
-      ),
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/theses'),
+      topbar: FacultyTopbar(user: me),
+      mobileTitle: isEdit ? 'Edit Thesis' : 'New Thesis',
+      backRoute: '/faculty/theses',
+      maxWidth: 860,
+      child: body,
     );
   }
 
@@ -257,14 +217,14 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
       children: [
         _label('Research Type *'),
         types.when(
-          data: (list) => DropdownButtonFormField<String>(
+          data: (list) => NeumorphSelect<String>(
             initialValue: _researchType,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+            hintText: 'Select research type',
             items: list.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
             onChanged: (v) => setState(() => _researchType = v),
             validator: (v) => v == null ? 'Select a research type' : null,
           ),
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load types: $e',
               style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
         ),
@@ -279,14 +239,14 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
       children: [
         _label('Program *'),
         programs.when(
-          data: (list) => DropdownButtonFormField<int>(
+          data: (list) => NeumorphSelect<int>(
             initialValue: _programId,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+            hintText: 'Select program',
             items: list.map((p) => DropdownMenuItem(value: p.id, child: Text(p.name))).toList(),
             onChanged: (v) => setState(() => _programId = v),
             validator: (v) => v == null ? 'Select a program' : null,
           ),
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load programs: $e',
               style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
         ),
@@ -301,14 +261,14 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
       children: [
         _label('Academic Year *'),
         years.when(
-          data: (list) => DropdownButtonFormField<int>(
+          data: (list) => NeumorphSelect<int>(
             initialValue: _yearId,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
+            hintText: 'Select academic year',
             items: list.map((y) => DropdownMenuItem(value: y.id, child: Text(y.label))).toList(),
             onChanged: (v) => setState(() => _yearId = v),
             validator: (v) => v == null ? 'Select an academic year' : null,
           ),
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load years: $e',
               style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
         ),
@@ -317,39 +277,40 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
   }
 
   Widget _adviserField() {
-    final advisers = ref.watch(advisersProvider);
     final me = ref.watch(currentUserProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Adviser (optional)'),
-        advisers.when(
-          data: (list) {
-            if (!_adviserPreselected && me != null) {
-              _adviserPreselected = true;
-              for (final a in list) {
-                if ((a.email ?? '').toLowerCase() == me.email.toLowerCase()) {
-                  _adviserId = a.id;
-                  break;
-                }
-              }
-            }
-            return DropdownButtonFormField<int>(
-              initialValue: _adviserId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                helperText: 'Optional — you are recorded as submitter and will see the draft in My Theses either way.',
+        _label('Adviser'),
+        // Fixed: the submitter is always recorded as the adviser.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: CScholarColors.primaryGreen.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: CScholarColors.primaryGreen.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.person_outline, size: 20, color: CScholarColors.primaryGreen),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(me?.username ?? 'You',
+                        style: CScholarTextStyles.inter(
+                            13, FontWeight.w600, CScholarColors.textPrimary)),
+                    Text('Adviser (you)',
+                        style: CScholarTextStyles.inter(
+                            11.5, FontWeight.w400, CScholarColors.textMuted)),
+                  ],
+                ),
               ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('— None —')),
-                ...list.map((a) => DropdownMenuItem(value: a.id, child: Text(a.fullName))),
-              ],
-              onChanged: (v) => setState(() => _adviserId = v),
-            );
-          },
-          loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('Could not load advisers: $e',
-              style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
+              const Icon(Icons.lock_outline, size: 16, color: CScholarColors.textMuted),
+            ],
+          ),
         ),
       ],
     );
@@ -371,7 +332,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
             icon: const Icon(Icons.people_outline, size: 18),
             label: Text(_authorIds.isEmpty ? 'Choose authors' : '${_authorIds.length} chosen'),
           ),
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load authors: $e',
               style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
         ),
@@ -395,7 +356,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
             icon: const Icon(Icons.category_outlined, size: 18),
             label: Text(_categoryIds.isEmpty ? 'Choose categories' : '${_categoryIds.length} chosen'),
           ),
-          loading: () => const LinearProgressIndicator(),
+          loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load categories: $e',
               style: const TextStyle(color: CScholarColors.error, fontSize: 12)),
         ),
@@ -514,13 +475,16 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
+        builder: (ctx, setDialog) => GlassDialog(
           title: Text(title, style: const TextStyle(fontSize: 16)),
           content: SizedBox(
             width: 380,
             height: 380,
             child: ListView(
               children: items.entries
+                  // control-exempt: category multi-picker keeps the native
+                  // CheckboxListTile row (accessible checked state); the
+                  // dialog shell itself is GlassDialog.
                   .map((e) => CheckboxListTile(
                         dense: true,
                         title: Text(e.value, style: const TextStyle(fontSize: 13)),
@@ -602,7 +566,6 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
                 academicYearId: _yearId!,
                 researchType: _researchType!,
                 authorIds: _authorIds.toList(),
-                adviserId: _adviserId,
                 categoryIds: _categoryIds.toList(),
                 keywordTerms: keywords,
                 pdfUrl: _pdfUrl,

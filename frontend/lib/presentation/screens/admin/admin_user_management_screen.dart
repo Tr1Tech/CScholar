@@ -13,6 +13,7 @@ import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
@@ -181,7 +182,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
+        builder: (ctx, setDialog) => GlassDialog(
           title: Text('Edit User — ${user.username}'),
           content: SizedBox(
             width: 360,
@@ -237,7 +238,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
+        builder: (ctx, setDialog) => GlassDialog(
           title: const Text('Add User'),
           content: SizedBox(
             width: 380,

@@ -7,7 +7,15 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/status_chips.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
+import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
 class AdminThesisManagementScreen extends ConsumerStatefulWidget {
   const AdminThesisManagementScreen({super.key});
@@ -19,191 +27,205 @@ class AdminThesisManagementScreen extends ConsumerStatefulWidget {
 
 class _AdminThesisManagementScreenState
     extends ConsumerState<AdminThesisManagementScreen> {
-  // Single shared key: watch() and invalidate() must use the SAME params,
-  // or mutations (status change / delete) refresh a different provider
-  // instance and the table looks stale until a full page reload.
-  static const _listParams = ThesisListParams(showAll: true);
-
-  @override
-  void initState() {
-    super.initState();
-    // Refresh the list every time this screen is visited
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(thesisListProvider(_listParams));
-    });
+  /// Params for the watched list: show-all plus the live admin search text.
+  /// Mutations refresh through [_params] too, so the table always
+  /// re-queries the exact key on screen (filter-preserving refresh).
+  ThesisListParams _params() {
+    final q = ref.read(adminThesisSearchProvider).trim();
+    return ThesisListParams(showAll: true, query: q.isEmpty ? null : q);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theses = ref.watch(thesisListProvider(_listParams));
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 900;
+    final searchQuery = ref.watch(adminThesisSearchProvider).trim();
+    final params = ThesisListParams(
+        showAll: true, query: searchQuery.isEmpty ? null : searchQuery);
+    final theses = ref.watch(thesisListProvider(params));
 
-    if (!isWide) {
-      return _mobileLayout(context, ref, theses);
-    }
-
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      body: Row(
-        children: [
-          const AdminSidebar(currentPath: '/admin/thesis/management'),
-          Expanded(
-            child: Column(
-              children: [
-                // Top bar
-                Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: CScholarColors.dividerLight)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('Thesis Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: CScholarColors.textPrimary)),
-                      const Spacer(),
-                      FilledButton.icon(
-                        onPressed: () => context.go('/admin/thesis/new'),
-                        style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen, foregroundColor: Colors.white),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Thesis'),
+    return CScholarShell(
+      sidebar: const AdminSidebar(currentPath: '/admin/thesis/management'),
+      topbar: const AdminTopbar(),
+      mobileTitle: 'Thesis Management',
+      backRoute: '/admin/dashboard',
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageHeader(
+              title: 'Thesis Management',
+              subtitle: 'Review statuses, edit records, and curate the repository.',
+              action: FilledButton.icon(
+                onPressed: () => context.go('/admin/thesis/new'),
+                style: FilledButton.styleFrom(
+                    backgroundColor: CScholarColors.primaryGreen,
+                    foregroundColor: Colors.white),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Thesis'),
+              ),
+            ),
+            const SizedBox(height: 20),
+            CScholarCard(
+              padding: EdgeInsets.zero,
+              child: theses.when(
+                data: (list) {
+                  if (list == null || list.isEmpty) {
+                    final searching = searchQuery.isNotEmpty;
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: EmptyState(
+                        icon: Icons.article_outlined,
+                        title: searching ? 'No matches' : 'No theses found',
+                        message: searching
+                            ? 'No theses match "$searchQuery".'
+                            : 'Add the first record to start the repository.',
+                        actionLabel:
+                            searching ? 'Clear search' : null,
+                        onAction: searching
+                            ? () => ref
+                                .read(adminThesisSearchProvider.notifier)
+                                .clear()
+                            : null,
                       ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: CScholarColors.dividerLight),
-                      ),
-                      child: theses.when(
-                        data: (list) {
-                          if (list == null || list.isEmpty) {
-                            return const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No theses found')));
-                          }
-                          return DataTable(
-                            horizontalMargin: 20,
-                            columnSpacing: 24,
-                            dataRowMinHeight: 64,
-                            dataRowMaxHeight: 72,
-                            headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
-                            columns: const [
-                              DataColumn(label: Text('Title', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Program', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Year', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-                              DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                            ],
-                            rows: list.map((t) => DataRow(
-                              cells: [
-                                DataCell(SizedBox(
-                                  width: 470,
-                                  child: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                                )),
-                                DataCell(Text(t.program?.name ?? '—')),
-                                DataCell(Text(t.academicYear?.label ?? '—')),
-                                DataCell(_statusChip(t.status)),
-                                DataCell(SizedBox(
-                                  width: 180,
-                                  child: Row(
+                    );
+                  }
+                  // Horizontal scroll: the fixed-width table overflows on
+                  // narrow windows instead of clipping.
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      horizontalMargin: 20,
+                      columnSpacing: 24,
+                      dataRowMinHeight: 64,
+                      dataRowMaxHeight: 72,
+                      headingRowColor: WidgetStateProperty.all(
+                          CScholarColors.backgroundLight),
+                      columns: const [
+                        DataColumn(
+                            label: Text('Title',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Program',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Year',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Status',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        DataColumn(
+                            label: Text('Actions',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                      rows: list.map((t) => DataRow(
+                            cells: [
+                              DataCell(SizedBox(
+                                width: 470,
+                                child: Text(t.title,
+                                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                              )),
+                              DataCell(Text(t.program?.name ?? '—')),
+                              DataCell(Text(t.academicYear?.label ?? '—')),
+                              DataCell(ThesisStatusChip(t.status)),
+                              DataCell(SizedBox(
+                                width: 180,
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     // Status dropdown
                                     PopupMenuButton<String>(
-                                      tooltip: "Change status",
-                                      icon: const Icon(Icons.edit_note_outlined, size: 18, color: CScholarColors.textSecondary),
-                                      onSelected: (s) => _changeStatus(context, ref, t, s),
-                                      itemBuilder: (_) => [
-                                        const PopupMenuItem(value: 'draft', child: Text('Set Draft')),
-                                        const PopupMenuItem(value: 'approved', child: Text('Approve')),
-                                        const PopupMenuItem(value: 'published', child: Text('Publish')),
-                                        const PopupMenuItem(value: 'archived', child: Text('Archive')),
+                                      tooltip: 'Change status',
+                                      icon: const Icon(Icons.edit_note_outlined,
+                                          size: 18,
+                                          color: CScholarColors.textSecondary),
+                                      onSelected: (s) =>
+                                          _changeStatus(context, ref, t, s),
+                                      itemBuilder: (_) => const [
+                                        PopupMenuItem(
+                                            value: 'draft', child: Text('Set Draft')),
+                                        PopupMenuItem(
+                                            value: 'approved', child: Text('Approve')),
+                                        PopupMenuItem(
+                                            value: 'published',
+                                            child: Text('Publish')),
+                                        PopupMenuItem(
+                                            value: 'archived',
+                                            child: Text('Archive')),
                                       ],
                                     ),
                                     const SizedBox(width: 4),
                                     TextButton(
-                                      onPressed: () => context.go('/thesis/${t.id}'),
+                                      onPressed: () =>
+                                          context.go('/thesis/${t.id}'),
                                       style: TextButton.styleFrom(
                                         minimumSize: const Size(38, 36),
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 4),
                                       ),
-                                      child: const Text('View', style: TextStyle(fontSize: 12)),
+                                      child: const Text('View',
+                                          style: TextStyle(fontSize: 12)),
                                     ),
                                     TextButton(
-                                      onPressed: () => context.go('/admin/thesis/${t.id}/edit'),
+                                      onPressed: () => context
+                                          .go('/admin/thesis/${t.id}/edit'),
                                       style: TextButton.styleFrom(
                                         minimumSize: const Size(38, 36),
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 4),
                                       ),
-                                      child: const Text('Edit', style: TextStyle(fontSize: 12, color: CScholarColors.orange)),
+                                      child: const Text('Edit',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: CScholarColors.orange)),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline, size: 18, color: CScholarColors.error),
-                                      constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                                      icon: const Icon(Icons.delete_outline,
+                                          size: 18, color: CScholarColors.error),
+                                      constraints: const BoxConstraints.tightFor(
+                                          width: 36, height: 36),
                                       padding: EdgeInsets.zero,
-                                      onPressed: () => _deleteThesis(context, ref, t),
+                                      onPressed: () =>
+                                          _deleteThesis(context, ref, t),
                                     ),
                                   ],
-                                ))),
-                              ],
-                            )).toList(),
-                          );
-                        },
-                        loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                        error: (_, _) => const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('Could not load theses'))),
-                      ),
+                                ),
+                              )),
+                            ],
+                          )).toList(),
                     ),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: SkeletonList(count: 5, cardHeight: 56),
+                ),
+                error: (err, _) => Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: EmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Could not load theses',
+                    message: err.toString(),
+                            actionLabel: 'Retry',
+                            onAction: () =>
+                                ref.invalidate(thesisListProvider(_params())),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _statusChip(String status) {
-    Color color;
-    switch (status) {
-      case 'published':
-        color = CScholarColors.primaryGreen;
-        break;
-      case 'approved':
-        color = CScholarColors.info;
-        break;
-      case 'draft':
-        color = CScholarColors.orange;
-        break;
-      case 'archived':
-        color = CScholarColors.textSecondary;
-        break;
-      default:
-        color = CScholarColors.textSecondary;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(status.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
-    );
-  }
-
-  Future<void> _changeStatus(BuildContext context, WidgetRef ref, Thesis thesis, String newStatus) async {
+  Future<void> _changeStatus(BuildContext context, WidgetRef ref,
+      Thesis thesis, String newStatus) async {
     try {
       await ref.read(thesisApiProvider).updateStatus(thesis.id, newStatus);
       // Await the refetch (not just invalidate) so the table rebuilds with
       // fresh rows before we confirm — and drop the cached detail view too.
       ref.invalidate(thesisDetailProvider(thesis.id));
-      final fresh = await ref.refresh(thesisListProvider(_listParams).future);
+      final fresh =
+          await ref.refresh(thesisListProvider(_params()).future);
       final row = (fresh ?? []).where((t) => t.id == thesis.id).toList();
       if (context.mounted) {
         if (row.isNotEmpty && row.first.status == newStatus) {
@@ -212,89 +234,60 @@ class _AdminThesisManagementScreenState
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+            const SnackBar(
+                content: Text(
+                    'Saved on server, but the list did not refresh — reload the page')),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
 
-  Future<void> _deleteThesis(BuildContext context, WidgetRef ref, Thesis thesis) async {
-    showDialog(
+  Future<void> _deleteThesis(
+      BuildContext context, WidgetRef ref, Thesis thesis) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: const Text('Delete Thesis'),
         content: Text('Are you sure you want to delete "${thesis.title}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           FilledButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await ref.read(thesisApiProvider).delete(thesis.id);
-                ref.invalidate(thesisDetailProvider(thesis.id));
-                final fresh = await ref.refresh(thesisListProvider(_listParams).future);
-                final stillThere = (fresh ?? []).any((t) => t.id == thesis.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(stillThere
-                          ? 'Deleted on server, but the list did not refresh — reload the page'
-                          : 'Thesis deleted'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete thesis: $e')));
-                }
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            style:
+                FilledButton.styleFrom(backgroundColor: CScholarColors.error),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
-  }
-
-  Widget _mobileLayout(BuildContext context, WidgetRef ref, AsyncValue<List<Thesis>?> theses) {
-    return Scaffold(
-      backgroundColor: CScholarColors.backgroundLight,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 64,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-          onPressed: () => context.go('/admin/dashboard'),
-        ),
-        title: const Text('Thesis Management', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-      ),
-      body: theses.when(
-        data: (list) => ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: list?.length ?? 0,
-          itemBuilder: (ctx, i) {
-            final t = list![i];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'}'),
-                trailing: _statusChip(t.status),
-                onTap: () => context.go('/thesis/${t.id}'),
-              ),
-            );
-          },
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => const Center(child: Text('Could not load theses')),
-      ),
-    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(thesisApiProvider).delete(thesis.id);
+      ref.invalidate(thesisDetailProvider(thesis.id));
+      final fresh =
+          await ref.refresh(thesisListProvider(_params()).future);
+      if (context.mounted) {
+        final stillThere = (fresh ?? []).any((t) => t.id == thesis.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(stillThere
+                  ? 'Deleted on server, but the list did not refresh — reload the page'
+                  : 'Thesis deleted')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete thesis: $e')));
+      }
+    }
   }
 }

@@ -6,6 +6,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
@@ -193,7 +194,7 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
   Future<void> _deleteDraft(BuildContext context, Thesis t) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: const Text('Delete Draft'),
         content: Text('Delete "${t.title}"? Published and approved studies can only be removed by an admin.'),
         actions: [

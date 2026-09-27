@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
+import 'package:frontend/presentation/widgets/faculty_topbar.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 
 /// Faculty: authors (advisees) linked to this faculty member's advised theses.
 class FacultyStudentsScreen extends ConsumerWidget {
@@ -11,82 +18,62 @@ class FacultyStudentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
+    final user = ref.watch(currentUserProvider);
     final adviseesAsync = ref.watch(facultyAdviseesProvider);
 
-    final body = RefreshIndicator(
-      onRefresh: () => ref.refresh(facultyAdviseesProvider.future),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('My Students',
-                    style: CScholarTextStyles.poppins(24, FontWeight.w800, CScholarColors.textPrimary)),
-                const SizedBox(height: 4),
-                Text('Advisees across your supervised studies.',
-                    style: CScholarTextStyles.inter(13, FontWeight.w400, CScholarColors.textMuted)),
-                const SizedBox(height: 20),
-                adviseesAsync.when(
-                  data: (list) {
-                    if (list.isEmpty) {
-                      return _emptyCard('No advisees linked to your account yet');
-                    }
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final count = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 560 ? 2 : 1);
-                        return GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: count,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 2.6,
-                          children: list.map((a) => _adviseeCard(context, ref, a)).toList(),
-                        );
-                      },
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/students'),
+      topbar: FacultyTopbar(user: user),
+      mobileTitle: 'My Students',
+      backRoute: '/faculty/dashboard',
+      child: RefreshIndicator(
+        onRefresh: () => ref.refresh(facultyAdviseesProvider.future),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PageHeader(
+                title: 'My Students',
+                subtitle: 'Advisees across your supervised studies.',
+              ),
+              const SizedBox(height: 20),
+              adviseesAsync.when(
+                data: (list) {
+                  if (list.isEmpty) {
+                    return const EmptyState(
+                      icon: Icons.people_outline,
+                      title: 'No advisees yet',
+                      message: 'Authors of studies you submit or advise will appear here.',
                     );
-                  },
-                  loading: () => const Center(
-                      child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
-                  error: (err, _) => _emptyCard('Could not load advisees: $err'),
+                  }
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final count = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 560 ? 2 : 1);
+                      return GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: count,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 2.6,
+                        children: list.map((a) => _adviseeCard(context, ref, a)).toList(),
+                      );
+                    },
+                  );
+                },
+                loading: () => const SkeletonList(count: 6, cardHeight: 96),
+                error: (err, _) => EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Could not load advisees',
+                  message: err.toString(),
+                  actionLabel: 'Retry',
+                  onAction: () => ref.invalidate(facultyAdviseesProvider),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-
-    if (!isDesktop) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8FAF9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
-            onPressed: () => context.go('/faculty/dashboard'),
-          ),
-          title: const Text('My Students',
-              style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        body: body,
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Row(
-        children: [
-          const FacultySidebar(currentPath: '/faculty/students'),
-          Expanded(child: body),
-        ],
       ),
     );
   }
@@ -101,14 +88,9 @@ class FacultyStudentsScreen extends ConsumerWidget {
     return InkWell(
       onTap: () => _showAdviseeTheses(context, ref, a['id'] as int, name.isEmpty ? 'Advisee' : name),
       borderRadius: BorderRadius.circular(CScholarRadius.xl),
-      child: Container(
+      child: CScholarCard(
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(CScholarRadius.xl),
-          border: Border.all(color: CScholarColors.borderLight),
-          boxShadow: CScholarShadows.card,
-        ),
+        lift: true,
         child: Row(
           children: [
             CircleAvatar(
@@ -151,7 +133,7 @@ class FacultyStudentsScreen extends ConsumerWidget {
     final mine = theses.where((t) => (t.authors ?? []).any((a) => a.id == authorId)).toList();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassDialog(
         title: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: SizedBox(
           width: 420,
@@ -180,22 +162,6 @@ class FacultyStudentsScreen extends ConsumerWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
         ],
-      ),
-    );
-  }
-
-  Widget _emptyCard(String message) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(CScholarRadius.xl),
-        border: Border.all(color: CScholarColors.borderLight),
-      ),
-      child: Center(
-        child: Text(message,
-            style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
       ),
     );
   }

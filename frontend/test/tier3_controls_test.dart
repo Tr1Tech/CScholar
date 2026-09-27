@@ -640,6 +640,7 @@ void main() {
         'ClayLoader': 'clay_progress.dart',
         'GlassPanel': 'glass_panel.dart',
         'GlassGroup': 'glass_panel.dart',
+        'GlassDialog': 'glass_panel.dart',
         'HoverLift': 'hover_lift.dart',
         'NeumorphField': 'neumorph_field.dart',
         'NeumorphSelect': 'neumorph_select.dart',
@@ -692,6 +693,28 @@ void main() {
           reason: 'dropdowns must be NeumorphSelect (forms) or '
               'NeumorphSelectField (externally reset filters):\n'
               '${offences.join('\n')}');
+    });
+
+    test('dialogs are built by GlassDialog, never hand-rolled', () {
+      // Dialogs are floating chrome, so per the fusion law they are glass.
+      // GlassDialog owns the surface, padding and action row (plus the kill
+      // switch and high-contrast fallback); a stock AlertDialog anywhere else
+      // silently drops all of that.
+      final offences = <String>[];
+      for (final file in libSources()) {
+        final path = file.path.replaceAll('\\', '/');
+        if (path.endsWith('design_lab_screen.dart')) continue;
+        if (path.endsWith('material/glass_panel.dart')) continue;
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          if (lines[i].contains('AlertDialog(')) {
+            offences.add('${file.path}:${i + 1}');
+          }
+        }
+      }
+      expect(offences, isEmpty,
+          reason: 'dialogs must be GlassDialog (same title/content/actions '
+              'slots as AlertDialog):\n${offences.join('\n')}');
     });
 
     test('no stock filter chip survives outside the primitive', () {

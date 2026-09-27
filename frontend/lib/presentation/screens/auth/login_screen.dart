@@ -6,6 +6,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -342,7 +343,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextButton(
                   onPressed: () => showDialog(
                     context: context,
-                    builder: (ctx) => AlertDialog(
+                    builder: (ctx) => GlassDialog(
                       title: const Text('Forgot password?'),
                       content: const Text(
                           'Password resets are handled by your administrator. '

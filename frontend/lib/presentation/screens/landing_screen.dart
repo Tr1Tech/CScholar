@@ -449,7 +449,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           TextButton(
                             onPressed: () => showDialog(
                               context: context,
-                              builder: (ctx) => AlertDialog(
+                              builder: (ctx) => GlassDialog(
                                 title: const Text('Help Desk'),
                                 content: const Text(
                                     'For account issues, contact your administrator or '
