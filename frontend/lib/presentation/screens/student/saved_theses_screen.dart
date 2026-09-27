@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -40,15 +41,10 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                 PageHeader(
                   title: 'Saved Studies',
                   subtitle: 'Your bookmarked research studies and reference papers',
-                  action: FilledButton.icon(
+                  action: NeumorphButton(
                     onPressed: () => context.go('/repository'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: CScholarColors.primaryGreen,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                    ),
-                    icon: const Icon(Icons.search, size: 18),
-                    label: Text('Find More', style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                    icon: Icons.search,
+                    label: 'Find More',
                   ),
                 ),
 

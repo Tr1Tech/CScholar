@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
@@ -77,33 +78,16 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   ),
                   const SizedBox(width: 8),
                   // Login & Register CTA Buttons
-                  FilledButton(
+                  NeumorphButton(
                     onPressed: () => context.go('/login'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: CScholarColors.primaryGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                    ),
-                    child: Text(
-                      'Login',
-                      style: CScholarTextStyles.inter(14, FontWeight.w600, Colors.white),
-                    ),
+                    label: 'Login',
                   ),
                   const SizedBox(width: 8),
                   if (!isMobile)
-                    OutlinedButton(
+                    NeumorphButton(
                       onPressed: () => context.go('/register'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: CScholarColors.textPrimary,
-                        side: const BorderSide(color: CScholarColors.borderLight),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                      ),
-                      child: Text(
-                        'Register',
-                        style: CScholarTextStyles.inter(14, FontWeight.w600, CScholarColors.textPrimary),
-                      ),
+                      label: 'Register',
+                      gel: false,
                     ),
                 ],
               ),
@@ -260,14 +244,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                   ),
                                 ),
                               ),
-                              FilledButton(
+                              NeumorphIconButton(
+                                icon: Icons.arrow_forward,
+                                tooltip: 'Search',
+                                gel: true,
                                 onPressed: () => _handleSearch(_searchController.text),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: CScholarColors.primaryGreen,
-                                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                ),
-                                child: const Icon(Icons.arrow_forward, size: 20, color: Colors.white),
                               ),
                             ],
                           ),

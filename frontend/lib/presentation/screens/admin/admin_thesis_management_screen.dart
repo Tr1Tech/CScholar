@@ -10,6 +10,7 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
@@ -54,13 +55,10 @@ class _AdminThesisManagementScreenState
             PageHeader(
               title: 'Thesis Management',
               subtitle: 'Review statuses, edit records, and curate the repository.',
-              action: FilledButton.icon(
+              action: NeumorphButton(
                 onPressed: () => context.go('/admin/thesis/new'),
-                style: FilledButton.styleFrom(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    foregroundColor: Colors.white),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Thesis'),
+                icon: Icons.add,
+                label: 'Add Thesis',
               ),
             ),
             const SizedBox(height: 20),
@@ -177,12 +175,10 @@ class _AdminThesisManagementScreenState
                                               fontSize: 12,
                                               color: CScholarColors.orange)),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline,
-                                          size: 18, color: CScholarColors.error),
-                                      constraints: const BoxConstraints.tightFor(
-                                          width: 36, height: 36),
-                                      padding: EdgeInsets.zero,
+                                    NeumorphIconButton(
+                                      icon: Icons.delete_outline,
+                                      tooltip: 'Delete thesis',
+                                      size: 36,
                                       onPressed: () =>
                                           _deleteThesis(context, ref, t),
                                     ),
@@ -256,14 +252,14 @@ class _AdminThesisManagementScreenState
         title: const Text('Delete Thesis'),
         content: Text('Are you sure you want to delete "${thesis.title}"?'),
         actions: [
-          TextButton(
+          NeumorphButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
+              label: 'Cancel',
+              gel: false),
+          NeumorphButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                FilledButton.styleFrom(backgroundColor: CScholarColors.error),
-            child: const Text('Delete'),
+            label: 'Delete',
+            danger: true,
           ),
         ],
       ),

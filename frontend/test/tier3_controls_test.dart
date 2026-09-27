@@ -960,8 +960,15 @@ void main() {
       // elevation and ripple and cannot be made clay by theming. TextButton is
       // allowed only as an inline text link (it draws no surface), and the
       // primitive layer itself names the stock widgets it replaces.
+      //
+      // `lib/main.dart` is a decided allow-list entry, not a gap: it holds the
+      // global ThemeData button recipes, which the tier 1 suite asserts must
+      // exist (add-then-migrate, so pickers/menus/third-party dialogs that
+      // render a stock button still get the brand recipe). App code never
+      // instantiates one — every screen/route action is a clay button.
       const allowed = {
         'lib/presentation/widgets/material/neumorph_controls.dart',
+        'lib/main.dart',
       };
       final pattern = RegExp(
           r'(^|[^_A-Za-z])(ElevatedButton|FilledButton|OutlinedButton)\s*[.(<]');

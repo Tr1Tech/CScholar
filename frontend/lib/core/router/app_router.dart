@@ -25,6 +25,7 @@ import 'package:frontend/presentation/screens/faculty/faculty_students_screen.da
 import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -141,9 +142,9 @@ final appRouter = Provider<GoRouter>((ref) {
                         const SizedBox(height: 16),
                         Text('Invalid thesis id: ${state.pathParameters['id']}'),
                         const SizedBox(height: 16),
-                        ElevatedButton(
+                        NeumorphButton(
                           onPressed: () => context.go('/repository'),
-                          child: const Text('Back to Repository'),
+                          label: 'Back to Repository',
                         ),
                       ],
                     ),
@@ -252,9 +253,9 @@ final appRouter = Provider<GoRouter>((ref) {
                 const SizedBox(height: 16),
                 Text('Page not found: ${state.matchedLocation}'),
                 const SizedBox(height: 16),
-                ElevatedButton(
+                NeumorphButton(
                   onPressed: () => context.go('/'),
-                  child: const Text('Go Home'),
+                  label: 'Go Home',
                 ),
               ],
             ),

@@ -12,6 +12,7 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
@@ -50,13 +51,10 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
             PageHeader(
               title: 'User Management',
               subtitle: 'Accounts, roles, and access status.',
-              action: FilledButton.icon(
+              action: NeumorphButton(
                 onPressed: () => _showAddUserDialog(context),
-                style: FilledButton.styleFrom(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    foregroundColor: Colors.white),
-                icon: const Icon(Icons.person_add, size: 18),
-                label: const Text('Add User'),
+                icon: Icons.person_add,
+                label: 'Add User',
               ),
             ),
             const SizedBox(height: 20),
@@ -134,25 +132,17 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
               DataCell(Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  OutlinedButton(
+                  NeumorphButton(
                     onPressed: () => _showEditUserDialog(context, u),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: CScholarColors.info,
-                      side: const BorderSide(color: CScholarColors.info),
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: const Text('Edit', style: TextStyle(fontSize: 11)),
+                    label: 'Edit',
+                    gel: false,
                   ),
                   const SizedBox(width: 6),
-                  IconButton(
+                  NeumorphIconButton(
                     onPressed: () => _toggleActive(context, ref, u),
                     tooltip: u.isActive ? 'Deactivate user' : 'Reactivate user',
-                    style: IconButton.styleFrom(
-                      foregroundColor: u.isActive ? CScholarColors.error : CScholarColors.success,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    icon: Icon(u.isActive ? Icons.block : Icons.check_circle_outline, size: 20),
+                    size: 36,
+                    icon: u.isActive ? Icons.block : Icons.check_circle_outline,
                   ),
                 ],
               )),
@@ -212,15 +202,17 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
+            NeumorphButton(
+                onPressed: () => Navigator.pop(ctx),
+                label: 'Cancel',
+                gel: false),
+            NeumorphButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _saveUser(context, ref, user,
                     nameCtrl.text.trim(), emailCtrl.text.trim(), newRole);
               },
-              style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-              child: const Text('Save'),
+              label: 'Save',
             ),
           ],
         ),
@@ -278,15 +270,17 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
+            NeumorphButton(
+                onPressed: () => Navigator.pop(ctx),
+                label: 'Cancel',
+                gel: false),
+            NeumorphButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _createUser(context, ref, nameCtrl.text.trim(),
                     emailCtrl.text.trim(), passCtrl.text, newRole);
               },
-              style: FilledButton.styleFrom(backgroundColor: CScholarColors.primaryGreen),
-              child: const Text('Add'),
+              label: 'Add',
             ),
           ],
         ),

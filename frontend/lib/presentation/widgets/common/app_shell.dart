@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// Shared desktop/mobile shell for all roles (design plan, item 4).
 ///
@@ -50,8 +51,10 @@ class CScholarShell extends StatelessWidget {
           scrolledUnderElevation: 0,
           leading: backRoute == null
               ? null
-              : IconButton(
-                  icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+              : NeumorphIconButton(
+                  icon: Icons.arrow_back,
+                  size: 40,
+                  tooltip: 'Back',
                   onPressed: () => context.go(backRoute!),
                 ),
           title: Text(

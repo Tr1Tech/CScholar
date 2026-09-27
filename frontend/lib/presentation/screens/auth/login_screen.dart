@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
@@ -364,21 +365,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 24),
 
             // Sign In Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: _isLoading ? null : _login,
-                // No elevation override: the global theme pins primary actions
-                // at 0 so one button can't reintroduce a drop shadow.
-                style: FilledButton.styleFrom(
-                  backgroundColor: CScholarColors.primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.lg)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text('Sign In', style: CScholarTextStyles.inter(15, FontWeight.w700, Colors.white)),
-              ),
+            NeumorphButton(
+              onPressed: _isLoading ? null : _login,
+              label: 'Sign In',
+              expand: true,
+              loading: _isLoading,
             ),
 
             const SizedBox(height: 20),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/core/providers/providers.dart';
@@ -365,19 +366,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             const SizedBox(height: 24),
 
             // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: _isLoading ? null : _register,
-                style: FilledButton.styleFrom(
-                  backgroundColor: CScholarColors.primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.lg)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text('Create Account', style: CScholarTextStyles.inter(15, FontWeight.w700, Colors.white)),
-              ),
+            NeumorphButton(
+              onPressed: _isLoading ? null : _register,
+              label: 'Create Account',
+              expand: true,
+              loading: _isLoading,
             ),
 
             const SizedBox(height: 18),

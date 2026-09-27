@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
@@ -403,34 +404,19 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        OutlinedButton(
+                                        NeumorphButton(
                                           onPressed: () => context.go('/admin/dashboard'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: CScholarColors.textSecondary,
-                                            side: const BorderSide(color: CScholarColors.borderLight),
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                          ),
-                                          child: Text('Cancel', style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textSecondary)),
+                                          label: 'Cancel',
+                                          gel: false,
                                         ),
                                         const SizedBox(width: 12),
-                                        FilledButton.icon(
+                                        NeumorphButton(
                                           onPressed: _isSubmitting ? null : _submit,
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: CScholarColors.primaryGreen,
-                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                          ),
-                                          icon: _isSubmitting
-                                              ? const SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                                )
-                                              : const Icon(Icons.check, size: 18),
-                                          label: Text(
-                                            _isSubmitting ? 'Submitting...' : 'Submit Thesis / Capstone',
-                                            style: CScholarTextStyles.inter(13.5, FontWeight.w700, Colors.white),
-                                          ),
+                                          loading: _isSubmitting,
+                                          icon: _isSubmitting ? null : Icons.check,
+                                          label: _isSubmitting
+                                              ? 'Submitting...'
+                                              : 'Submit Thesis / Capstone',
                                         ),
                                       ],
                                     ),
@@ -498,7 +484,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                     ],
                   ),
                 ),
-                IconButton(
+                NeumorphIconButton(
                   onPressed: () {
                     setState(() {
                       _pdfUrl = null;
@@ -506,7 +492,8 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                       _pdfFileSize = null;
                     });
                   },
-                  icon: const Icon(Icons.close, size: 20, color: CScholarColors.textMuted),
+                  icon: Icons.close,
+                  size: 36,
                   tooltip: 'Remove PDF',
                 ),
               ],
@@ -531,20 +518,10 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : FilledButton.icon(
+                    : NeumorphButton(
                         onPressed: _pickAndUploadPdf,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: CScholarColors.primaryGreen,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(CScholarRadius.md),
-                          ),
-                        ),
-                        icon: const Icon(Icons.upload_file, size: 16),
-                        label: Text(
-                          'Choose PDF',
-                          style: CScholarTextStyles.inter(12.5, FontWeight.w600, Colors.white),
-                        ),
+                        icon: Icons.upload_file,
+                        label: 'Choose PDF',
                       ),
               ],
             ),

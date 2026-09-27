@@ -7,6 +7,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -156,30 +157,23 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
+                            child: NeumorphButton(
                               onPressed: _submitting ? null : () => context.go('/faculty/theses'),
-                              child: const Text('Cancel'),
+                              label: 'Cancel',
+                              gel: false,
+                              expand: true,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: FilledButton.icon(
+                            child: NeumorphButton(
                               onPressed: _submitting ? null : _submit,
-                              style: FilledButton.styleFrom(
-                                  backgroundColor: CScholarColors.primaryGreen),
-                              icon: _submitting
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white))
-                                  : const Icon(Icons.send_outlined,
-                                      size: 18, color: Colors.white),
-                              label: Text(
-                                  _submitting
-                                      ? 'Submitting…'
-                                      : (isEdit ? 'Save Changes' : 'Submit Draft'),
-                                  style: const TextStyle(color: Colors.white)),
+                              loading: _submitting,
+                              icon: Icons.send_outlined,
+                              label: _submitting
+                                  ? 'Submitting...'
+                                  : (isEdit ? 'Save Changes' : 'Submit Draft'),
+                              expand: true,
                             ),
                           ),
                         ],
@@ -323,14 +317,15 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
       children: [
         _label('Authors (${_authorIds.length} selected)'),
         authors.when(
-          data: (list) => OutlinedButton.icon(
+          data: (list) => NeumorphButton(
             onPressed: () => _pickMany(
               title: 'Select Authors',
               items: {for (final a in list) a.id: a.fullName},
               selected: _authorIds,
             ),
-            icon: const Icon(Icons.people_outline, size: 18),
-            label: Text(_authorIds.isEmpty ? 'Choose authors' : '${_authorIds.length} chosen'),
+            icon: Icons.people_outline,
+            gel: false,
+            label: _authorIds.isEmpty ? 'Choose authors' : '${_authorIds.length} chosen',
           ),
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load authors: $e',
@@ -347,14 +342,15 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
       children: [
         _label('Categories (${_categoryIds.length} selected)'),
         categories.when(
-          data: (list) => OutlinedButton.icon(
+          data: (list) => NeumorphButton(
             onPressed: () => _pickMany(
               title: 'Select Categories',
               items: {for (final c in list) c.id: c.name},
               selected: _categoryIds,
             ),
-            icon: const Icon(Icons.category_outlined, size: 18),
-            label: Text(_categoryIds.isEmpty ? 'Choose categories' : '${_categoryIds.length} chosen'),
+            icon: Icons.category_outlined,
+            gel: false,
+            label: _categoryIds.isEmpty ? 'Choose categories' : '${_categoryIds.length} chosen',
           ),
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text('Could not load categories: $e',
@@ -412,10 +408,11 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
         ),
       );
     }
-    return OutlinedButton.icon(
+    return NeumorphButton(
       onPressed: _pickAndUploadPdf,
-      icon: const Icon(Icons.upload_file_outlined, size: 18),
-      label: const Text('Attach PDF manuscript'),
+      icon: Icons.upload_file_outlined,
+      gel: false,
+      label: 'Attach PDF manuscript',
     );
   }
 
@@ -496,8 +493,11 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
+            NeumorphButton(
+                onPressed: () => Navigator.pop(ctx),
+                label: 'Cancel',
+                gel: false),
+            NeumorphButton(
               onPressed: () {
                 setState(() {
                   selected
@@ -506,7 +506,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
                 });
                 Navigator.pop(ctx);
               },
-              child: const Text('Done'),
+              label: 'Done',
             ),
           ],
         ),

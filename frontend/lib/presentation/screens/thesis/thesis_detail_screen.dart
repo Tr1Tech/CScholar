@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/core/config.dart';
@@ -57,9 +58,9 @@ class ThesisDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Text('Thesis not found', style: CScholarTextStyles.poppins(18, FontWeight.w600, CScholarColors.textPrimary)),
                   const SizedBox(height: 12),
-                  FilledButton(
+                  NeumorphButton(
                     onPressed: () => context.go(listRoute),
-                    child: const Text('Back to List'),
+                    label: 'Back to List',
                   ),
                 ],
               ),
@@ -448,37 +449,24 @@ class ThesisDetailScreen extends ConsumerWidget {
           spacing: 12,
           runSpacing: 10,
           children: [
-            FilledButton.icon(
+            NeumorphButton(
               onPressed: thesis.pdfUrl == null
                   ? null
                   : () {
                       final pdfUrl = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}/pdf';
                       _openPdfInNewTab(context, ref, pdfUrl);
                     },
-              style: FilledButton.styleFrom(
-                backgroundColor: CScholarColors.primaryGreen,
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-              ),
-              icon: const Icon(Icons.remove_red_eye_outlined, size: 18),
-              label: Text(
-                thesis.pdfUrl == null ? 'No PDF' : 'View PDF',
-                style: CScholarTextStyles.inter(13.5, FontWeight.w600, Colors.white),
-              ),
+              icon: Icons.remove_red_eye_outlined,
+              label: thesis.pdfUrl == null ? 'No PDF' : 'View PDF',
             ),
             if (showSave)
-              OutlinedButton.icon(
+              NeumorphButton(
                 onPressed: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary,
-                  side: BorderSide(color: isSaved ? CScholarColors.primaryGreen : CScholarColors.borderLight),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                ),
-                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_outline, size: 18),
-                label: Text(isSaved ? 'Saved' : 'Save', style: CScholarTextStyles.inter(13.5, FontWeight.w600, isSaved ? CScholarColors.primaryGreen : CScholarColors.textPrimary)),
+                gel: isSaved,
+                icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                label: isSaved ? 'Saved' : 'Save',
               ),
-            OutlinedButton.icon(
+            NeumorphButton(
               onPressed: () async {
                 final link = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}';
                 await Clipboard.setData(ClipboardData(text: link));
@@ -488,16 +476,11 @@ class ThesisDetailScreen extends ConsumerWidget {
                   );
                 }
               },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: CScholarColors.textPrimary,
-                side: const BorderSide(color: CScholarColors.borderLight),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-              ),
-              icon: const Icon(Icons.share_outlined, size: 18),
-              label: Text('Share', style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary)),
+              gel: false,
+              icon: Icons.share_outlined,
+              label: 'Share',
             ),
-            OutlinedButton.icon(
+            NeumorphButton(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: _citation(thesis)));
                 if (context.mounted) {
@@ -506,14 +489,9 @@ class ThesisDetailScreen extends ConsumerWidget {
                   );
                 }
               },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: CScholarColors.textPrimary,
-                side: const BorderSide(color: CScholarColors.borderLight),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-              ),
-              icon: const Icon(Icons.format_quote_outlined, size: 18),
-              label: Text('Cite', style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary)),
+              gel: false,
+              icon: Icons.format_quote_outlined,
+              label: 'Cite',
             ),
           ],
         ),

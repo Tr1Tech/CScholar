@@ -9,6 +9,7 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
@@ -304,20 +305,12 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         Row(
           children: [
             if (size.width <= 920)
-              OutlinedButton.icon(
+              NeumorphButton(
                 onPressed: () => _showMobileFilters(context),
-                icon: const Icon(Icons.filter_list, size: 16),
-                label: Text(
-                  'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: CScholarColors.primaryGreen,
-                  side:
-                      const BorderSide(color: CScholarColors.primaryGreen),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                ),
+                icon: Icons.filter_list,
+                gel: false,
+                label:
+                    'Filters${_activeFilterCount > 0 ? ' ($_activeFilterCount)' : ''}',
               ),
             const SizedBox(width: 12),
             NeumorphToggle(
@@ -449,18 +442,11 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                           ),
                         ),
                       ),
-                      FilledButton(
+                      NeumorphIconButton(
                         onPressed: _submitHero,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: CScholarColors.primaryGreen,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  CScholarRadius.md)),
-                        ),
-                        child: const Icon(Icons.arrow_forward,
-                            size: 20, color: Colors.white),
+                        icon: Icons.arrow_forward,
+                        tooltip: 'Search',
+                        gel: true,
                       ),
                     ],
                   ),
@@ -672,15 +658,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                         onChangedCallback: () => setModalState(() {}),
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: CScholarColors.primaryGreen,
-                          ),
-                          child: const Text('Apply Filters'),
-                        ),
+                      NeumorphButton(
+                        onPressed: () => Navigator.pop(context),
+                        label: 'Apply Filters',
+                        expand: true,
                       ),
                     ],
                   ),
@@ -781,22 +762,14 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
               : null,
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () {
-              _clearFilters();
-              onChangedCallback?.call();
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: CScholarColors.textSecondary,
-              side: const BorderSide(color: CScholarColors.borderLight),
-              padding: const EdgeInsets.symmetric(vertical: 11),
-            ),
-            child: Text('Clear Filters',
-                style: CScholarTextStyles.inter(
-                    12, FontWeight.w600, CScholarColors.textSecondary)),
-          ),
+        NeumorphButton(
+          onPressed: () {
+            _clearFilters();
+            onChangedCallback?.call();
+          },
+          label: 'Clear Filters',
+          gel: false,
+          expand: true,
         ),
       ],
     );

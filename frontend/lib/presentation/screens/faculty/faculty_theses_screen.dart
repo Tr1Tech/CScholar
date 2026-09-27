@@ -14,6 +14,7 @@ import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// Faculty: theses this faculty member advises (all statuses).
 class FacultyThesesScreen extends ConsumerStatefulWidget {
@@ -47,16 +48,10 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
               PageHeader(
                 title: 'My Theses',
                 subtitle: 'Studies you advise, across all statuses.',
-                action: FilledButton.icon(
+                action: NeumorphButton(
                   onPressed: () => context.go('/faculty/thesis/new'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: CScholarColors.primaryGreen,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                  ),
-                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                  label: Text('New Thesis',
-                      style: CScholarTextStyles.inter(13, FontWeight.w600, Colors.white)),
+                  icon: Icons.add,
+                  label: 'New Thesis',
                 ),
               ),
               const SizedBox(height: 20),
@@ -168,15 +163,9 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                               fontSize: 12, color: CScholarColors.orange),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          size: 18,
-                          color: CScholarColors.error,
-                        ),
-                        constraints:
-                            const BoxConstraints.tightFor(width: 36, height: 36),
-                        padding: EdgeInsets.zero,
+                      NeumorphIconButton(
+                        icon: Icons.delete_outline,
+                        size: 36,
                         tooltip: 'Delete draft',
                         onPressed: () => _deleteDraft(context, t),
                       ),
@@ -198,11 +187,14 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
         title: const Text('Delete Draft'),
         content: Text('Delete "${t.title}"? Published and approved studies can only be removed by an admin.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
+          NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              label: 'Cancel',
+              gel: false),
+          NeumorphButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: CScholarColors.error),
-            child: const Text('Delete'),
+            label: 'Delete',
+            danger: true,
           ),
         ],
       ),

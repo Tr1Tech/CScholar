@@ -5,6 +5,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// V2 search result card (new design): generative cover, title, authors,
 /// program/year, keyword chips, real match badge (semantic only), save +
@@ -130,16 +131,10 @@ class ResultCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    IconButton(
+                    NeumorphIconButton(
                       tooltip: isSaved ? 'Remove from Saved' : 'Save Study',
-                      visualDensity: VisualDensity.compact,
-                      icon: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                        size: 20,
-                        color: isSaved
-                            ? CScholarColors.primaryGreen
-                            : CScholarColors.textHint,
-                      ),
+                      size: 36,
+                      icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
                       onPressed: onToggleSave,
                     ),
                   ],
