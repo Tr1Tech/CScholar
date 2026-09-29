@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 
@@ -10,6 +12,38 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 /// True unless the OS asked for reduced motion.
 bool motionEnabled(BuildContext context) =>
     !MediaQuery.disableAnimationsOf(context);
+
+/// True when a LOOPING animation may run.
+///
+/// Loops are decoration: they add nothing a user must perceive. So they are the
+/// first thing dropped — under reduced motion, under high contrast (where
+/// gradients and glows are already stripped, so a drifting blob would be a
+/// floating void), and whenever the global ambient switch is off.
+bool ambientMotionEnabled(BuildContext context) =>
+    CScholarMotion.ambientEnabled &&
+    motionEnabled(context) &&
+    !MediaQuery.highContrastOf(context);
+
+/// Fire a light selection haptic, but only where it means something.
+///
+/// [HapticFeedback] is a no-op on web/desktop but still routes through a
+/// platform channel, so calling it on every hover costs a message per event.
+/// Guarded on the platform AND on motion being enabled — a reduced-motion user
+/// gets no haptics either, since the two preferences travel together in
+/// practice. The motion check reads the platform dispatcher directly because
+/// this helper takes no [BuildContext].
+void selectionHaptic() {
+  if (kIsWeb) return;
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) {
+    return;
+  }
+  if (WidgetsBinding
+      .instance.platformDispatcher.accessibilityFeatures.disableAnimations) {
+    return;
+  }
+  HapticFeedback.selectionClick();
+}
 
 /// Shared route transition for GoRouter pages.
 Widget cscholarTransition(
@@ -47,6 +81,17 @@ class CScholarTransitionBuilder extends PageTransitionsBuilder {
 }
 
 // --------------------------------------------------------------------------
+// Route-transition heroes.
+//
+// A hero needs exactly one source and one target across a route change, and
+// two heroes sharing a tag inside one subtree assert. The shell therefore takes
+// an explicit `heroAvatar: false` on the very route that owns the target.
+
+/// Identity avatar: the shell's pill avatar (source) flies into the profile
+/// card's 88px avatar (target).
+const String userAvatarHeroTag = 'user-avatar';
+
+// --------------------------------------------------------------------------
 // Motion vocabulary (design plan, item 8).
 //
 // ONE place per concern. Every helper is inert when the OS asks for reduced
@@ -73,12 +118,29 @@ class EntranceReveal extends StatefulWidget {
     this.delay = Duration.zero,
     this.rise = 12,
     this.duration = CScholarDurations.normal,
+    this.origin = const Offset(0, 1),
+    this.scaleFrom = 1.0,
   });
 
   final Widget child;
   final Duration delay;
   final double rise;
   final Duration duration;
+
+  /// Direction the block travels *from*. The default [Offset(0, 1)] is the
+  /// legacy rise-from-below — [rise] pixels, so every existing call site is
+  /// untouched. Any OTHER origin is fractional (a fraction of the child's
+  /// size, like [FractionalTranslation]): a right-hand rail enters from
+  /// `Offset(0.06, 0)` and steps 6% of its own width, where 0.06 × a 12px
+  /// rise would be less than a pixel of movement and read as nothing.
+  final Offset origin;
+
+  /// Starting scale, for cards that should *settle* onto the page rather than
+  /// just fade. `1.0` (the default) adds no scale transform at all; `0.97`
+  /// reads as the block landing. Keep it above 0.95 — a deeper scale is an
+  /// arrival, not a settle, and at 200% text it exaggerates the block's
+  /// footprint enough to read as a jump.
+  final double scaleFrom;
 
   @override
   State<EntranceReveal> createState() => _EntranceRevealState();
@@ -125,13 +187,36 @@ class _EntranceRevealState extends State<EntranceReveal>
     );
     return AnimatedBuilder(
       animation: curve,
-      builder: (context, child) => Opacity(
-        opacity: curve.value.clamp(0.0, 1.0),
-        child: Transform.translate(
-          offset: Offset(0, (1 - curve.value) * widget.rise),
-          child: child,
-        ),
-      ),
+      builder: (context, child) {
+        final t = curve.value.clamp(0.0, 1.0);
+        // The default origin keeps the legacy pixel translate so existing call
+        // sites render byte-identically; an explicit origin is fractional and
+        // needs the child's own size, which FractionalTranslation measures.
+        final content = widget.origin == const Offset(0, 1)
+            ? Transform.translate(
+                offset: Offset(0, (1 - t) * widget.rise),
+                child: child,
+              )
+            : FractionalTranslation(
+                translation: Offset(
+                  widget.origin.dx * (1 - t),
+                  widget.origin.dy * (1 - t),
+                ),
+                child: child,
+              );
+        // scaleFrom == 1.0 (the default) must not add a scale node at all:
+        // an extra Transform in every reveal is one more save-layer per block.
+        if (widget.scaleFrom == 1.0) {
+          return Opacity(opacity: t, child: content);
+        }
+        return Opacity(
+          opacity: t,
+          child: Transform.scale(
+            scale: widget.scaleFrom + (1 - widget.scaleFrom) * t,
+            child: content,
+          ),
+        );
+      },
       child: widget.child,
     );
   }
@@ -147,6 +232,8 @@ class Stagger extends StatelessWidget {
     this.step = const Duration(milliseconds: 40),
     this.max = const Duration(milliseconds: 240),
     this.rise = 12,
+    this.origin = const Offset(0, 1),
+    this.delay,
   });
 
   final int index;
@@ -155,17 +242,42 @@ class Stagger extends StatelessWidget {
   final Duration max;
   final double rise;
 
+  /// Direction the block travels *from* — see [EntranceReveal.origin]. The
+  /// default rises from below, as every existing call site does.
+  final Offset origin;
+
+  /// Explicit delay override. [StaggerColumn]'s grid cascade needs a delay
+  /// that is NOT expressible as `index * step` (the row term is weighted
+  /// 1.6x), so it hands the finished delay over instead of bending [index]
+  /// to fit. When non-null, [index], [step] and [max] are ignored.
+  final Duration? delay;
+
   @override
   Widget build(BuildContext context) {
-    final delay = Duration(
-      microseconds: (index * step.inMicroseconds).clamp(0, max.inMicroseconds),
+    final effective = delay ??
+        Duration(
+          microseconds:
+              (index * step.inMicroseconds).clamp(0, max.inMicroseconds),
+        );
+    return EntranceReveal(
+      delay: effective,
+      rise: rise,
+      origin: origin,
+      child: child,
     );
-    return EntranceReveal(delay: delay, rise: rise, child: child);
   }
 }
 
 /// A [Column] whose children rise in one after another — the standard page
 /// entrance for the blocks below a header.
+///
+/// [pitch] names the entrance rhythm (see [MotionPitch]) and, when given,
+/// replaces [step]/[max]/[rise]. It is opt-in: the bare default must stay
+/// byte-identical to the original 40ms/240ms stagger, because every screen in
+/// the app relies on it until it migrates to a named pitch. [columns] > 1
+/// cascades a KPI strip DIAGONALLY instead of left-to-right-then-wrap —
+/// otherwise a 3-up grid reads as one horizontal wave with a delayed second
+/// wave, not a cascade.
 ///
 /// Children must not be [Expanded]/[Flexible]: the motion wrapper sits between
 /// the child and the Flex, and an Expanded needs the Flex as its direct parent.
@@ -179,6 +291,10 @@ class StaggerColumn extends StatelessWidget {
     this.startIndex = 0,
     this.step = const Duration(milliseconds: 40),
     this.max = const Duration(milliseconds: 240),
+    this.rise = 12,
+    this.origin = const Offset(0, 1),
+    this.pitch,
+    this.columns = 1,
   });
 
   final List<Widget> children;
@@ -187,9 +303,30 @@ class StaggerColumn extends StatelessWidget {
   final int startIndex;
   final Duration step;
   final Duration max;
+  final double rise;
+  final Offset origin;
+  final MotionPitch? pitch;
+  final int columns;
+
+  /// Delay for child [i] under a grid cascade: column term + a 1.6x-weighted
+  /// row term, clamped to the pitch's max like every other stagger.
+  static Duration _diagonalDelay(
+    int i,
+    int columns,
+    Duration step,
+    Duration max,
+  ) {
+    final us = ((i % columns) * step.inMicroseconds +
+            (i ~/ columns) * step.inMicroseconds * 1.6)
+        .round();
+    return Duration(microseconds: us.clamp(0, max.inMicroseconds));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final Duration effStep = pitch?.step ?? step;
+    final Duration effMax = pitch?.max ?? max;
+    final double effRise = pitch?.rise ?? rise;
     return Column(
       crossAxisAlignment: crossAxisAlignment,
       mainAxisSize: mainAxisSize,
@@ -197,8 +334,13 @@ class StaggerColumn extends StatelessWidget {
         for (var i = 0; i < children.length; i++)
           Stagger(
             index: startIndex + i,
-            step: step,
-            max: max,
+            step: effStep,
+            max: effMax,
+            rise: effRise,
+            origin: origin,
+            delay: columns > 1
+                ? _diagonalDelay(startIndex + i, columns, effStep, effMax)
+                : null,
             child: children[i],
           ),
       ],

@@ -265,9 +265,136 @@ class CScholarDurations {
   static const Duration debounce = Duration(milliseconds: 400);
 }
 
+/// Motion budget v2 — the layer above [CScholarDurations].
+///
+/// [CScholarDurations] remains the *interaction* budget and keeps its 300ms
+/// ceiling (`motion_test.dart` pins `slow == 300ms`): a control that reacts to
+/// a tap must answer inside 300ms or it feels laggy. What was missing was
+/// anywhere for a *page-level* or *ambient* gesture to live, so every
+/// long-running motion in the app ended up crammed into 300ms and nothing
+/// could breathe.
+///
+/// Hence two named budgets, and the rule that decides which one you use:
+///
+///   * TRANSITION ([micro] .. [page]) — a response to a user action or a route
+///     change. Bounded, interruptible, one-shot. Must never exceed [page].
+///   * AMBIENT ([breathe], [drift], [shimmer], [pulse]) — a loop that runs
+///     while a state holds (idle, live, syncing, loading). Gated by
+///     [ambientEnabled], so tests and low-power users never see one.
+///
+/// Nothing else: if you need a duration that is not here, you are animating
+/// the wrong thing.
+class CScholarMotion {
+  // ------------------------------------------------------------- transition
+  /// Press, hover, focus — the twitch a control makes under the pointer.
+  static const Duration micro = Duration(milliseconds: 120);
+
+  /// State swap: chip selects, icon morph, error text replaces hint.
+  static const Duration swap = Duration(milliseconds: 200);
+
+  /// Entrance for a block: one reveal, or one step of a cascade.
+  static const Duration enter = Duration(milliseconds: 280);
+
+  /// Page-level: route transitions, hero flights, the outgoing page's retreat.
+  /// This is the ceiling for any one-shot motion in the app.
+  static const Duration page = Duration(milliseconds: 360);
+
+  // ---------------------------------------------------------------- ambient
+  /// Slow breath: a halo deepening, an icon tile floating ±2px.
+  static const Duration breathe = Duration(milliseconds: 2400);
+
+  /// Very slow wash behind a hero panel. Long enough to be noticed only in
+  /// peripheral vision — the point is that it is never seen to loop.
+  static const Duration drift = Duration(milliseconds: 16000);
+
+  /// Skeleton shimmer sweep. One full pass.
+  static const Duration shimmer = Duration(milliseconds: 1400);
+
+  /// Live / syncing indicator pulse.
+  static const Duration pulse = Duration(milliseconds: 1200);
+
+  // ------------------------------------------------------------- global gate
+  /// Kill switch for ALL looping motion.
+  ///
+  /// A repeating [AnimationController] makes `pumpAndSettle()` never terminate,
+  /// and `screens_render_test.dart` already had to work around this for
+  /// `ClayLoader` with a hand-rolled frame budget. That workaround stays, but
+  /// the gate makes it explicit and lets a test (or a low-power mode) turn
+  /// every loop off in one line. Tests must set
+  /// `CScholarMotion.ambientEnabled = false` in `setUp` and restore it in
+  /// `tearDown`.
+  static bool ambientEnabled = true;
+}
+
+/// Named entrance rhythms. A page's delay map is a design decision, so it is
+/// named and shared rather than re-invented with magic numbers per screen.
+///
+/// [step] is the gap between siblings; [max] clamps the last sibling's delay so
+/// a long list can never crawl in; [rise] is how far each block travels.
+enum MotionPitch {
+  /// Dense lists, table rows, chips. Barely a stagger — it reads as one
+  /// gesture.
+  tight(
+    step: Duration(milliseconds: 24),
+    max: Duration(milliseconds: 160),
+    rise: 8,
+  ),
+
+  /// The default for page blocks below a header.
+  page(
+    step: Duration(milliseconds: 48),
+    max: Duration(milliseconds: 240),
+    rise: 12,
+  ),
+
+  /// Feature cards and KPI strips: a slower, more deliberate walk.
+  feature(
+    step: Duration(milliseconds: 72),
+    max: Duration(milliseconds: 320),
+    rise: 16,
+  ),
+
+  /// Thesis results, saved studies. Long enough to be seen, clamped hard.
+  result(
+    step: Duration(milliseconds: 56),
+    max: Duration(milliseconds: 280),
+    rise: 14,
+  );
+
+  const MotionPitch({
+    required this.step,
+    required this.max,
+    required this.rise,
+  });
+  final Duration step;
+  final Duration max;
+  final double rise;
+}
+
 class CScholarCurves {
   static const Curve standard = Curves.easeOutCubic;
   static const Curve entrance = Curves.easeOut;
+
+  /// Material 3 "emphasised": fast out, soft landing. Default for anything
+  /// that MOVES TO a new place — sliding pill, drawer, hero flight, page push.
+  static const Curve settle = Cubic(0.2, 0.0, 0.0, 1.0);
+
+  /// Springy settle for micro-interactions: a save icon, a checkmark, a badge.
+  /// The tiny overshoot is what makes a toggle read as physical. Do NOT use it
+  /// on anything larger than ~80px — a big surface that overshoots reads as
+  /// broken.
+  static const Curve overshoot = Cubic(0.34, 1.56, 0.64, 1.0);
+
+  /// Mirrored exit. Leaving must be faster and less fussy than arriving, so
+  /// entrances use [settle] while exits use this.
+  static const Curve exit = Cubic(0.4, 0.0, 1.0, 1.0);
+
+  /// Ease-in-out for something that LOOPS (breathe, drift, pulse): the two
+  /// halves must be symmetric or the loop visibly hitches at the turnaround.
+  static const Curve anticipate = Cubic(0.4, 0.0, 0.6, 1.0);
+
+  /// Only for continuous, constant-rate motion (shimmer sweep, spinner).
+  static const Curve steady = Curves.linear;
 }
 
 /// Elevation recipes — now sourced from the material system, so shadows are
