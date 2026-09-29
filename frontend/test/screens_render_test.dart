@@ -23,6 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
@@ -38,7 +39,6 @@ import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.da
 import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_thesis_form_screen.dart';
-import 'package:frontend/presentation/screens/landing_screen.dart';
 import 'package:frontend/presentation/screens/repository/repository_screen.dart';
 import 'package:frontend/presentation/screens/student/profile_screen.dart';
 import 'package:frontend/presentation/screens/student/saved_theses_screen.dart';
@@ -49,7 +49,6 @@ import 'package:frontend/presentation/screens/thesis/thesis_detail_screen.dart';
 /// arguments get a representative one (an id that resolves to the error branch,
 /// which is what a signed-out or offline client actually sees).
 final Map<String, Widget Function()> _screens = <String, Widget Function()>{
-  'landing': () => const LandingScreen(),
   'login': () => const LoginScreen(),
   'register': () => const RegisterScreen(),
   'design-lab': () => const DesignLabScreen(),
@@ -111,6 +110,11 @@ void main() {
   // Auth restore reads prefs on first build; without this the plugin throws a
   // MissingPluginException and every screen fails for the wrong reason.
   setUpAll(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
+  // The design lab now carries looping samples (PulseDot, BreathingGlow,
+  // DriftingWash). The frame budget below stays, but the ambient gate makes
+  // the loops opt-out here too so they cannot slow the 176-case matrix.
+  setUpAll(() => CScholarMotion.ambientEnabled = false);
+  tearDownAll(() => CScholarMotion.ambientEnabled = true);
 
   const sizes = <String, Size>{
     'desktop 1440x1000': Size(1440, 1000),

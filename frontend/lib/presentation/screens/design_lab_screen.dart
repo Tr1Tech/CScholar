@@ -4,11 +4,13 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/hover_lift.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/motion_ambient.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
@@ -46,7 +48,15 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   double _textScale = 1;
   int _demoSegment = 0;
 
+  /// Which row of the [ClayNavList] sample carries the sliding pill.
+  int _navIndex = 0;
+
   static const List<String> _segmentLabels = ['Keyword', 'Semantic', 'Saved'];
+  static const List<String> _navLabels = [
+    'Dashboard',
+    'Repository',
+    'Saved Studies',
+  ];
 
   int get _textScaleIndex => _textScale <= 1 ? 0 : (_textScale < 1.5 ? 1 : 2);
 
@@ -194,6 +204,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         _selectBoard(),
         _chromeBoard(),
         _motionBoard(),
+        _choreoBoard(),
       ];
 
   Widget _section({
@@ -1277,16 +1288,19 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
     );
   }
 
-  /// 15 · Motion board. Every interaction from the motion system, with the
-  /// reduced-motion toggle wired to the real switch (the bar above).
+  /// 15 · Motion vocabulary. Every primitive from the motion upgrade (5.1–5.11),
+  /// each in a rest / active row, with the reduced-motion and high-contrast
+  /// toggles wired to the real switches (the bar above).
   Widget _motionBoard() {
     return _section(
-      title: '15 · Motion system',
-      note: 'Entrance, press, hover, cross-fade, count-up and stagger — all inert under reduced motion (flip the toggle in the top bar and every sample snaps). Durations only ever come from CScholarDurations, capped at 300ms.',
+      title: '15 · Motion vocabulary',
+      note: 'One tuned switcher, a morph, a tactile toggle, ambient loops — all inert under reduced motion (flip the toggle in the top bar and every sample snaps) and under high contrast (loops and gold drop out entirely). One-shots are capped at CScholarMotion.page (360ms); loops are gated and sit in RepaintBoundaries.',
       child: StatefulBuilder(
         builder: (context, setLocal) {
           var pressed = 0;
           var loading = false;
+          var swapError = false;
+          var saved = false;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1353,10 +1367,272 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 style: CScholarTextStyles.poppins(
                     22, FontWeight.w800, CScholarMaterial.textPrimary),
               ),
+              const SizedBox(height: 22),
+              _eyebrow('nav · the active pill slides'),
+              // Shown at the width a sidebar gives it: the pill is positioned
+              // from the fixed row height, so the sample only reads correctly
+              // at that width. Tap a row to move it.
+              SizedBox(
+                width: 248,
+                child: ClayNavList(
+                  selectedIndex: _navIndex,
+                  links: [
+                    for (var i = 0; i < _navLabels.length; i++)
+                      ClayNavLink(
+                        label: _navLabels[i],
+                        icon: Icons.circle_outlined,
+                        selectedIcon: Icons.circle,
+                        onTap: () => setState(() => _navIndex = i),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('animated swap · hint ↔ error (swap style)'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NeumorphToggle(
+                    value: swapError,
+                    label: 'Show error',
+                    onChanged: (v) => setLocal(() => swapError = v),
+                  ),
+                  const SizedBox(height: 10),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: ClaySurface(
+                      padding: const EdgeInsets.all(14),
+                      child: AnimatedSwap(
+                        style: SwapStyle.swap,
+                        child: Text(
+                          swapError
+                              ? 'Enter a valid CSU email'
+                              : 'Type to preview',
+                          key: ValueKey(swapError),
+                          style: CScholarTextStyles.inter(
+                            13,
+                            FontWeight.w500,
+                            swapError
+                                ? CScholarColors.error
+                                : CScholarColors.textHint,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('animated swap · value along a row (slideX)'),
+              // Driven by the pressable surface above: one interaction, two
+              // demos — the count-up tweens while the value slides.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  AnimatedSwap(
+                    style: SwapStyle.slideX,
+                    child: Text(
+                      '${pressed + 24}',
+                      key: ValueKey(pressed),
+                      style: CScholarTextStyles.poppins(
+                          20, FontWeight.w700, CScholarMaterial.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'results — slides along the row as it changes',
+                      style: CScholarTextStyles.inter(
+                          12, FontWeight.w400, CScholarMaterial.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('morph icon · outline ↔ filled, and the tactile toggle'),
+              Row(
+                children: [
+                  MorphIcon(
+                    icon: Icons.bookmark_outline,
+                    selectedIcon: Icons.bookmark,
+                    selected: saved,
+                    color: CScholarMaterial.textPrimary,
+                    selectedColor: CScholarMaterial.textPrimary,
+                  ),
+                  const SizedBox(width: 12),
+                  TactileToggle(
+                    selected: saved,
+                    onChanged: () => setLocal(() => saved = !saved),
+                    icon: Icons.bookmark_outline,
+                    selectedIcon: Icons.bookmark,
+                    semanticLabel: 'Save study',
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      'tap the toggle — press sinks, release springs, the gold ring fires once on save',
+                      style: CScholarTextStyles.inter(
+                          12, FontWeight.w400, CScholarMaterial.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('pulse dot · live indicator (ambient loop, gated)'),
+              Row(
+                children: [
+                  PulseDot(color: CScholarColors.success),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Syncing…',
+                    style: CScholarTextStyles.inter(
+                        12, FontWeight.w500, CScholarMaterial.textGreen),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('breathing glow · the gold halo (ambient loop, gated)'),
+              BreathingGlow(
+                borderRadius: BorderRadius.circular(46 * 0.3),
+                child: const ClayIconTile(
+                  icon: Icons.workspace_premium_outlined,
+                  size: 46,
+                  gold: true,
+                  glowStrength: 0,
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('drifting wash · hero ambience (ambient loop, gated)'),
+              // A contained hero panel — the washes stay inside it and the
+              // gold one bleeds off a corner, never behind the copy.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: DriftingWash(
+                  child: ClaySurface(
+                    depth: 1.2,
+                    padding: const EdgeInsets.all(22),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back, Juan',
+                          style: CScholarTextStyles.poppins(16, FontWeight.w700,
+                              CScholarMaterial.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '3 studies are waiting for review.',
+                          style: CScholarTextStyles.inter(13, FontWeight.w400,
+                              CScholarMaterial.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('skeleton · thesis silhouette'),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: const ThesisSkeleton(),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('score meter · fill + count-up, both one-shot'),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 340),
+                child: ScoreMeter(score: 0.86),
+              ),
+              const SizedBox(height: 22),
+              _eyebrow('scroll veil · seated chrome'),
+              // The wrapper sits ABOVE the scrollable (a listener can only
+              // hear a scrollable it is an ancestor of) and the builder wraps
+              // the pane, so the strip gains its rim once content moves.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: ScrollVeil(
+                  child: SizedBox(
+                    height: 140,
+                    child: ListView(
+                      children: const [
+                        ListTile(title: Text('Scroll me past 12px')),
+                        ListTile(title: Text('The strip above seats')),
+                        ListTile(title: Text('Row three')),
+                      ],
+                    ),
+                  ),
+                  builder: (context, pane, seated) => Container(
+                    decoration: BoxDecoration(
+                      color: CScholarMaterial.clay,
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(12)),
+                      border: Border.all(color: CScholarMaterial.rim),
+                      boxShadow: seated
+                          ? CScholarMaterial.clayDrop(depth: 1)
+                          : null,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      seated ? 'Seated — rim + shadow' : 'At rest — flush',
+                      style: CScholarTextStyles.inter(
+                          12.5, FontWeight.w600, CScholarMaterial.textPrimary),
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
       ),
+    );
+  }
+
+  /// 16 · Choreography. The four [MotionPitch] presets side by side, so the
+  /// difference between the rhythms is visible before a screen adopts one.
+  Widget _choreoBoard() {
+    Widget pitchSample(MotionPitch pitch, String note) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _eyebrow(pitch.name),
+          for (var i = 0; i < 4; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Stagger(
+                index: i,
+                step: pitch.step,
+                max: pitch.max,
+                rise: pitch.rise,
+                child: CScholarCard(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  child: Text(
+                    'block ${i + 1} — +${(i * pitch.step.inMilliseconds).clamp(0, pitch.max.inMilliseconds)}ms',
+                    style: CScholarTextStyles.inter(12, FontWeight.w500,
+                        CScholarMaterial.textPrimary),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            note,
+            style: CScholarTextStyles.inter(
+                12, FontWeight.w400, CScholarMaterial.textMuted),
+          ),
+        ],
+      );
+    }
+
+    return _section(
+      title: '16 · Choreography',
+      note: 'The delay map is a design decision, so it is named. tight reads as one gesture, page is the default walk, feature is a deliberate stride, result is clamped hard. Every screen picks one of these instead of re-inventing per block.',
+      child: _columns([
+        pitchSample(MotionPitch.tight, 'step 24ms · max 160ms · rise 8'),
+        pitchSample(MotionPitch.page, 'step 48ms · max 240ms · rise 12'),
+        pitchSample(MotionPitch.feature, 'step 72ms · max 320ms · rise 16'),
+        pitchSample(MotionPitch.result, 'step 56ms · max 280ms · rise 14'),
+      ]),
     );
   }
 
