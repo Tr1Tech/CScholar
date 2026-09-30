@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 
 /// Wraps a subtree so that every [GlassPanel] inside it shares ONE blur pass.
 ///
@@ -64,7 +65,16 @@ class GlassDialog extends StatelessWidget {
                 children: [
                   for (var i = 0; i < actions.length; i++) ...[
                     if (i > 0) const SizedBox(width: 8),
-                    actions[i],
+                    // The action row staggers by 30ms (a quarter of the micro
+                    // budget, derived from the token — the literal lives in
+                    // cscholar_constants) so the buttons land after the panel
+                    // does: the dialog opens as one motion, not a wall of
+                    // buttons arriving at once.
+                    EntranceReveal(
+                      delay: CScholarMotion.micro ~/ 4,
+                      rise: 6,
+                      child: actions[i],
+                    ),
                   ],
                 ],
               ),

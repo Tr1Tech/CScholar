@@ -641,6 +641,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      // Slide up on settle over CScholarMotion.page, same as the dialogs, so
+      // all floating chrome opens identically. The scrim fades in with the
+      // route animation; drag-to-dismiss is the sheet's default and stays.
+      sheetAnimationStyle: AnimationStyle(
+        duration: CScholarMotion.page,
+        reverseDuration: CScholarMotion.page,
+        curve: CScholarCurves.settle,
+        reverseCurve: CScholarCurves.exit,
+      ),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {

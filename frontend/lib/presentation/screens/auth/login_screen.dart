@@ -190,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: TextButton(
-                    onPressed: () => showDialog(
+                    onPressed: () => showClayDialog(
                       context: context,
                       builder: (ctx) => GlassDialog(
                         title: const Text('Forgot password?'),

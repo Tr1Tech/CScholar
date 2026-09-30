@@ -11,9 +11,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/motion_ambient.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:shimmer/shimmer.dart';
 
 Widget _host(Widget child, {bool reduceMotion = false}) {
   return MaterialApp(
@@ -301,6 +303,20 @@ void main() {
     expect(find.byType(AnimatedSwitcher), findsNothing,
         reason: 'no switcher, no controller, nothing to leak');
     expect(find.text('a'), findsOneWidget);
+  });
+
+  testWidgets('thesis skeleton is static under reduced motion', (tester) async {
+    await tester.pumpWidget(
+      _host(const ThesisSkeleton(), reduceMotion: true),
+    );
+
+    expect(find.byType(Shimmer), findsNothing,
+        reason: 'the shimmer is a loop — reduced motion gets no ticker');
+    // The host schedules one housekeeping frame after its first build, so the
+    // settle assertion comes after a pump — the same budget the toggle test uses.
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.binding.hasScheduledFrame, isFalse,
+        reason: 'no ticker may be left running');
   });
 
   testWidgets('animated swap keeps both children mid-flight', (tester) async {

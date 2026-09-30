@@ -47,6 +47,15 @@ void selectionHaptic() {
 }
 
 /// Shared route transition for GoRouter pages.
+///
+/// Two halves: the ARRIVING page fades + rises on [CScholarCurves.entrance],
+/// and the page being COVERED retreats — fading to 0.9 opacity and scaling to
+/// 0.98 as the new page rises in. Layering is what makes a push feel like a
+/// push; without the second half the covered page just sits there at full
+/// strength while the new one slides over it. Both halves are transform and
+/// opacity only, and the whole thing is capped by the route's own
+/// `transitionDuration` (Material's mixin keeps it at 300ms, inside
+/// [CScholarMotion.page]).
 Widget cscholarTransition(
   BuildContext context,
   Animation<double> animation,
@@ -55,11 +64,21 @@ Widget cscholarTransition(
 ) {
   if (!motionEnabled(context)) return child;
   final curved = CurvedAnimation(parent: animation, curve: CScholarCurves.entrance);
+  // The covered page's retreat. Driven by [secondaryAnimation], which runs
+  // 0->1 while a cover pushes on top and back to 0 when it pops off, so the
+  // page underneath returns to full strength exactly as the cover leaves.
+  final covered = CurvedAnimation(parent: secondaryAnimation, curve: CScholarCurves.settle);
   return FadeTransition(
-    opacity: curved,
-    child: SlideTransition(
-      position: Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(curved),
-      child: child,
+    opacity: Tween<double>(begin: 1, end: 0.9).animate(covered),
+    child: ScaleTransition(
+      scale: Tween<double>(begin: 1, end: 0.98).animate(covered),
+      child: FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(curved),
+          child: child,
+        ),
+      ),
     ),
   );
 }
@@ -79,6 +98,49 @@ class CScholarTransitionBuilder extends PageTransitionsBuilder {
   ) {
     return cscholarTransition(context, animation, secondaryAnimation, child);
   }
+}
+
+/// The ONE dialog entry point: the glass panel fades + scales 0.96 -> 1 over
+/// [CScholarMotion.page] on [CScholarCurves.settle], and the scrim fades in
+/// with it (the barrier animates with the route). Registered once here —
+/// never hand-rolled per call site, which is exactly how the app's dialogs
+/// drifted apart the first time.
+///
+/// A plain `showDialog`'s default scale is generic and instant-feeling; every
+/// GlassDialog call site goes through this helper instead, so the overlay
+/// opens the same way the selects' menus do.
+Future<T?> showClayDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+  Color? barrierColor,
+  String? barrierLabel,
+  RouteSettings? routeSettings,
+  Offset? anchorPoint,
+}) {
+  return showGeneralDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    barrierColor: barrierColor ?? CScholarMaterial.scrim,
+    barrierLabel:
+        barrierLabel ?? MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    routeSettings: routeSettings,
+    anchorPoint: anchorPoint,
+    transitionDuration: CScholarMotion.page,
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      if (!motionEnabled(context)) return child;
+      final curved =
+          CurvedAnimation(parent: animation, curve: CScholarCurves.settle);
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.96, end: 1).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -643,17 +705,19 @@ class AnimatedSwap extends StatelessWidget {
               ),
             );
           case SwapStyle.pop:
-            // Applied to BOTH copies: the entering glyph pops through the
-            // overshoot, the leaving one shrinks away under the same curve.
+            // Only the ENTERING copy scales (the brief's pop is about the
+            // arrival); the leaving one just fades under it.
             return FadeTransition(
               opacity: animation,
-              child: ScaleTransition(
-                scale: Tween<double>(begin: 0.6, end: 1.0).animate(
-                  CurvedAnimation(
-                      parent: animation, curve: CScholarCurves.overshoot),
-                ),
-                child: child,
-              ),
+              child: entering
+                  ? ScaleTransition(
+                      scale: Tween<double>(begin: 0.6, end: 1.0).animate(
+                        CurvedAnimation(
+                            parent: animation, curve: CScholarCurves.overshoot),
+                      ),
+                      child: child,
+                    )
+                  : child,
             );
           case SwapStyle.slideX:
             return FadeTransition(

@@ -469,7 +469,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
     required Set<int> selected,
   }) async {
     final temp = Set<int>.from(selected);
-    await showDialog(
+    await showClayDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GlassDialog(

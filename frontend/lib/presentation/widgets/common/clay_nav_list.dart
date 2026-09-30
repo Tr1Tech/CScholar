@@ -176,8 +176,18 @@ class _ClayNavListState extends State<ClayNavList> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            Icon(isSelected ? link.selectedIcon : link.icon,
-                size: 20, color: foreground),
+            // The glyph morphs outline <-> filled and pops as it lands, like
+            // every other selected glyph in the app. Both glyphs share the
+            // fixed 20px box, so the swap can never nudge the label — the row
+            // stays one ellipsised line and the pill stays un-measured.
+            MorphIcon(
+              icon: link.icon,
+              selectedIcon: link.selectedIcon,
+              selected: isSelected,
+              color: CScholarColors.textSecondary,
+              selectedColor: CScholarColors.white,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -210,29 +220,32 @@ class _ClayNavListState extends State<ClayNavList> {
           _nodes[index].requestFocus();
           link.onTap();
         },
-        child: _focused == index
+        child: Stack(
+          children: [
+            body,
             // Painted OVER the row, never around it: a ring built from padding
             // would make one row taller than the others and de-sync the pill.
-            ? Stack(
-                children: [
-                  body,
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: radius,
-                          border: Border.all(
-                            color:
-                                CScholarMaterial.gelTop.withValues(alpha: 0.45),
-                            width: 2,
-                          ),
-                        ),
-                      ),
+            // Always present with an animated border ALPHA (not a colour
+            // tween between two hues — that passes through low-contrast
+            // midpoints), so focus fades in over micro and ends at the ring's
+            // full 0.45 gel strength.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedContainer(
+                  duration: motionDuration(context, CScholarMotion.micro),
+                  decoration: BoxDecoration(
+                    borderRadius: radius,
+                    border: Border.all(
+                      color: CScholarMaterial.gelTop.withValues(
+                          alpha: _focused == index ? 0.45 : 0),
+                      width: 2,
                     ),
                   ),
-                ],
-              )
-            : body,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

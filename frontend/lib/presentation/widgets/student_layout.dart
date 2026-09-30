@@ -53,11 +53,16 @@ class StudentLayout extends ConsumerWidget {
             child: _sidebar(context, ref, user),
           ),
           Expanded(
-            child: Column(
-              children: [
-                _topBar(context, ref, user),
-                Expanded(child: child),
-              ],
+            // Wrapped like the shared shell, so the topbar seats once content
+            // scrolls past the ScrollVeil's trigger.
+            child: ScrollVeil(
+              child: Column(
+                children: [
+                  _topBar(context, ref, user),
+                  Expanded(child: child),
+                ],
+              ),
+              builder: (context, pane, seated) => pane,
             ),
           ),
         ],

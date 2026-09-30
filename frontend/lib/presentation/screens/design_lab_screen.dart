@@ -1246,7 +1246,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             NeumorphButton(
               label: 'Open GlassDialog',
               icon: Icons.open_in_new,
-              onPressed: () => showDialog<void>(
+              onPressed: () => showClayDialog<void>(
                 context: context,
                 builder: (ctx) => GlassDialog(
                   title: const Text('Delete this study?'),

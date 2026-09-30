@@ -247,7 +247,7 @@ class _AdminThesisManagementScreenState
 
   Future<void> _deleteThesis(
       BuildContext context, WidgetRef ref, Thesis thesis) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showClayDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Delete Thesis'),

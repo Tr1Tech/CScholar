@@ -182,7 +182,7 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
   }
 
   Future<void> _deleteDraft(BuildContext context, Thesis t) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showClayDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Delete Draft'),

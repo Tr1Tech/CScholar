@@ -34,16 +34,19 @@ class FacultyDashboardScreen extends ConsumerWidget {
           if (isDesktop)
             const FacultySidebar(currentPath: '/faculty/dashboard'),
           Expanded(
-            child: Column(
-              children: [
-                FacultyTopbar(user: user),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-                    child: Center(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 1200),
-                        child: StaggerColumn(
+            // Wrapped like the shared shell, so the topbar seats once content
+            // scrolls past the ScrollVeil's trigger.
+            child: ScrollVeil(
+              child: Column(
+                children: [
+                  FacultyTopbar(user: user),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
+                      child: Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: StaggerColumn(
                           children: [
                             PageHeader(
                               title: 'Faculty Dashboard',
@@ -130,12 +133,14 @@ class FacultyDashboardScreen extends ConsumerWidget {
                               },
                             ),
                           ],
-                            ),
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
+            ),
+              builder: (context, pane, seated) => pane,
             ),
           ),
         ],

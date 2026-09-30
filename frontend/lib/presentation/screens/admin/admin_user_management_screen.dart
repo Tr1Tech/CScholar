@@ -171,7 +171,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     final emailCtrl = TextEditingController(text: user.email);
     String newRole = user.role.toLowerCase();
     const roles = ['student', 'faculty', 'admin'];
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GlassDialog(
@@ -229,7 +229,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     String newRole = 'student';
     const roles = ['student', 'faculty', 'admin'];
     var obscure = true;
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GlassDialog(

@@ -321,7 +321,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final codeCtrl = TextEditingController(text: existing?.code ?? '');
     final descCtrl = TextEditingController(text: existing?.college ?? '');
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => GlassDialog(
         title: Text(existing == null ? 'Add Program' : 'Edit Program'),
@@ -376,7 +376,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     final startCtrl = TextEditingController(text: existing != null ? '${existing.startYear}' : '');
     final endCtrl = TextEditingController(text: existing != null ? '${existing.endYear}' : '');
     bool isActive = existing?.isActive ?? true;
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GlassDialog(
@@ -439,7 +439,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
   void _showCategoryDialog(BuildContext context, WidgetRef ref, {Category? existing}) {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final descCtrl = TextEditingController(text: existing?.description ?? '');
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => GlassDialog(
         title: Text(existing == null ? 'Add Category' : 'Edit Category'),

@@ -77,21 +77,29 @@ class CScholarShell extends StatelessWidget {
         children: [
           sidebar,
           Expanded(
-            child: Column(
-              children: [
-                topbar ?? const SizedBox.shrink(),
-                Expanded(
-                  child: Padding(
-                    padding: desktopPadding,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: EntranceReveal(child: child),
+            // The whole content column is wrapped so the ScrollVeil's listener
+            // sits above the scrollable (a listener only hears a scrollable it
+            // is an ANCESTOR of) and its scope reaches the topbar, which seats
+            // once content scrolls past the trigger. The builder is a
+            // pass-through: the seated state is read inside, not built here.
+            child: ScrollVeil(
+              child: Column(
+                children: [
+                  topbar ?? const SizedBox.shrink(),
+                  Expanded(
+                    child: Padding(
+                      padding: desktopPadding,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxWidth),
+                          child: EntranceReveal(child: child),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              builder: (context, pane, seated) => pane,
             ),
           ),
         ],

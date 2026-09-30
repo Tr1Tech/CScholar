@@ -30,7 +30,25 @@ class Topbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    // Seated: once content scrolls past the enclosing ScrollVeil's trigger,
+    // the bar gains a clay fill, a bottom rim and a deeper shadow — a
+    // colour/shadow change over micro, never a height change. At rest the bar
+    // stays transparent: above a flat canvas with nothing behind it, a fill
+    // would be a second surface with nothing to seat on. Reads the scope the
+    // shell wraps around the whole content column, because a listener can only
+    // hear a scrollable it is an ANCESTOR of — the bar sits beside it.
+    final seated = ScrollVeil.seatedOf(context) ?? false;
+    return AnimatedContainer(
+      duration: motionDuration(context, CScholarMotion.micro),
+      decoration: BoxDecoration(
+        color: seated ? CScholarMaterial.clay : Colors.transparent,
+        border: Border(
+          bottom: BorderSide(
+            color: seated ? CScholarMaterial.rim : Colors.transparent,
+          ),
+        ),
+        boxShadow: seated ? CScholarMaterial.clayDrop(depth: 1) : null,
+      ),
       padding: padding,
       child: Row(
         children: [
