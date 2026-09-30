@@ -2,8 +2,8 @@
 
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory
-from .extensions import cors, db_test
+from flask import Flask, jsonify
+from .extensions import cors
 
 load_dotenv()
 
@@ -79,7 +79,13 @@ def create_app():
       dom_id: '#swagger-ui',
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
       tagsSorter: "alpha",
-      operationsSorter: "alpha",
+      operationsSorter: (a, b) => {
+        const pathA = a.get("path");
+        const pathB = b.get("path");
+        if (pathA !== pathB) return pathA.localeCompare(pathB);
+        const order = { get: 0, post: 1, put: 2, delete: 3, patch: 4, options: 5, head: 6, trace: 7 };
+        return (order[a.get("method")] ?? 99) - (order[b.get("method")] ?? 99);
+      },
       deepLinking: true,
       docExpansion: "list",
       tryItOutEnabled: true,

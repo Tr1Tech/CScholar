@@ -8,6 +8,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/core/config.dart';
 import 'package:frontend/models/thesis.dart';
@@ -47,7 +48,11 @@ class ThesisDetailScreen extends ConsumerWidget {
             ? 'Thesis Management'
             : 'Repository';
 
-    final content = thesisAsync.when(
+    final content = asyncSlot(
+        thesisAsync,
+        // One page, one height: the skeleton the switcher cross-fades from is
+        // the loader this branch used to return.
+        skeleton: const SkeletonList(count: 3, cardHeight: 96),
         data: (thesis) {
           if (thesis == null) {
             return Center(
@@ -76,8 +81,7 @@ class ThesisDetailScreen extends ConsumerWidget {
               : '';
 
           return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: StaggerColumn(
               children: [
                 // 1. Breadcrumbs Bar
                 Container(
@@ -223,7 +227,10 @@ class ThesisDetailScreen extends ConsumerWidget {
                                 style: CScholarTextStyles.inter(12.5, FontWeight.w400, CScholarColors.textMuted),
                               ),
                               const SizedBox(height: 18),
-                              recommendedAsync.when(
+                              asyncSlot(
+                                recommendedAsync,
+                                skeleton: const SkeletonList(
+                                    count: 3, cardHeight: 56),
                                 data: (recs) {
                                   if (recs.isEmpty) {
                                     return Center(
@@ -294,7 +301,6 @@ class ThesisDetailScreen extends ConsumerWidget {
                                     }).toList(),
                                   );
                                 },
-                                loading: () => const SkeletonList(count: 3, cardHeight: 56),
                                 error: (err, _) => Center(
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 24),
@@ -316,7 +322,6 @@ class ThesisDetailScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const SkeletonList(count: 3, cardHeight: 96),
         error: (err, _) => Center(child: Text('Error: $err')),
       );
 

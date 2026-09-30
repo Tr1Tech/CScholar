@@ -14,6 +14,7 @@ import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
@@ -29,8 +30,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       topbar: const AdminTopbar(),
       mobileTitle: 'Admin Dashboard',
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
           children: [
             // Header Title & Action Buttons
             PageHeader(
@@ -139,7 +139,9 @@ class AdminDashboardScreen extends ConsumerWidget {
   /// and the list is already fetched for management anyway.
   Widget _analyticsStrip(WidgetRef ref) {
     final list = ref.watch(thesisListProvider(const ThesisListParams(showAll: true)));
-    return list.when(
+    return asyncSlot<List<Thesis>?>(
+      list,
+      skeleton: const SkeletonList(count: 1, cardHeight: 180),
       data: (theses) {
         final items = theses ?? <Thesis>[];
         if (items.isEmpty) return const SizedBox.shrink();
@@ -194,7 +196,6 @@ class AdminDashboardScreen extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SkeletonList(count: 1, cardHeight: 180),
       error: (err, _) => const SizedBox.shrink(),
     );
   }
@@ -203,8 +204,9 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Consumer(
       builder: (context, ref, _) {
         final activityAsync = ref.watch(recentActivityProvider);
-        return activityAsync.when(
-          loading: () => CScholarCard(
+        return asyncSlot<List<Map<String, dynamic>>>(
+          activityAsync,
+          skeleton: CScholarCard(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

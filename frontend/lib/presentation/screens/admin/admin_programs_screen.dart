@@ -19,6 +19,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 
 class AdminProgramsScreen extends ConsumerStatefulWidget {
   const AdminProgramsScreen({super.key});
@@ -65,8 +66,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
       mobileTitle: 'Programs & Categories',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
           children: [
             PageHeader(
               title: 'Programs & Categories',
@@ -117,7 +117,10 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
 
   Widget _programsTab(BuildContext context, WidgetRef ref) {
     final programs = ref.watch(programsProvider);
-    return programs.when(
+    return asyncSlot(programs,
+      // The cross-fade's skeleton IS the loading branch, so the panel cannot
+      // jump when the rows land.
+      skeleton: const SkeletonList(count: 4, cardHeight: 64),
       data: (list) => ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: list.length,
@@ -158,14 +161,14 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load programs')),
     );
   }
 
   Widget _academicYearsTab(BuildContext context, WidgetRef ref) {
     final years = ref.watch(academicYearsProvider);
-    return years.when(
+    return asyncSlot(years,
+      skeleton: const SkeletonList(count: 4, cardHeight: 64),
       data: (list) => ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: list.length,
@@ -223,14 +226,14 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load academic years')),
     );
   }
 
   Widget _categoriesTab(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider);
-    return categories.when(
+    return asyncSlot(categories,
+      skeleton: const SkeletonList(count: 4, cardHeight: 64),
       data: (list) => ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: list.length,
@@ -272,7 +275,6 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           );
         },
       ),
-      loading: () => const SkeletonList(count: 4, cardHeight: 64),
       error: (_, _) => const Center(child: Text('Could not load categories')),
     );
   }

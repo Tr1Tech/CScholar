@@ -6,6 +6,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
@@ -42,8 +43,7 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
         onRefresh: () => ref.refresh(facultyThesesProvider.future),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: StaggerColumn(
             children: [
               PageHeader(
                 title: 'My Theses',
@@ -67,7 +67,9 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                     .toList(),
               ),
               const SizedBox(height: 16),
-              thesesAsync.when(
+              asyncSlot<List<Thesis>>(
+                thesesAsync,
+                skeleton: const SkeletonList(count: 4, cardHeight: 110),
                 data: (list) {
                   final filtered = _statusFilter == 'All'
                       ? list
@@ -85,7 +87,6 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                     children: filtered.map((t) => _thesisCard(context, t)).toList(),
                   );
                 },
-                loading: () => const SkeletonList(count: 4, cardHeight: 110),
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load theses',

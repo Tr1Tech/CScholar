@@ -7,6 +7,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
@@ -18,10 +19,18 @@ class StudentLayout extends ConsumerWidget {
   final Widget child;
   final int currentIndex;
 
+  /// Whether the shell's avatar is a hero SOURCE for [userAvatarHeroTag].
+  ///
+  /// The profile route passes `false`: its card renders the matching target,
+  /// and two heroes sharing a tag inside one subtree is an assertion — there,
+  /// the shell's pill and the route body are the same subtree.
+  final bool heroAvatar;
+
   const StudentLayout({
     super.key,
     required this.child,
     required this.currentIndex,
+    this.heroAvatar = true,
   });
 
   @override
@@ -173,10 +182,26 @@ class StudentLayout extends ConsumerWidget {
         child: TopbarUserPill(
           name: user?.username,
           role: _roleLabel(user?.role),
+          // A hero flight is motion: under reduced motion the pill stays a
+          // plain avatar (the profile card's target then simply appears).
+          heroAvatar: heroAvatar && motionEnabled(context),
         ),
       ),
     );
   }
+
+  /// App-bar avatar. Same hero tag as the desktop pill avatar, and the same
+  /// opt-out: on the profile route the card's avatar is the one that flies.
+  /// A flight is motion, so reduced motion skips the source entirely.
+  Widget _avatarAction(BuildContext context, User? user) {
+    final avatar = GestureDetector(
+      onTap: () => context.go('/profile'),
+      child: GelAvatar(name: user?.username ?? '', size: 34),
+    );
+    if (!heroAvatar || !motionEnabled(context)) return avatar;
+    return Hero(tag: userAvatarHeroTag, child: avatar);
+  }
+
 
   Widget _mobileLayout(BuildContext context, WidgetRef ref, User? user) {
     return Scaffold(
@@ -191,10 +216,7 @@ class StudentLayout extends ConsumerWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () => context.go('/profile'),
-              child: GelAvatar(name: user?.username ?? '', size: 34),
-            ),
+            child: _avatarAction(context, user),
           ),
         ],
       ),

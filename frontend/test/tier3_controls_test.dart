@@ -645,7 +645,9 @@ void main() {
         'NeumorphSegmented': ('neumorph_select.dart', 1),
         'ClayChip': ('clay_objects.dart', 1),
         'NeumorphButton': ('neumorph_controls.dart', 10),
-        'NeumorphIconButton': ('neumorph_controls.dart', 10),
+        // 9 since the landing page was removed as a product decision — the
+        // icon button is still adopted across every shell and screen family.
+        'NeumorphIconButton': ('neumorph_controls.dart', 9),
       };
 
       final sources = <String, String>{};
@@ -1196,6 +1198,51 @@ void main() {
               'hero ink is the token white, never white at 70%');
     });
 
+    test('every screen adopts the motion vocabulary', () {
+      // Motion is a system concern, not a per-screen garnish: the page that
+      // ships without an entrance, an async cross-fade or a pressable surface
+      // is the page that still looks frozen after the next restyle, and nothing
+      // else in the suite can see that (the render matrix only asserts that a
+      // screen builds). One reference is enough — this is an adoption guard,
+      // not a usage meter. A screen that genuinely needs none of it must be
+      // listed in `exempt` with a written reason, so the exception lives in the
+      // code instead of in someone's memory.
+      const vocabulary = <String>[
+        'StaggerColumn',
+        'EntranceReveal',
+        'Stagger',
+        'asyncSlot',
+        'AsyncCrossFade',
+        'CountUpText',
+        'PressableSurface',
+        'HoverLift',
+        'ClayNavList',
+      ];
+      const exempt = <String, String>{
+        // 'lib/presentation/screens/foo_screen.dart':
+        //     'no async slot, no scrollable column — one static panel',
+      };
+
+      final files = libSources()
+          .where((f) => f.path.replaceAll('\\', '/').contains('/screens/'))
+          .toList();
+      expect(files.length, greaterThan(15),
+          reason: 'the scan found almost no screens — is lib/ at the root?');
+
+      final offenders = <String>[];
+      for (final file in files) {
+        final path = file.path.replaceAll('\\', '/');
+        if (exempt.containsKey(path)) continue;
+        final source = file.readAsStringSync();
+        if (!vocabulary.any(source.contains)) offenders.add(path);
+      }
+      expect(offenders, isEmpty,
+          reason: 'every screen must use the shared motion vocabulary '
+              '(${vocabulary.join(', ')}) — or be listed in `exempt` with a '
+              'reason. Offenders:\n${offenders.join('\n')}');
+    });
+
+
     test('the design lab mirrors the component catalogue', () {
       // A primitive the lab never shows cannot be reviewed by feel, and a lab
       // that looks perfect while the screens differ is a false positive. Every
@@ -1233,6 +1280,7 @@ void main() {
         'TopbarUserPill',
         'CountUpText',
         'EntranceReveal',
+        'ClayNavList',
       ];
       final lab = File('lib/presentation/screens/design_lab_screen.dart')
           .readAsStringSync();

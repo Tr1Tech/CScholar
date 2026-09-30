@@ -2,10 +2,10 @@
 
 import os
 import uuid
-from flask import Blueprint, request, jsonify, current_app, send_from_directory
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 import pymupdf
-from ..auth import admin_required, login_required
+from ..auth import login_required
 from .. import models as db
 
 upload_bp = Blueprint("upload", __name__)

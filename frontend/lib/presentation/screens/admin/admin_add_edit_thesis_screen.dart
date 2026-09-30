@@ -12,6 +12,7 @@ import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:file_picker/file_picker.dart';
@@ -269,8 +270,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                   borderRadius: BorderRadius.circular(CScholarRadius.xxl),
                                   boxShadow: CScholarShadows.card,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: StaggerColumn(
                                   children: [
                                     // Title Input
                                     _fieldLabel('TITLE', isRequired: true),
@@ -582,23 +582,23 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
   }
 
   Future<void> _pickAndUploadPdf() async {
-    final result = await FilePicker.platform.pickFiles(
+    final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
-      withData: true,
     );
 
-    if (result == null || result.files.isEmpty) return;
+    if (files.isEmpty) return;
 
-    final file = result.files.first;
-    if (file.bytes == null || file.bytes!.isEmpty) return;
+    final file = files.first;
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) return;
 
     setState(() => _isUploadingPdf = true);
 
     try {
       final api = ref.read(uploadApiProvider);
       final response = await api.uploadPdf(
-        file.bytes!,
+        bytes,
         file.name,
         thesisId: widget.thesisId,
       );
@@ -606,7 +606,7 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
       setState(() {
         _pdfUrl = response.pdfUrl;
         _pdfFileName = file.name;
-        _pdfFileSize = file.bytes!.length;
+        _pdfFileSize = bytes.length;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PDF uploaded successfully!')),

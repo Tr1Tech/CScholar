@@ -6,6 +6,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 
@@ -64,7 +65,11 @@ class RecRail extends ConsumerWidget {
 
   Widget _results(BuildContext context, WidgetRef ref) {
     final async = ref.watch(semanticSearchProvider(query.trim()));
-    return async.when(
+    return asyncSlot(
+      async,
+      // The rail is a card body, not a page: the loader stays exactly as it
+      // was, it is simply cross-faded instead of swapped.
+      skeleton: const ClayLoader(height: 8),
       data: (results) {
         final top = results.take(4).toList();
         if (top.isEmpty) {
@@ -81,7 +86,6 @@ class RecRail extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const ClayLoader(height: 8),
       error: (_, _) => Text('Recommendations unavailable right now',
           style: CScholarTextStyles.inter(
               12, FontWeight.w500, CScholarColors.textMuted)),
@@ -91,9 +95,12 @@ class RecRail extends ConsumerWidget {
   Widget _recRow(BuildContext context, Thesis t, double similarity) {
     final isThesis = t.researchType.toLowerCase() == 'thesis';
     final pct = (similarity * 100).round().clamp(0, 100);
-    return InkWell(
+    // A rail row is a custom surface, not a button — so it presses like every
+    // other non-button surface in the system: clay's press is a sink, and the
+    // ripple is deliberately gone.
+    return PressableSurface(
+      radius: CScholarRadius.md,
       onTap: () => context.go('/thesis/${t.id}'),
-      borderRadius: BorderRadius.circular(CScholarRadius.md),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

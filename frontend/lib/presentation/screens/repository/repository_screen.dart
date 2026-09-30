@@ -13,6 +13,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/result_card.dart';
 import 'package:frontend/presentation/widgets/rec_rail.dart';
@@ -164,13 +165,14 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     AsyncValue<List<SemanticResult>> semantic,
     Set<int> savedIds,
   ) {
-    final list = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final list = StaggerColumn(
       children: [
         _resultsHeader(context, useSemantic, theses),
         const SizedBox(height: 16),
         if (useSemantic)
-          semantic.when(
+          asyncSlot<List<SemanticResult>>(
+            semantic,
+            skeleton: const SkeletonList(count: 4, cardHeight: 150),
             data: (results) {
               if (results.isEmpty) {
                 return Column(
@@ -199,8 +201,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 ],
               );
             },
-            loading: () =>
-                const SkeletonList(count: 4, cardHeight: 150),
             error: (err, _) => EmptyState(
               icon: Icons.error_outline,
               title: 'Semantic search error',
@@ -211,7 +211,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             ),
           )
         else
-          theses.when(
+          asyncSlot<List<Thesis>?>(
+            theses,
+            skeleton: const SkeletonList(count: 4, cardHeight: 150),
             data: (list) {
               if (list == null || list.isEmpty) return _noResultsFound();
               return Column(
@@ -230,8 +232,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 ],
               );
             },
-            loading: () =>
-                const SkeletonList(count: 4, cardHeight: 150),
             error: (err, _) => EmptyState(
               icon: Icons.error_outline,
               title: 'Could not load studies',

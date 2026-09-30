@@ -12,6 +12,7 @@ import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class StudentDashboardScreen extends ConsumerStatefulWidget {
@@ -62,8 +63,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: StaggerColumn(
               children: [
                 // 1. Hero Greeting & Prominent Search Banner
                 ClaySurface(
@@ -140,7 +140,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       ),
                       children: [
                         _metricCard(
-                          title: 'Archived Studies',
+                          title: 'Published Studies',
                           value: '${stats.value?['studies'] ?? 0}',
                           icon: Icons.article_outlined,
                           iconBg: CScholarColors.thesisChipBg,
@@ -292,7 +292,9 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           ),
           const Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
-          recentTheses.when(
+          asyncSlot(
+            recentTheses,
+            skeleton: const SkeletonList(count: 4, cardHeight: 64),
             data: (theses) {
               if (theses.isEmpty) {
                 return const Padding(
@@ -370,7 +372,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 }).toList(),
               );
             },
-            loading: () => const SkeletonList(count: 4, cardHeight: 64),
             error: (_, _) => const Text('Error loading studies'),
           ),
         ],
@@ -405,7 +406,9 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           ),
           const Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
-          recommended.when(
+          asyncSlot(
+            recommended,
+            skeleton: const SkeletonList(count: 4, cardHeight: 64),
             data: (recs) {
               if (recs.isEmpty) {
                 return Center(
@@ -479,7 +482,6 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 }).toList(),
               );
             },
-            loading: () => const SkeletonList(count: 4, cardHeight: 64),
             error: (_, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),

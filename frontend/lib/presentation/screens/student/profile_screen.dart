@@ -7,6 +7,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
@@ -26,13 +27,15 @@ class ProfileScreen extends ConsumerWidget {
 
     return StudentLayout(
       currentIndex: 3,
+      // The card below owns the hero TARGET for the avatar, so the shell's pill
+      // must not offer a second source under the same tag on this route.
+      heroAvatar: false,
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1140),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: StaggerColumn(
               children: [
                 // Header with "Edit Profile" button
                 PageHeader(
@@ -107,8 +110,13 @@ class ProfileScreen extends ConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Avatar
-                      GelAvatar(name: user?.username ?? '', size: 88),
+                      // Avatar — the target of the shell avatar's hero, so the
+                      // identity appears to travel from the top bar into the
+                      // card when the profile opens.
+                      Hero(
+                        tag: userAvatarHeroTag,
+                        child: GelAvatar(name: user?.username ?? '', size: 88),
+                      ),
                       const SizedBox(width: 24),
                       // General Info
                       Expanded(
@@ -265,32 +273,46 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 14),
-        if (savedTheses.isLoading)
-          const Padding(
+        // One slot for loader / error / empty / rows: they cross-fade in place
+        // instead of the panel snapping between three shapes. A refresh keeps
+        // the rows — the loader is only shown when there is nothing to show.
+        asyncSlot<List<Thesis>>(
+          savedTheses,
+          skeleton: const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: ClayLoader(height: 8),
-          )
-        else if (savedTheses.hasError)
-          Padding(
+          ),
+          error: (err, _) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
-              'Unable to load saved studies: ${savedTheses.error}',
+              'Unable to load saved studies: $err',
               style: const TextStyle(color: CScholarColors.error, fontSize: 13),
             ),
-          )
-        else if (saved.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              'No saved studies',
-              style: TextStyle(color: CScholarColors.textSecondary, fontSize: 13),
-            ),
-          )
-        else
-          ...saved.take(3).map<Widget>((t) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _savedMiniItem(t.title, t.program?.code ?? '', () => context.go('/thesis/${t.id}')),
-          )),
+          ),
+          data: (list) {
+            if (list.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'No saved studies',
+                  style: TextStyle(
+                      color: CScholarColors.textSecondary, fontSize: 13),
+                ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final t in list.take(3))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _savedMiniItem(t.title, t.program?.code ?? '',
+                        () => context.go('/thesis/${t.id}')),
+                  ),
+              ],
+            );
+          },
+        ),
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,

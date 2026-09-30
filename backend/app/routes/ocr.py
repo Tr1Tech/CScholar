@@ -3,8 +3,7 @@
 import os
 import subprocess
 import tempfile
-from flask import Blueprint, request, jsonify, current_app
-from werkzeug.utils import secure_filename
+from flask import Blueprint, request, jsonify
 import pymupdf
 from ..auth import admin_required
 
@@ -68,13 +67,18 @@ def ocr_pdf():
                 img_path = os.path.join(tmpdir, f"page_{i}.png")
                 pix.save(img_path)
                 try:
+                    # NOTE: bytes + explicit UTF-8 decode. text=True uses the
+                    # OS locale (cp1252 on Windows) and OCR output routinely
+                    # contains bytes it can't decode, which kills the reader
+                    # thread and leaves stdout as None.
                     result = subprocess.run(
                         [tesseract_path, img_path, "stdout", "-l", "eng"],
-                        capture_output=True, text=True, timeout=60,
+                        capture_output=True, timeout=60,
                     )
                     if result.returncode != 0:
-                        return jsonify({"error": f"OCR failed: {result.stderr[:500]}"}), 500
-                    text += result.stdout + "\n"
+                        err = (result.stderr or b"").decode("utf-8", errors="replace")
+                        return jsonify({"error": f"OCR failed: {err[:500]}"}), 500
+                    text += (result.stdout or b"").decode("utf-8", errors="replace") + "\n"
                 except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
                     return jsonify({"error": f"OCR failed: {str(e)}"}), 500
 

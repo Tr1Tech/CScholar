@@ -10,6 +10,7 @@ import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
@@ -34,8 +35,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1040),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: StaggerColumn(
               children: [
                 // Page Header
                 PageHeader(
@@ -66,7 +66,9 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                 const SizedBox(height: 24),
 
                 // Studies Cards List
-                savedTheses.when(
+                asyncSlot(
+                  savedTheses,
+                  skeleton: const SkeletonList(count: 3, cardHeight: 96),
                   data: (saved) {
                     // Filter by tab
                     var filtered = saved;
@@ -208,7 +210,6 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                       },
                     );
                   },
-                  loading: () => const SkeletonList(count: 3, cardHeight: 96),
                   error: (err, _) => EmptyState(
                     icon: Icons.error_outline,
                     title: 'Unable to load saved studies',

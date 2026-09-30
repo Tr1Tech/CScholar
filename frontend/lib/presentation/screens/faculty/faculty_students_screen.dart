@@ -132,7 +132,7 @@ class FacultyStudentsScreen extends ConsumerWidget {
   void _showAdviseeTheses(BuildContext context, WidgetRef ref, int authorId, String name) {
     final theses = ref.read(facultyThesesProvider).value ?? [];
     final mine = theses.where((t) => (t.authors ?? []).any((a) => a.id == authorId)).toList();
-    showDialog(
+    showClayDialog(
       context: context,
       builder: (ctx) => GlassDialog(
         title: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

@@ -114,13 +114,25 @@ def create_user(username, email, password_hash, role="student"):
         put_conn(conn)
 
 
-def update_user_role(user_id, new_role):
-    """Update a user's role."""
+def update_user(user_id, username=None, email=None, role=None):
+    """Update username/email/role (any subset). Returns the updated user."""
+    fields = {}
+    if username is not None:
+        fields["username"] = username.strip()
+    if email is not None:
+        fields["email"] = email.strip().lower()
+    if role is not None:
+        fields["role"] = role
+    if not fields:
+        return get_user_by_id(user_id)
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
+            set_clause = ", ".join(f"{k} = %s" for k in fields)
+            params = list(fields.values()) + [user_id]
+            cur.execute(f"UPDATE users SET {set_clause} WHERE id = %s", params)
         conn.commit()
+        return get_user_by_id(user_id)
     except Exception:
         conn.rollback()
         raise
@@ -290,7 +302,6 @@ def _load_thesis_relations(cur, thesis_id):
 
 def _load_thesis_relations_batch(cur, thesis_ids):
     """Batch-load relations for many theses in 4 queries (fixes N+1)."""
-    empty = {"authors": [], "advisers": [], "categories": [], "keywords": []}
     grouped = {tid: {"authors": [], "advisers": [], "categories": [], "keywords": []} for tid in thesis_ids}
     if not thesis_ids:
         return grouped
@@ -391,20 +402,6 @@ def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, 
                 "ON CONFLICT (thesis_id, keyword_id) DO NOTHING",
                 (thesis_id, kid),
             )
-
-
-def update_thesis_status(thesis_id, status):
-    """Update a thesis status."""
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE theses SET status = %s WHERE id = %s", (status, thesis_id))
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        put_conn(conn)
 
 
 def get_thesis_by_id(thesis_id):
@@ -838,24 +835,6 @@ def ensure_adviser_for_email(email, display_name=None):
             row = cur.fetchone()
             if row:
                 return row[0]
-        raise
-    finally:
-        put_conn(conn)
-
-
-def link_thesis_adviser(thesis_id, adviser_id):
-    """Add an adviser link without disturbing existing ones."""
-    conn = get_conn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO thesis_advisers (thesis_id, adviser_id) VALUES (%s, %s) "
-                "ON CONFLICT (thesis_id, adviser_id) DO NOTHING",
-                (thesis_id, int(adviser_id)),
-            )
-        conn.commit()
-    except Exception:
-        conn.rollback()
         raise
     finally:
         put_conn(conn)

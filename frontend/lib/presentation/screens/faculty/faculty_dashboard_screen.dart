@@ -7,6 +7,7 @@ import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -42,8 +43,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                     child: Center(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 1200),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: StaggerColumn(
                           children: [
                             PageHeader(
                               title: 'Faculty Dashboard',
@@ -130,11 +130,11 @@ class FacultyDashboardScreen extends ConsumerWidget {
                               },
                             ),
                           ],
+                            ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -170,7 +170,9 @@ class FacultyDashboardScreen extends ConsumerWidget {
             ],
           ),
           const Divider(color: CScholarMaterial.rim, height: 20),
-          activity.when(
+          asyncSlot<List<Map<String, dynamic>>>(
+            activity,
+            skeleton: const SkeletonList(count: 4, cardHeight: 56),
             data: (items) {
               if (items.isEmpty) {
                 return Center(
@@ -191,7 +193,6 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 )).toList(),
               );
             },
-            loading: () => const SkeletonList(count: 4, cardHeight: 56),
             error: (err, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),

@@ -15,6 +15,7 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
@@ -113,7 +114,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
             CScholarCard(
               child: Form(
                   key: _formKey,
-                  child: Column(
+                  child: StaggerColumn(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label('Title *'),
@@ -417,15 +418,14 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
   }
 
   Future<void> _pickAndUploadPdf() async {
-    final result = await FilePicker.platform.pickFiles(
+    final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    final bytes = file.bytes;
-    if (bytes == null || bytes.isEmpty) {
+    if (files.isEmpty) return;
+    final file = files.first;
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not read the PDF file — try a smaller file')),

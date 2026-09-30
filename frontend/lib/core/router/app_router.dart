@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/providers/providers.dart';
-import 'package:frontend/presentation/screens/landing_screen.dart';
 import 'package:frontend/presentation/screens/auth/login_screen.dart';
 import 'package:frontend/presentation/screens/auth/register_screen.dart';
 import 'package:frontend/presentation/screens/student/student_dashboard_screen.dart';
@@ -41,26 +40,25 @@ final appRouter = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/',
+    initialLocation: '/login',
     redirect: (context, state) {
       // Don't bounce while auth is still restoring (login/loadToken).
       if (authState.isLoading) return null;
       final loc = state.matchedLocation;
-      final loggingIn = loc == '/login' || loc == '/register' || loc == '/';
+      final loggingIn = loc == '/login' || loc == '/register';
       final role = authState.value?.role;
 
       // Not signed in: only public routes allowed
       if (authState.value == null) {
         if (loc == '/login' ||
             loc == '/register' ||
-            loc == '/' ||
             (kEnableDesignLab && loc == '/design-lab')) {
           return null;
         }
         return '/login';
       }
 
-      // Signed in: don't let them sit on login/register/landing
+      // Signed in: don't let them sit on login/register
       if (loggingIn) {
         if (role == 'admin') return '/admin/dashboard';
         if (role == 'faculty') return '/faculty/dashboard';
@@ -92,10 +90,6 @@ final appRouter = Provider<GoRouter>((ref) {
     },
     routes: [
       // Public routes
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const LandingScreen(),
-      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
@@ -254,8 +248,8 @@ final appRouter = Provider<GoRouter>((ref) {
                 Text('Page not found: ${state.matchedLocation}'),
                 const SizedBox(height: 16),
                 NeumorphButton(
-                  onPressed: () => context.go('/'),
-                  label: 'Go Home',
+                  onPressed: () => context.go('/login'),
+                  label: 'Back to Sign In',
                 ),
               ],
             ),

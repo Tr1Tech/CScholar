@@ -86,23 +86,95 @@ def get_users():
     return jsonify({"users": users, "total": len(users)}), 200
 
 
-@auth_bp.route("/api/users/<int:user_id>/role", methods=["PUT"])
+@auth_bp.route("/api/users", methods=["POST"])
 @admin_required
-def update_user_role(user_id):
-    """Update a user's role (admin only)."""
+def admin_create_user():
+    """Create a user with any role (admin only). Unlike public registration,
+    the specific conflict is returned — admins can already list all users."""
     data = request.get_json()
-    if not data or "role" not in data:
-        return jsonify({"error": "role is required"}), 400
-    new_role = data["role"]
-    if new_role not in ("student", "faculty", "admin"):
+    if not data:
+        return jsonify({"error": "Missing request body"}), 400
+
+    username = str(data.get("username", "")).strip()
+    email = str(data.get("email", "")).strip()
+    password = str(data.get("password", ""))
+    role = str(data.get("role", "student")).strip().lower()
+
+    if not username or not email or not password:
+        return jsonify({"error": "Username, email, and password are required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    if role not in ("student", "faculty", "admin"):
         return jsonify({"error": "Invalid role"}), 400
+
+    existing = db.user_exists(username, email)
+    if existing:
+        for row in existing:
+            if row[0] == username:
+                return jsonify({"error": "Username already taken"}), 409
+            if row[1] == email.lower():
+                return jsonify({"error": "Email already registered"}), 409
+
+    user = db.create_user(username, email, hash_password(password), role)
+    return jsonify({
+        "message": "User created",
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "email": user["email"],
+            "role": user["role"],
+        },
+    }), 201
+
+
+@auth_bp.route("/api/users/<int:user_id>", methods=["PUT"])
+@admin_required
+def update_user(user_id):
+    """Full user edit — username, email, role (any subset, admin only)."""
     user = db.get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
-    if user["id"] == request.current_user["id"] and new_role != "admin":
-        return jsonify({"error": "You cannot remove your own admin role"}), 400
-    db.update_user_role(user_id, new_role)
-    return jsonify({"message": "Role updated", "user_id": user_id, "role": new_role}), 200
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing request body"}), 400
+
+    username = data.get("username", None)
+    email = data.get("email", None)
+    new_role = data.get("role", None)
+    if username is None and email is None and new_role is None:
+        return jsonify({"error": "Nothing editable in request body"}), 400
+
+    if username is not None:
+        username = username.strip()
+        if not username:
+            return jsonify({"error": "Username cannot be empty"}), 400
+        clash = db.get_user_by_username(username)
+        if clash and clash["id"] != user_id:
+            return jsonify({"error": "Username is already taken"}), 409
+    if email is not None:
+        email = email.strip()
+        if not email or "@" not in email:
+            return jsonify({"error": "Valid email is required"}), 400
+        clash = db.get_user_by_email(email)
+        if clash and clash["id"] != user_id:
+            return jsonify({"error": "Email is already taken"}), 409
+    if new_role is not None:
+        if new_role not in ("student", "faculty", "admin"):
+            return jsonify({"error": "Invalid role"}), 400
+        if user["id"] == request.current_user["id"] and new_role != "admin":
+            return jsonify({"error": "You cannot remove your own admin role"}), 400
+
+    updated = db.update_user(user_id, username=username, email=email, role=new_role)
+    return jsonify({
+        "message": "User updated",
+        "user": {
+            "id": updated["id"],
+            "username": updated["username"],
+            "email": updated["email"],
+            "role": updated["role"],
+            "is_active": updated["is_active"],
+        },
+    }), 200
 
 
 @auth_bp.route("/api/users/<int:user_id>/active", methods=["PUT"])

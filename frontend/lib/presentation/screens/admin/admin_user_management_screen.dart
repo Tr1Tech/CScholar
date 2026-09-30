@@ -17,6 +17,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
@@ -45,8 +46,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
       mobileTitle: 'User Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: StaggerColumn(
           children: [
             PageHeader(
               title: 'User Management',
@@ -82,8 +82,10 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
 
   Widget _userTable(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
-    return usersAsync.when(
-      loading: () => const Padding(
+    return asyncSlot(usersAsync,
+      // Named arguments, so the loading branch keeps its reading order while
+      // the skeleton is the same widget the switcher cross-fades from.
+      skeleton: const Padding(
         padding: EdgeInsets.all(48),
         child: SkeletonList(count: 5, cardHeight: 56),
       ),
@@ -443,8 +445,8 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           ),
           const Divider(height: 1),
           Expanded(
-            child: usersAsync.when(
-              loading: () => const SkeletonList(count: 5, cardHeight: 56),
+            child: asyncSlot(usersAsync,
+              skeleton: const SkeletonList(count: 5, cardHeight: 56),
               error: (err, _) => Center(child: Text('Failed to load users: $err')),
               data: (users) {
                 final filtered = _selectedRole == 'All'

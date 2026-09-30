@@ -68,24 +68,6 @@ def list_theses():
     return jsonify(result), 200
 
 
-@thesis_bp.route("/api/theses/<int:id>/status", methods=["PUT"])
-@admin_required
-def update_thesis_status(id):
-    """Update a thesis status (admin only)."""
-    thesis = db.get_thesis_by_id(id)
-    if not thesis:
-        return jsonify({"error": "Thesis not found"}), 404
-    data = request.get_json()
-    if not data or "status" not in data:
-        return jsonify({"error": "status is required"}), 400
-    new_status = data["status"]
-    if new_status not in ("draft", "approved", "published", "archived"):
-        return jsonify({"error": "Invalid status"}), 400
-    db.update_thesis_status(id, new_status)
-    thesis = db.get_thesis_by_id(id)
-    return jsonify(thesis), 200
-
-
 @thesis_bp.route("/api/theses/<int:id>", methods=["GET"])
 def get_thesis(id):
     """Get a single thesis by ID (drafts/archived require admin/faculty)."""
@@ -258,28 +240,22 @@ def create_thesis():
             return jsonify({"error": f"{field} is required"}), 400
 
     status = data.get("status", "draft")
-    co_adviser_id = None
     if role == "faculty":
         status = "draft"  # faculty cannot self-publish/archive
-        # Auto-provision: the submitter always advises their submission, so
-        # faculty = adviser stays true without admin busywork. A different
-        # picked adviser is kept as co-adviser.
+        # The submitter is always the single adviser (auto-provisioned).
         me = request.current_user
-        self_adviser_id = db.ensure_adviser_for_email(me["email"], me["username"])
-        picked = data.get("adviser_id")
-        try:
-            picked = int(picked) if picked is not None else None
-        except (TypeError, ValueError):
-            return jsonify({"error": "adviser_id must be an integer"}), 400
-        if picked is not None and picked != self_adviser_id:
-            if not db.get_adviser_by_id(picked):
-                return jsonify({"error": "Adviser not found"}), 404
-            co_adviser_id = picked
-        data_adviser_id = self_adviser_id
+        data_adviser_id = db.ensure_adviser_for_email(me["email"], me["username"])
     else:
         if status not in ("draft", "approved", "published", "archived"):
             return jsonify({"error": "Invalid status"}), 400
         data_adviser_id = data.get("adviser_id")
+        if data_adviser_id is not None:
+            try:
+                data_adviser_id = int(data_adviser_id)
+            except (TypeError, ValueError):
+                return jsonify({"error": "adviser_id must be an integer"}), 400
+            if not db.get_adviser_by_id(data_adviser_id):
+                return jsonify({"error": "Adviser not found"}), 404
 
     # Faculty pdf_url: only a just-uploaded file that really exists in
     # uploads/ is accepted — validated BEFORE the insert so a bad URL
@@ -304,8 +280,6 @@ def create_thesis():
         keyword_terms=data.get("keyword_terms"),
         pdf_url=data.get("pdf_url") if role == "admin" else faculty_pdf_url,
     )
-    if co_adviser_id is not None:
-        db.link_thesis_adviser(thesis_id, co_adviser_id)
 
     # Auto-generate embedding if service is available (best-effort)
     try:
@@ -346,11 +320,26 @@ def update_thesis(id):
             return jsonify({"error": "You can only edit theses you submitted"}), 403
         if existing.get("status") != "draft":
             return jsonify({"error": "Only drafts can be edited"}), 403
-        data = {k: v for k, v in data.items() if k not in ("status", "pdf_url")}
+        data = {k: v for k, v in data.items() if k not in ("status", "pdf_url", "adviser_id", "co_adviser_id")}
         if not data:
             return jsonify({"error": "Nothing editable in request body"}), 400
     elif role != "admin":
         return jsonify({"error": "Admin or faculty access required"}), 403
+    else:
+        # Single adviser only: an explicit adviser_id replaces the link.
+        data.pop("co_adviser_id", None)
+        if "adviser_id" in data:
+            primary = data.pop("adviser_id")
+            if primary is None:
+                data["adviser_id"] = None
+            else:
+                try:
+                    primary = int(primary)
+                except (TypeError, ValueError):
+                    return jsonify({"error": "adviser_id must be an integer"}), 400
+                if not db.get_adviser_by_id(primary):
+                    return jsonify({"error": "Adviser not found"}), 404
+                data["adviser_id"] = primary
 
     try:
         db.update_thesis(id, **data)

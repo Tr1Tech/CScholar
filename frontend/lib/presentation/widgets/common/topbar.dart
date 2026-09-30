@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 
 /// Shared topbar chrome for every role shell (admin / faculty / student).
@@ -140,6 +141,7 @@ class TopbarUserPill extends StatelessWidget {
     required this.name,
     required this.role,
     this.fallbackName = 'User',
+    this.heroAvatar = false,
   });
 
   final String? name;
@@ -147,6 +149,13 @@ class TopbarUserPill extends StatelessWidget {
 
   /// Shown when [name] is null or blank.
   final String fallbackName;
+
+  /// Wrap the avatar in a [Hero] tagged [userAvatarHeroTag].
+  ///
+  /// Off by default: only the student shell has a route whose body shows the
+  /// same avatar as a target (the profile card), and a hero with no target —
+  /// or worse, a second hero sharing the tag — is an assertion, not a nicety.
+  final bool heroAvatar;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +177,12 @@ class TopbarUserPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          GelAvatar(name: label, size: 32),
+          heroAvatar
+              ? Hero(
+                  tag: userAvatarHeroTag,
+                  child: GelAvatar(name: label, size: 32),
+                )
+              : GelAvatar(name: label, size: 32),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
