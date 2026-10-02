@@ -32,6 +32,9 @@ class FacultyStudentsScreen extends ConsumerWidget {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
+            // Header-first on the page rhythm; the advisee grid below steps
+            // dense on tight.
+            pitch: MotionPitch.page,
             children: [
               const PageHeader(
                 title: 'My Students',
@@ -59,7 +62,17 @@ class FacultyStudentsScreen extends ConsumerWidget {
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                         childAspectRatio: 2.6,
-                        children: list.map((a) => _adviseeCard(context, ref, a)).toList(),
+                        // Dense card grid steps tight — one gesture.
+                        children: list.asMap().entries.map((entry) {
+                          final a = entry.value;
+                          return Stagger(
+                            index: entry.key,
+                            step: MotionPitch.tight.step,
+                            max: MotionPitch.tight.max,
+                            rise: MotionPitch.tight.rise,
+                            child: _adviseeCard(context, ref, a),
+                          );
+                        }).toList(),
                       );
                     },
                   );

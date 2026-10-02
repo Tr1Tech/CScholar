@@ -42,7 +42,12 @@ SliverGridDelegate kpiGridDelegate(
 /// [ClayIconTile] for physical depth, so a KPI reads as a moulded object rather
 /// than a flat div. The tile stays in the clay variant (not gel) because four
 /// solid-green tiles would erase the per-metric colour coding.
-class KpiCard extends StatelessWidget {
+///
+/// The value is tabular ([FontFeature.tabularFigures]) so a counting number
+/// never reflows its row, and a value that CHANGES (not first paint) flashes a
+/// one-shot highlight behind itself over [CScholarMotion.swap] — number and
+/// attention land together. The flash is skipped entirely under reduced motion.
+class KpiCard extends StatefulWidget {
   final String label;
   final String value;
   final String trend;
@@ -72,7 +77,71 @@ class KpiCard extends StatelessWidget {
   int? get _countable => int.tryParse(value.trim());
 
   @override
+  State<KpiCard> createState() => _KpiCardState();
+}
+
+class _KpiCardState extends State<KpiCard>
+    with SingleTickerProviderStateMixin {
+  /// One-shot change flash, and it STOPS. A repeating highlight here would
+  /// make `pumpAndSettle()` hang and read as a live indicator — a KPI is not
+  /// live, it just occasionally changes.
+  late final AnimationController _flash =
+      AnimationController(vsync: this, duration: CScholarMotion.swap);
+
+  @override
+  void dispose() {
+    _flash.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant KpiCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Changes only, never first paint: a number that flashes on arrival looks
+    // like a bug, while one that flashes on CHANGE reads as "this just moved".
+    // Reduced motion gets no flash at all — the new number alone is the update.
+    if (oldWidget.value != widget.value && motionEnabled(context)) {
+      _flash.forward(from: 0);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Tabular figures: the count-up must not widen the row as it runs, and a
+    // changed value must not reflow its neighbours either.
+    final valueStyle = CScholarTextStyles.poppins(
+            24, FontWeight.w800, CScholarColors.textPrimary)
+        .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    final value = widget._countable != null
+        ? CountUpText(value: widget._countable!, style: valueStyle)
+        : Text(widget.value, style: valueStyle);
+    // The flash hugs the number (tight Stack, not the full row): a full-width
+    // band would read as a selection, and at 200% text it could clip. Only the
+    // fill alpha animates, over the exit curve — transform/opacity only, and
+    // the controller is parked at 0 whenever nothing changed, so a settled
+    // tree holds no ticker.
+    final animate = motionEnabled(context);
+    final valued = !animate
+        ? value
+        : Stack(
+            children: [
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _flash,
+                  builder: (context, _) => DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: CScholarColors.primaryGreenLight.withValues(
+                          alpha: (1 - _flash.value) * 0.35),
+                      borderRadius:
+                          BorderRadius.circular(CScholarRadius.sm),
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+              value,
+            ],
+          );
     return CScholarCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -84,7 +153,7 @@ class KpiCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  label,
+                  widget.label,
                   style: CScholarTextStyles.inter(
                       11, FontWeight.w700, CScholarColors.textMuted,
                       letterSpacing: 0.5),
@@ -95,29 +164,20 @@ class KpiCard extends StatelessWidget {
               // 36 is the tile size the KPI strip was designed around; keeping it
               // means [kpiCardIntrinsicHeight] stays a valid budget.
               ClayIconTile(
-                icon: icon,
+                icon: widget.icon,
                 size: 36,
                 gel: false,
-                background: iconBg ?? CScholarMaterial.canvas,
-                tint: iconColor ?? CScholarColors.primaryGreen,
+                background: widget.iconBg ?? CScholarMaterial.canvas,
+                tint: widget.iconColor ?? CScholarColors.primaryGreen,
               ),
             ],
           ),
           const SizedBox(height: 10),
           // The value counts up on first paint and tweens when it changes;
           // reduced motion snaps it straight to the number.
-          if (_countable != null)
-            CountUpText(
-              value: _countable!,
-              style: CScholarTextStyles.poppins(
-                  24, FontWeight.w800, CScholarColors.textPrimary),
-            )
-          else
-            Text(value,
-                style: CScholarTextStyles.poppins(
-                    24, FontWeight.w800, CScholarColors.textPrimary)),
+          valued,
           const SizedBox(height: 4),
-          Text(trend,
+          Text(widget.trend,
               style: CScholarTextStyles.inter(11.5, FontWeight.w500, CScholarColors.textMuted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),

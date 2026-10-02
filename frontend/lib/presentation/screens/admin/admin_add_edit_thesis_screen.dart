@@ -270,7 +270,9 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
                                   borderRadius: BorderRadius.circular(CScholarRadius.xxl),
                                   boxShadow: CScholarShadows.card,
                                 ),
+                                // Form sections cascade on the page rhythm.
                                 child: StaggerColumn(
+                                  pitch: MotionPitch.page,
                                   children: [
                                     // Title Input
                                     _fieldLabel('TITLE', isRequired: true),

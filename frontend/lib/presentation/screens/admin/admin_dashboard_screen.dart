@@ -30,103 +30,147 @@ class AdminDashboardScreen extends ConsumerWidget {
       topbar: const AdminTopbar(),
       mobileTitle: 'Admin Dashboard',
       child: SingleChildScrollView(
-        child: StaggerColumn(
+        // PART 7 delay map: header-first on the page rhythm, the KPI strip
+        // cascading diagonally on feature, then the analytics card at +120
+        // and the content row at +180. The two explicit blocks leave the
+        // shared column — nesting them under its index would stack both
+        // offsets. Delays schedule paint only; layout lands on frame one.
+        child: Column(
           children: [
-            // Header Title & Action Buttons
-            PageHeader(
-              title: 'Admin Dashboard',
-              subtitle: 'Manage repository entries, user submissions, and access activity.',
-              action: NeumorphButton(
-                onPressed: () => context.go('/admin/thesis/new'),
-                icon: Icons.add,
-                label: 'Add New Thesis',
-              ),
-            ),
+            StaggerColumn(
+              pitch: MotionPitch.page,
+              children: [
+                // Header Title & Action Buttons
+                PageHeader(
+                  title: 'Admin Dashboard',
+                  subtitle: 'Manage repository entries, user submissions, and access activity.',
+                  action: NeumorphButton(
+                    onPressed: () => context.go('/admin/thesis/new'),
+                    icon: Icons.add,
+                    label: 'Add New Thesis',
+                  ),
+                ),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // 4 KPI Summary Cards
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
-                return GridView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  // Fixed extent, not an aspect ratio: the KPI card's height does
-                  // not depend on the cell width (see [kpiGridDelegate]).
-                  gridDelegate: kpiGridDelegate(context, count),
-                  children: [
-                    KpiCard(
-                      label: 'STUDIES',
-                      value: '${stats.value?['studies'] ?? 0}',
-                      trend: '+${stats.value?['studies_this_week'] ?? 0} this week',
-                      icon: Icons.article_outlined,
-                      iconBg: CScholarColors.thesisChipBg,
-                      iconColor: CScholarColors.primaryGreen,
-                    ),
-                    KpiCard(
-                      label: 'PROGRAMS',
-                      value: '${stats.value?['programs'] ?? 0}',
-                      trend: '${stats.value?['active_programs'] ?? 0} active',
-                      icon: Icons.school_outlined,
-                      iconBg: CScholarColors.goldLight,
-                      iconColor: CScholarColors.goldDeep,
-                    ),
-                    KpiCard(
-                      label: 'USERS',
-                      value: '${stats.value?['users'] ?? 0}',
-                      trend: '${stats.value?['active_users'] ?? 0} active',
-                      icon: Icons.people_outline,
-                      iconBg: CScholarColors.capstoneChipBg,
-                      iconColor: CScholarColors.warningFg,
-                    ),
-                    KpiCard(
-                      label: 'SEARCHES',
-                      value: '${stats.value?['searches'] ?? '0'}',
-                      trend: '+${stats.value?['search_growth'] ?? 0}%',
-                      icon: Icons.search,
-                      iconBg: CScholarColors.infoLight,
-                      iconColor: CScholarColors.info,
-                    ),
-                  ],
-                );
-              },
+                // 4 KPI Summary Cards
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
+                    final cards = [
+                      (
+                        label: 'STUDIES',
+                        value: '${stats.value?['studies'] ?? 0}',
+                        trend: '+${stats.value?['studies_this_week'] ?? 0} this week',
+                        icon: Icons.article_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                      ),
+                      (
+                        label: 'PROGRAMS',
+                        value: '${stats.value?['programs'] ?? 0}',
+                        trend: '${stats.value?['active_programs'] ?? 0} active',
+                        icon: Icons.school_outlined,
+                        iconBg: CScholarColors.goldLight,
+                        iconColor: CScholarColors.goldDeep,
+                      ),
+                      (
+                        label: 'USERS',
+                        value: '${stats.value?['users'] ?? 0}',
+                        trend: '${stats.value?['active_users'] ?? 0} active',
+                        icon: Icons.people_outline,
+                        iconBg: CScholarColors.capstoneChipBg,
+                        iconColor: CScholarColors.warningFg,
+                      ),
+                      (
+                        label: 'SEARCHES',
+                        value: '${stats.value?['searches'] ?? '0'}',
+                        trend: '+${stats.value?['search_growth'] ?? 0}%',
+                        icon: Icons.search,
+                        iconBg: CScholarColors.infoLight,
+                        iconColor: CScholarColors.info,
+                      ),
+                    ];
+                    return GridView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      // Fixed extent, not an aspect ratio: the KPI card's height does
+                      // not depend on the cell width (see [kpiGridDelegate]).
+                      gridDelegate: kpiGridDelegate(context, count),
+                      children: [
+                        for (var i = 0; i < cards.length; i++)
+                          // Diagonal cascade on the feature rhythm — the strip
+                          // walks. StaggerColumn cannot reach GridView children,
+                          // so each cell carries its finished delay, computed
+                          // against the laid-out column count.
+                          Stagger(
+                            index: i,
+                            step: MotionPitch.feature.step,
+                            max: MotionPitch.feature.max,
+                            rise: MotionPitch.feature.rise,
+                            delay: StaggerColumn.diagonalDelay(
+                              index: i,
+                              columns: count,
+                              pitch: MotionPitch.feature,
+                            ),
+                            child: KpiCard(
+                              label: cards[i].label,
+                              value: cards[i].value,
+                              trend: cards[i].trend,
+                              icon: cards[i].icon,
+                              iconBg: cards[i].iconBg,
+                              iconColor: cards[i].iconColor,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
 
             const SizedBox(height: 28),
 
             // Repository analytics (computed client-side from the admin list)
-            _analyticsStrip(ref),
+            EntranceReveal(
+              delay: const Duration(milliseconds: 120),
+              rise: 0,
+              child: _analyticsStrip(ref),
+            ),
 
             const SizedBox(height: 28),
 
             // Content Layout: Left Recent Activity (2/3) & Right Quick Management (1/3)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isWideContent = constraints.maxWidth > 860;
+            EntranceReveal(
+              delay: const Duration(milliseconds: 180),
+              rise: 0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWideContent = constraints.maxWidth > 860;
 
-                final leftPanel = _recentActivityFeed();
-                final rightPanel = _quickManagementPanel(context);
+                  final leftPanel = _recentActivityFeed();
+                  final rightPanel = _quickManagementPanel(context);
 
-                if (isWideContent) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 7, child: leftPanel),
-                      const SizedBox(width: 24),
-                      Expanded(flex: 4, child: rightPanel),
-                    ],
-                  );
-                } else {
-                  return Column(
-                    children: [
-                      leftPanel,
-                      const SizedBox(height: 24),
-                      rightPanel,
-                    ],
-                  );
-                }
-              },
+                  if (isWideContent) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 7, child: leftPanel),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 4, child: rightPanel),
+                      ],
+                    );
+                  } else {
+                    return Column(
+                      children: [
+                        leftPanel,
+                        const SizedBox(height: 24),
+                        rightPanel,
+                      ],
+                    );
+                  }
+                },
+              ),
             ),
           ],
         ),
@@ -311,13 +355,21 @@ class AdminDashboardScreen extends ConsumerWidget {
           if (idx > 0) {
             widgets.add(const Divider(color: CScholarMaterial.rim, height: 16));
           }
-          widgets.add(_activityItem(
-            icon: _iconFor(item['icon'] as String? ?? 'info'),
-            iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
-            iconColor: _colorFor(item['icon_color'] as String? ?? '#6B7280'),
-            title: item['title'] as String? ?? '',
-            subtitle: item['subtitle'] as String? ?? '',
-            time: item['time'] as String? ?? '',
+          // Dense feed rows step on the tight rhythm — one gesture, not a
+          // second cascade competing with the page.
+          widgets.add(Stagger(
+            index: idx,
+            step: MotionPitch.tight.step,
+            max: MotionPitch.tight.max,
+            rise: MotionPitch.tight.rise,
+            child: _activityItem(
+              icon: _iconFor(item['icon'] as String? ?? 'info'),
+              iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
+              iconColor: _colorFor(item['icon_color'] as String? ?? '#6B7280'),
+              title: item['title'] as String? ?? '',
+              subtitle: item['subtitle'] as String? ?? '',
+              time: item['time'] as String? ?? '',
+            ),
           ));
           return widgets;
         }),

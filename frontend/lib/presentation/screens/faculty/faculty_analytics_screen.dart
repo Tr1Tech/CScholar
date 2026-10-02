@@ -34,6 +34,9 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
+            // Header-first on the page rhythm; each chart group below draws
+            // 120ms after its card lands (see _content).
+            pitch: MotionPitch.page,
             children: [
               const PageHeader(
                 title: 'Analytics',
@@ -79,14 +82,26 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               Text('$total supervised ${total == 1 ? 'study' : 'studies'}',
                   style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
               const SizedBox(height: 16),
-              if (total == 0)
-                Text('No data yet',
-                    style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
-              for (final s in order)
-                if ((byStatus[s] as num?)?.toInt() != null && (byStatus[s] as num).toInt() > 0)
-                  _barRow(s.toUpperCase(), (byStatus[s] as num).toInt(), total,
-                      CScholarColors.statusFill[s] ??
-                          CScholarColors.textSecondary),
+              // The chart draws 120ms after its card lands — never on the same
+              // frame as the card entrance. Rise is 0: the delay is scheduling
+              // for the draw, and travel would fight the filling bars.
+              EntranceReveal(
+                delay: const Duration(milliseconds: 120),
+                rise: 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (total == 0)
+                      Text('No data yet',
+                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                    for (final s in order)
+                      if ((byStatus[s] as num?)?.toInt() != null && (byStatus[s] as num).toInt() > 0)
+                        _barRow(s.toUpperCase(), (byStatus[s] as num).toInt(), total,
+                            CScholarColors.statusFill[s] ??
+                                CScholarColors.textSecondary),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -97,12 +112,22 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               Text('By Program',
                   style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
               const SizedBox(height: 16),
-              if (byProgram.isEmpty)
-                Text('No data yet',
-                    style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
-              for (final p in byProgram)
-                _simpleRow((p as Map)['program']?.toString() ?? '—',
-                    ((p)['count'] as num?)?.toInt() ?? 0),
+              // Same +120 chart beat as the status card.
+              EntranceReveal(
+                delay: const Duration(milliseconds: 120),
+                rise: 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (byProgram.isEmpty)
+                      Text('No data yet',
+                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                    for (final p in byProgram)
+                      _simpleRow((p as Map)['program']?.toString() ?? '—',
+                          ((p)['count'] as num?)?.toInt() ?? 0),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -113,12 +138,22 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               Text('By Academic Year',
                   style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
               const SizedBox(height: 16),
-              if (byYear.isEmpty)
-                Text('No data yet',
-                    style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
-              for (final y in byYear)
-                _simpleRow((y as Map)['year']?.toString() ?? '—',
-                    ((y)['count'] as num?)?.toInt() ?? 0),
+              // Same +120 chart beat as the status card.
+              EntranceReveal(
+                delay: const Duration(milliseconds: 120),
+                rise: 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (byYear.isEmpty)
+                      Text('No data yet',
+                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                    for (final y in byYear)
+                      _simpleRow((y as Map)['year']?.toString() ?? '—',
+                          ((y)['count'] as num?)?.toInt() ?? 0),
+                  ],
+                ),
+              ),
             ],
           ),
         );

@@ -401,6 +401,21 @@ class StaggerColumn extends StatelessWidget {
     return Duration(microseconds: us.clamp(0, max.inMicroseconds));
   }
 
+  /// Delay for grid item [index] in a [columns]-up strip under [pitch].
+  ///
+  /// [StaggerColumn] can only cascade its own [Column] children, but KPI strips
+  /// are [GridView] children — so the strip wraps each cell in a [Stagger]
+  /// with this finished delay instead of bending [Stagger.index] to fit.
+  /// Same formula as the column cascade ([_diagonalDelay]), one source of
+  /// truth: pass the strip's real column count, including the responsive
+  /// 4/2/1 fallbacks, so the diagonal follows the laid-out grid.
+  static Duration diagonalDelay({
+    required int index,
+    required int columns,
+    required MotionPitch pitch,
+  }) =>
+      _diagonalDelay(index, columns, pitch.step, pitch.max);
+
   @override
   Widget build(BuildContext context) {
     final Duration effStep = pitch?.step ?? step;

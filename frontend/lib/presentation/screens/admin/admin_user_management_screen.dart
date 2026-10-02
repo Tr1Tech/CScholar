@@ -46,7 +46,11 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
       mobileTitle: 'User Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
+        // Header-first on the page rhythm. The user table is a DataTable
+        // (DataRows are not widgets), so its rows enter with the card — row
+        // staggering would need a widget-row rebuild, which is relayout.
         child: StaggerColumn(
+          pitch: MotionPitch.page,
           children: [
             PageHeader(
               title: 'User Management',

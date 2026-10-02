@@ -115,6 +115,8 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
               child: Form(
                   key: _formKey,
                   child: StaggerColumn(
+                    // Form sections cascade on the page rhythm.
+                    pitch: MotionPitch.page,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label('Title *'),

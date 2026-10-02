@@ -35,7 +35,11 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1040),
+            // PART 7: header at 0, the list walks on the result pitch. (Removing
+            // a saved item re-forms the list in Phase 7 — here items only
+            // know how to arrive.)
             child: StaggerColumn(
+              pitch: MotionPitch.page,
               children: [
                 // Page Header
                 PageHeader(
@@ -98,9 +102,16 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                         final thesis = filtered[i];
                         final isTeal = i % 2 == 0;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: CScholarCard(
+                        // Saved studies step on the result pitch, same walk as
+                        // every thesis result list.
+                        return Stagger(
+                          index: i,
+                          step: MotionPitch.result.step,
+                          max: MotionPitch.result.max,
+                          rise: MotionPitch.result.rise,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: CScholarCard(
                             padding: const EdgeInsets.all(18),
                             child: Row(
                               children: [
@@ -206,6 +217,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                               ],
                             ),
                           ),
+                        ),
                         );
                       },
                     );

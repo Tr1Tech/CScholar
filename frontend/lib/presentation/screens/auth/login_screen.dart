@@ -78,7 +78,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       maxCardWidth: 460,
       child: Form(
         key: _formKey,
+        // Tight rhythm: the form reads as one gesture, and the submit lands
+        // at the clamp (160ms ≈ the 180ms PART 7 beat).
         child: StaggerColumn(
+          pitch: MotionPitch.tight,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

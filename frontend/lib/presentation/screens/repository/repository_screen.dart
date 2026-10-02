@@ -137,7 +137,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            _hero(context, isWide),
+            // The hero opens the page: fade only, no rise — it is a full-bleed
+            // surface, and a rising gradient reads as the page sliding.
+            Stagger(
+              index: 0,
+              step: MotionPitch.page.step,
+              max: MotionPitch.page.max,
+              rise: 0,
+              child: _hero(context, isWide),
+            ),
             Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: isWide ? 32 : 16, vertical: 24),
@@ -166,6 +174,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     Set<int> savedIds,
   ) {
     final list = StaggerColumn(
+      // Page rhythm for the header block; the result rows below cascade on
+      // the result pitch, and the rail glides in from the right.
+      pitch: MotionPitch.page,
       children: [
         _resultsHeader(context, useSemantic, theses),
         const SizedBox(height: 16),
@@ -185,17 +196,25 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
               final filtered = _filterSemanticResults(results);
               if (filtered.isEmpty) return _noResultsFound();
               return Column(
+                // Thesis results step on the result pitch: long enough to be
+                // seen, clamped hard so forty results never crawl.
                 children: [
-                  for (final r in filtered)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: ResultCard(
-                        thesis: r.thesis,
-                        isSaved: savedIds.contains(r.thesis.id),
-                        similarity: r.similarity,
-                        onToggleSave: () => ref
-                            .read(savedThesisIdsProvider.notifier)
-                            .toggle(r.thesis.id),
+                  for (var i = 0; i < filtered.length; i++)
+                    Stagger(
+                      index: i,
+                      step: MotionPitch.result.step,
+                      max: MotionPitch.result.max,
+                      rise: MotionPitch.result.rise,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: ResultCard(
+                          thesis: filtered[i].thesis,
+                          isSaved: savedIds.contains(filtered[i].thesis.id),
+                          similarity: filtered[i].similarity,
+                          onToggleSave: () => ref
+                              .read(savedThesisIdsProvider.notifier)
+                              .toggle(filtered[i].thesis.id),
+                        ),
                       ),
                     ),
                 ],
@@ -217,16 +236,24 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             data: (list) {
               if (list == null || list.isEmpty) return _noResultsFound();
               return Column(
+                // Same result rhythm for the keyword branch: both result lists
+                // read as one re-forming cascade, never a pop-in.
                 children: [
-                  for (final thesis in list)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: ResultCard(
-                        thesis: thesis,
-                        isSaved: savedIds.contains(thesis.id),
-                        onToggleSave: () => ref
-                            .read(savedThesisIdsProvider.notifier)
-                            .toggle(thesis.id),
+                  for (var i = 0; i < list.length; i++)
+                    Stagger(
+                      index: i,
+                      step: MotionPitch.result.step,
+                      max: MotionPitch.result.max,
+                      rise: MotionPitch.result.rise,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: ResultCard(
+                          thesis: list[i],
+                          isSaved: savedIds.contains(list[i].id),
+                          onToggleSave: () => ref
+                              .read(savedThesisIdsProvider.notifier)
+                              .toggle(list[i].id),
+                        ),
                       ),
                     ),
                 ],
@@ -261,7 +288,19 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           children: [
             Expanded(flex: 8, child: list),
             const SizedBox(width: 20),
-            Expanded(flex: 5, child: RecRail(query: _query)),
+            // The rail enters from the right on the page rhythm — the same
+            // motion language as the nav pill, so selection reads as travel.
+            Expanded(
+              flex: 5,
+              child: Stagger(
+                index: 0,
+                step: MotionPitch.page.step,
+                max: MotionPitch.page.max,
+                rise: MotionPitch.page.rise,
+                origin: const Offset(0.06, 0),
+                child: RecRail(query: _query),
+              ),
+            ),
           ],
         );
       },
@@ -519,7 +558,18 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                     return Row(
                       children: [
                         for (var i = 0; i < boxes.length; i++) ...[
-                          Expanded(child: boxes[i]),
+                          // Filter boxes cascade on the tight rhythm — barely a
+                          // stagger, reading as one gesture. The wrapper sits
+                          // INSIDE the Expanded (never between Flex and flex).
+                          Expanded(
+                            child: Stagger(
+                              index: i,
+                              step: MotionPitch.tight.step,
+                              max: MotionPitch.tight.max,
+                              rise: MotionPitch.tight.rise,
+                              child: boxes[i],
+                            ),
+                          ),
                           if (i < boxes.length - 1)
                             const SizedBox(width: 10),
                         ],
@@ -541,8 +591,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      ...boxes.map((b) => SizedBox(
-                          width: (constraints.maxWidth - 10) / 2, child: b)),
+                      ...boxes.asMap().entries.map((entry) => SizedBox(
+                          width: (constraints.maxWidth - 10) / 2,
+                          child: Stagger(
+                            index: entry.key,
+                            step: MotionPitch.tight.step,
+                            max: MotionPitch.tight.max,
+                            rise: MotionPitch.tight.rise,
+                            child: entry.value,
+                          ))),
                       if (_activeFilterCount > 0)
                         TextButton.icon(
                           onPressed: _clearFilters,

@@ -46,8 +46,11 @@ class AuthShell extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // PART 7: the auth card enters at 0 with a fade only — it is
+                  // the screen's full surface, and a rising surface reads as
+                  // the page sliding. The form fields inside cascade tight.
                   EntranceReveal(
-                    rise: 16,
+                    rise: 0,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: maxCardWidth),
                       child: GlassPanel(

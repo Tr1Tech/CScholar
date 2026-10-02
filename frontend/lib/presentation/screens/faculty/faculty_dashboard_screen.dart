@@ -46,30 +46,29 @@ class FacultyDashboardScreen extends ConsumerWidget {
                       child: Center(
                         child: Container(
                           constraints: const BoxConstraints(maxWidth: 1200),
-                          child: StaggerColumn(
-                          children: [
-                            PageHeader(
-                              title: 'Faculty Dashboard',
-                              subtitle: 'Track your advisees, research activity, and student progress.',
-                              action: NeumorphButton(
-                                onPressed: () => context.go('/faculty/thesis/new'),
-                                icon: Icons.add,
-                                label: 'New Thesis',
+                          // Header, metrics, then the explicitly scheduled panels
+                          // below: one Column, same order as before.
+                          child: Column(
+                            children: [
+                              StaggerColumn(
+                            pitch: MotionPitch.page,
+                            children: [
+                              PageHeader(
+                                title: 'Faculty Dashboard',
+                                subtitle: 'Track your advisees, research activity, and student progress.',
+                                action: NeumorphButton(
+                                  onPressed: () => context.go('/faculty/thesis/new'),
+                                  icon: Icons.add,
+                                  label: 'New Thesis',
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            // KPI Cards
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
-                                return GridView(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  // Fixed extent, not an aspect ratio — see
-                                  // [kpiGridDelegate].
-                                  gridDelegate: kpiGridDelegate(context, count),
-                                  children: [
-                                    KpiCard(
+                              const SizedBox(height: 24),
+                              // KPI Cards
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
+                                  final cards = [
+                                    (
                                       label: 'ADVISEES',
                                       value: '${stats.value?['advisees'] ?? 0}',
                                       trend: '${stats.value?['active_projects'] ?? 0} active projects',
@@ -77,7 +76,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconBg: CScholarColors.thesisChipBg,
                                       iconColor: CScholarColors.primaryGreen,
                                     ),
-                                    KpiCard(
+                                    (
                                       label: 'MY THESES',
                                       value: '${stats.value?['theses'] ?? 0}',
                                       trend: '${stats.value?['published'] ?? 0} published',
@@ -85,7 +84,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconBg: CScholarColors.capstoneChipBg,
                                       iconColor: CScholarColors.warningFg,
                                     ),
-                                    KpiCard(
+                                    (
                                       label: 'PROGRAMS',
                                       value: '${stats.value?['programs'] ?? 0}',
                                       trend: '${stats.value?['programs'] ?? 0} CEIT programs',
@@ -93,7 +92,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconBg: CScholarColors.goldLight,
                                       iconColor: CScholarColors.goldDeep,
                                     ),
-                                    KpiCard(
+                                    (
                                       label: 'REVIEWS',
                                       value: '${stats.value?['pending_reviews'] ?? 0}',
                                       trend: '${stats.value?['completed_reviews'] ?? 0} completed',
@@ -101,39 +100,88 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconBg: CScholarColors.infoLight,
                                       iconColor: CScholarColors.info,
                                     ),
+                                  ];
+                                  return GridView(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    // Fixed extent, not an aspect ratio — see
+                                    // [kpiGridDelegate].
+                                    gridDelegate: kpiGridDelegate(context, count),
+                                    children: [
+                                      for (var i = 0; i < cards.length; i++)
+                                        // Diagonal cascade on the feature rhythm
+                                        // (see the admin dashboard): each cell
+                                        // carries its finished delay against
+                                        // the laid-out column count.
+                                        Stagger(
+                                          index: i,
+                                          step: MotionPitch.feature.step,
+                                          max: MotionPitch.feature.max,
+                                          rise: MotionPitch.feature.rise,
+                                          delay: StaggerColumn.diagonalDelay(
+                                            index: i,
+                                            columns: count,
+                                            pitch: MotionPitch.feature,
+                                          ),
+                                          child: KpiCard(
+                                            label: cards[i].label,
+                                            value: cards[i].value,
+                                            trend: cards[i].trend,
+                                            icon: cards[i].icon,
+                                            iconBg: cards[i].iconBg,
+                                            iconColor: cards[i].iconColor,
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          // The content row leaves the shared column so its
+                          // panels land on their explicit PART 7 beats (+120 /
+                          // +180) instead of stacking on the column's index.
+                          const SizedBox(height: 28),
+                          // Content: Left (Recent Activity) + Right (Advisees).
+                          // The panels keep their responsive Row/Column split;
+                          // each carries its own beat. The wrappers sit INSIDE
+                          // the flex (never between a Flex and its Expanded),
+                          // so the layout is untouched.
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isWide = constraints.maxWidth > 860;
+                              final leftPanel = EntranceReveal(
+                                delay: const Duration(milliseconds: 120),
+                                rise: 0,
+                                child: _recentActivityPanel(context, recentActivity),
+                              );
+                              final rightPanel = EntranceReveal(
+                                delay: const Duration(milliseconds: 180),
+                                rise: 0,
+                                child: _adviseesPanel(context, ref),
+                              );
+                              if (isWide) {
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(flex: 7, child: leftPanel),
+                                    const SizedBox(width: 24),
+                                    Expanded(flex: 4, child: rightPanel),
                                   ],
                                 );
-                              },
-                            ),
-                            const SizedBox(height: 28),
-                            // Content: Left (Recent Activity) + Right (Advisees)
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isWide = constraints.maxWidth > 860;
-                                final leftPanel = _recentActivityPanel(context, recentActivity);
-                                final rightPanel = _adviseesPanel(context, ref);
-                                if (isWide) {
-                                  return Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(flex: 7, child: leftPanel),
-                                      const SizedBox(width: 24),
-                                      Expanded(flex: 4, child: rightPanel),
-                                    ],
-                                  );
-                                } else {
-                                  return Column(
-                                    children: [
-                                      leftPanel,
-                                      const SizedBox(height: 24),
-                                      rightPanel,
-                                    ],
-                                  );
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                              } else {
+                                return Column(
+                                  children: [
+                                    leftPanel,
+                                    const SizedBox(height: 24),
+                                    rightPanel,
+                                  ],
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                       ),
                     ),
                   ),
@@ -188,14 +236,26 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 );
               }
               return Column(
-                children: items.take(5).map((item) => _activityItem(
-                  icon: Icons.article_outlined,
-                  iconBg: CScholarColors.thesisChipBg,
-                  iconColor: CScholarColors.primaryGreen,
-                  title: item['title'] ?? 'Untitled',
-                  subtitle: item['subtitle'] ?? 'No details',
-                  time: item['created_at'] ?? '',
-                )).toList(),
+                // Dense feed rows step on the tight rhythm (see the admin
+                // dashboard): one gesture, not a cascade competing with the
+                // page.
+                children: items.take(5).toList().asMap().entries.map((entry) {
+                  final item = entry.value;
+                  return Stagger(
+                    index: entry.key,
+                    step: MotionPitch.tight.step,
+                    max: MotionPitch.tight.max,
+                    rise: MotionPitch.tight.rise,
+                    child: _activityItem(
+                      icon: Icons.article_outlined,
+                      iconBg: CScholarColors.thesisChipBg,
+                      iconColor: CScholarColors.primaryGreen,
+                      title: item['title'] ?? 'Untitled',
+                      subtitle: item['subtitle'] ?? 'No details',
+                      time: item['created_at'] ?? '',
+                    ),
+                  );
+                }).toList(),
               );
             },
             error: (err, _) => Center(

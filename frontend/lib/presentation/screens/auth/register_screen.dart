@@ -83,7 +83,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       maxCardWidth: 560,
       child: Form(
         key: _formKey,
+        // Tight rhythm, same as login: one gesture, submit at the clamp.
         child: StaggerColumn(
+          pitch: MotionPitch.tight,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

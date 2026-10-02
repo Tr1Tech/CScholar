@@ -44,6 +44,9 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
+            // Header-first on the page rhythm; chips step tight, thesis cards
+            // walk the result pitch below.
+            pitch: MotionPitch.page,
             children: [
               PageHeader(
                 title: 'My Theses',
@@ -58,11 +61,21 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
+                // Filter chips cascade tight — barely a stagger.
                 children: _filters
-                    .map((f) => ClayChip(
-                          label: f,
-                          selected: _statusFilter == f,
-                          onTap: () => setState(() => _statusFilter = f),
+                    .asMap()
+                    .entries
+                    .map((entry) => Stagger(
+                          index: entry.key,
+                          step: MotionPitch.tight.step,
+                          max: MotionPitch.tight.max,
+                          rise: MotionPitch.tight.rise,
+                          child: ClayChip(
+                            label: entry.value,
+                            selected: _statusFilter == entry.value,
+                            onTap: () =>
+                                setState(() => _statusFilter = entry.value),
+                          ),
                         ))
                     .toList(),
               ),
@@ -84,7 +97,19 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                     );
                   }
                   return Column(
-                    children: filtered.map((t) => _thesisCard(context, t)).toList(),
+                    // Advised theses walk the result pitch, like every thesis
+                    // result list in the app.
+                    children: filtered
+                        .asMap()
+                        .entries
+                        .map((entry) => Stagger(
+                              index: entry.key,
+                              step: MotionPitch.result.step,
+                              max: MotionPitch.result.max,
+                              rise: MotionPitch.result.rise,
+                              child: _thesisCard(context, entry.value),
+                            ))
+                        .toList(),
                   );
                 },
                 error: (err, _) => EmptyState(

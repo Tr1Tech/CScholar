@@ -35,7 +35,10 @@ class ProfileScreen extends ConsumerWidget {
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 1140),
+            // PART 7: the avatar is the Hero target (owned by the shell opt-out
+            // above), everything else cascades on the page rhythm.
             child: StaggerColumn(
+              pitch: MotionPitch.page,
               children: [
                 // Header with "Edit Profile" button
                 PageHeader(

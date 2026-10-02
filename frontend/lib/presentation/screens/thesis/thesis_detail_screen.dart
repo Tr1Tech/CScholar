@@ -81,7 +81,12 @@ class ThesisDetailScreen extends ConsumerWidget {
               : '';
 
           return SingleChildScrollView(
+            // Header-first on the page rhythm: breadcrumbs at 0, the card
+            // settling right behind. Inner blocks below cascade on their own
+            // rhythms — the banner stays static on purpose (Phase 7 flies it
+            // as a Hero, and a hero that fades while flying is doubled).
             child: StaggerColumn(
+              pitch: MotionPitch.page,
               children: [
                 // 1. Breadcrumbs Bar
                 Container(
@@ -157,35 +162,51 @@ class ThesisDetailScreen extends ConsumerWidget {
                           const Divider(color: CScholarColors.borderLight),
                           const SizedBox(height: 24),
 
-                          // Abstract Section (only when the database has one)
-                          if (thesis.abstract.isNotEmpty) ...[
-                            Text(
-                              'ABSTRACT',
-                              style: CScholarTextStyles.inter(
-                                12,
-                                FontWeight.w700,
-                                CScholarColors.textSecondary,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _displayAbstract(thesis.abstract),
-                                    textAlign: TextAlign.justify,
+                          // Abstract Section (only when the database has one).
+                          // One beat behind the title (+100): the eye finishes
+                          // the title, then the abstract arrives. The wrapper
+                          // is a stretch column so justification and the
+                          // full-width row lay out exactly as before.
+                          if (thesis.abstract.isNotEmpty)
+                            Stagger(
+                              index: 2,
+                              step: MotionPitch.page.step,
+                              max: MotionPitch.page.max,
+                              rise: MotionPitch.page.rise,
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'ABSTRACT',
                                     style: CScholarTextStyles.inter(
-                                      14.5,
-                                      FontWeight.w400,
-                                      CScholarMaterial.textBody,
-                                      height: 1.7,
+                                      12,
+                                      FontWeight.w700,
+                                      CScholarColors.textSecondary,
+                                      letterSpacing: 1.0,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _displayAbstract(
+                                              thesis.abstract),
+                                          textAlign: TextAlign.justify,
+                                          style: CScholarTextStyles.inter(
+                                            14.5,
+                                            FontWeight.w400,
+                                            CScholarMaterial.textBody,
+                                            height: 1.7,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
 
                           // Keywords Section (only when the database has them)
                           if (thesis.keywords != null && thesis.keywords!.isNotEmpty) ...[
@@ -250,14 +271,27 @@ class ThesisDetailScreen extends ConsumerWidget {
                                   }).toList();
 
                                   return Column(
-                                    children: displayList.map((item) {
+                                    // Related studies step on the result
+                                    // pitch: the same walk as every thesis
+                                    // result list in the app.
+                                    children: displayList
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final item = entry.value;
                                       final title = item['title'] as String;
                                       final sim = item['sim'] as String;
                                       final targetId = item['id'] as int;
 
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 10),
-                                        child: InkWell(
+                                      return Stagger(
+                                        index: entry.key,
+                                        step: MotionPitch.result.step,
+                                        max: MotionPitch.result.max,
+                                        rise: MotionPitch.result.rise,
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 10),
+                                          child: InkWell(
                                           borderRadius: BorderRadius.circular(CScholarRadius.lg),
                                           onTap: () => context.go('/thesis/$targetId'),
                                           child: Container(
@@ -297,6 +331,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                             ),
                                           ),
                                         ),
+                                      ),
                                       );
                                     }).toList(),
                                   );
@@ -407,14 +442,21 @@ class ThesisDetailScreen extends ConsumerWidget {
 
         const SizedBox(height: 14),
 
-        // Title
-        Text(
-          thesis.title,
-          style: CScholarTextStyles.poppins(
-            26,
-            FontWeight.w800,
-            CScholarColors.textPrimary,
-            height: 1.25,
+        // Title rises just behind the card (+60): close enough to read as
+        // one arrival, late enough to read after it.
+        Stagger(
+          index: 1,
+          step: MotionPitch.page.step,
+          max: MotionPitch.page.max,
+          rise: MotionPitch.page.rise,
+          child: Text(
+            thesis.title,
+            style: CScholarTextStyles.poppins(
+              26,
+              FontWeight.w800,
+              CScholarColors.textPrimary,
+              height: 1.25,
+            ),
           ),
         ),
 
@@ -438,8 +480,23 @@ class ThesisDetailScreen extends ConsumerWidget {
                 return Wrap(
                   spacing: 24,
                   runSpacing: 16,
+                  // Metadata rows step on the tight rhythm with a gentle
+                  // horizontal entry — staggering a dense block vertically
+                  // would make it unreadable.
                   children: metaItems
-                      .map((item) => SizedBox(width: itemWidth, child: item))
+                      .asMap()
+                      .entries
+                      .map((entry) => SizedBox(
+                            width: itemWidth,
+                            child: Stagger(
+                              index: entry.key,
+                              step: MotionPitch.tight.step,
+                              max: MotionPitch.tight.max,
+                              rise: MotionPitch.tight.rise,
+                              origin: const Offset(0.02, 0),
+                              child: entry.value,
+                            ),
+                          ))
                       .toList(),
                 );
               },

@@ -50,7 +50,10 @@ class _AdminThesisManagementScreenState
       mobileTitle: 'Thesis Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
+        // Header-first on the page rhythm (same DataTable note as user
+        // management: rows are not widgets and enter with the card).
         child: StaggerColumn(
+          pitch: MotionPitch.page,
           children: [
             PageHeader(
               title: 'Thesis Management',
