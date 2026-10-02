@@ -308,6 +308,15 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
   late final FocusNode _focus = widget.focusNode ?? FocusNode();
   late final bool _ownsFocus = widget.focusNode == null;
 
+  /// The closed face was tapped and the framework menu is pushing. The menu
+  /// route itself is owned by [DropdownButton] and reports no open/close
+  /// callbacks, so openness is derived in [build] as `_tapped && !isCurrent`:
+  /// pushing the menu (or anything else) flips our route non-current, popping
+  /// it flips us back — barrier-dismiss and Escape included, which report
+  /// nothing else. Depending on [ModalRoute] resubscribes us to those flips,
+  /// so the caret settles back on every close path with no polling.
+  bool _tapped = false;
+
   @override
   void initState() {
     super.initState();
@@ -316,6 +325,11 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
 
   void _onFocusChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onTapButton() {
+    if (!mounted || !widget.enabled) return;
+    setState(() => _tapped = true);
   }
 
   @override
@@ -328,6 +342,7 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
   @override
   Widget build(BuildContext context) {
     final flat = MediaQuery.highContrastOf(context);
+    final animate = motionEnabled(context);
 
     final focused = _focus.hasFocus;
     final disabled = !widget.enabled;
@@ -335,8 +350,15 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
     final hasError = (error ?? '').isNotEmpty;
     final radius = BorderRadius.circular(CScholarRadius.md);
 
+    // The caret turns 180 degrees while the menu is up and settles back on
+    // close — a transform, so layout never moves. Reduced motion gets no turn.
+    final menuOpen =
+        _tapped && !(ModalRoute.of(context)?.isCurrent ?? true);
+
     // No outline at rest: the tonal well IS the affordance (see NeumorphField).
     // Focus, error and the high-contrast fallback all draw the same 1.5px rim.
+    // (The well itself stays instant: the pinned select tests assert the rim
+    // on a single pump, so the fade lives on the caret, not here.)
     final Color? borderColor = flat
         ? CScholarMaterial.rimStrong
         : hasError
@@ -396,12 +418,24 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
                         dropdownColor:
                             widget.dropdownColor ?? CScholarMaterial.clay,
                         borderRadius: BorderRadius.circular(CScholarRadius.md),
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: disabled
-                              ? CScholarMaterial.rim
-                              : CScholarMaterial.textMuted,
-                          size: 20,
+                        // NOTE (Phase 4): the menu sheet itself keeps the
+                        // framework fade + resize — its route is built inside
+                        // DropdownButton with no transition hook, and replacing
+                        // the button would break the pinned DropdownButton
+                        // tests. Only the closed face is ours to choreograph.
+                        onTap: _onTapButton,
+                        icon: AnimatedRotation(
+                          turns: menuOpen && animate ? 0.5 : 0,
+                          duration: animate
+                              ? CScholarMotion.micro
+                              : Duration.zero,
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: disabled
+                                ? CScholarMaterial.rim
+                                : CScholarMaterial.textMuted,
+                            size: 20,
+                          ),
                         ),
                         hint: widget.hintText != null
                             ? Text(

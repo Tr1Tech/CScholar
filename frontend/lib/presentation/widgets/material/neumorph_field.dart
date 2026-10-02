@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart'
     show NeumorphState;
 
@@ -182,11 +183,20 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
         : field.errorText;
     final hasError = (error ?? '').isNotEmpty;
     final radius = BorderRadius.circular(CScholarRadius.md);
+    final animate = motionEnabled(context);
 
     // No outline at rest: the tonal well IS the affordance, and a drawn rim on
     // every field is exactly what the clay pass removed. Focus and error still
     // ring (they must stay visible), and high contrast keeps a strong rim as
     // its fallback — the whole no-rim-at-rest decision leans on that one.
+    //
+    // The ring arrives as an opacity fade of a fixed-contrast layer over
+    // [CScholarMotion.micro], never as a colour tween: the midpoint of a
+    // colour tween is where the AA floor breaks. The AnimatedContainer lerps
+    // null <-> Border, i.e. transparent alpha <-> the fixed hue, so the
+    // settled state is byte-identical to the instant ring it replaces
+    // (gelTop / error / rimStrong at full opacity, 1.5px). Reduced motion
+    // snaps the ring in with a zero duration instead of fading it.
     final Color? borderColor = flat
         ? CScholarMaterial.rimStrong
         : hasError
@@ -194,6 +204,10 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             : focused
                 ? CScholarMaterial.gelTop
                 : null;
+
+    // The placeholder lifts 2px on focus — a transform, so layout never
+    // moves. Reduced motion gets no lift at all, never a snapped one.
+    final lift = focused && !disabled && animate ? -2.0 : 0.0;
 
     return Opacity(
       opacity: disabled ? 0.5 : 1,
@@ -208,7 +222,9 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             ),
             const SizedBox(height: 6),
           ],
-          DecoratedBox(
+          AnimatedContainer(
+            duration: animate ? CScholarMotion.micro : Duration.zero,
+            curve: CScholarCurves.standard,
             decoration: BoxDecoration(
               color: CScholarMaterial.clayDeep,
               borderRadius: radius,
@@ -220,7 +236,11 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                   // hairline that reads as a leftover from the old pass.
                   : Border.all(color: borderColor, width: 1.5),
             ),
-            child: TextField(
+            child: AnimatedContainer(
+              duration: animate ? CScholarMotion.micro : Duration.zero,
+              curve: CScholarCurves.standard,
+              transform: Matrix4.translationValues(0, lift, 0),
+              child: TextField(
                 controller: widget.controller,
               focusNode: _focus,
               enabled: !disabled,
@@ -260,15 +280,28 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
             ),
-          ),
-          if (hasError) ...[
-            const SizedBox(height: 6),
-            Text(
-              error!,
-              style: CScholarTextStyles.inter(
-                  12, FontWeight.w500, CScholarColors.error),
             ),
-          ],
+          ),
+          // Error replaces the hint through AnimatedSwap: one swap style for
+          // every hint <-> error change in the app. The switcher only exists
+          // while an error is shown, so appearing and clearing stay instant
+          // (Form.validate() asserts them on a single pump) while one error
+          // replacing another cross-fades. The child is keyed on the message
+          // itself — without the key the switcher cannot see the swap.
+          if (hasError)
+            AnimatedSwap(
+              style: SwapStyle.swap,
+              alignment: Alignment.topLeft,
+              child: Padding(
+                key: ValueKey(error),
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  error!,
+                  style: CScholarTextStyles.inter(
+                      12, FontWeight.w500, CScholarColors.error),
+                ),
+              ),
+            ),
         ],
       ),
     );

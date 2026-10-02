@@ -18,6 +18,13 @@ const double _kHover = 0.35;
 const double _kPressed = 1;
 
 /// Shared state machine for every pressable clay control.
+///
+/// Press and release speak different curves on purpose: the press answers fast
+/// on [CScholarCurves.standard] (a control that sinks slowly feels laggy), the
+/// release springs back on [CScholarCurves.overshoot] over
+/// [CScholarMotion.swap] (the overshoot is what reads as "physical"), and a
+/// hover drift deepens over [CScholarMotion.micro]. One progress value still
+/// drives every visual channel, so press and release can never de-sync.
 class _NeumorphBase extends StatefulWidget {
   const _NeumorphBase({
     required this.child,
@@ -27,6 +34,7 @@ class _NeumorphBase extends StatefulWidget {
     this.onTap,
     this.previewState,
     this.semanticLabel,
+    this.spinContent = false,
   });
 
   final Widget child;
@@ -36,6 +44,11 @@ class _NeumorphBase extends StatefulWidget {
   final VoidCallback? onTap;
   final NeumorphState? previewState;
   final String? semanticLabel;
+
+  /// Rotate the (square) content 90 degrees while pressed. Only the icon
+  /// button sets this: its content is a square tile, so the rotation reads as
+  /// the glyph turning. A rectangular action button must never spin.
+  final bool spinContent;
 
   @override
   State<_NeumorphBase> createState() => _NeumorphBaseState();
@@ -89,7 +102,10 @@ class _NeumorphBaseState extends State<_NeumorphBase>
   }
 
   /// Retarget the single progress value. Entry is faster than release —
-  /// leaving a control more slowly than it was pressed reads as "weight".
+  /// leaving a control more slowly than it was pressed reads as "weight", and
+  /// the release carries the overshoot spring while the press stays snappy.
+  /// Hover drifts (rest <-> hover) run on the micro budget: the gel glow
+  /// deepening under the pointer is a twitch, not a state change.
   void _sync() {
     if (!mounted) return;
     final target = _disabled
@@ -103,10 +119,17 @@ class _NeumorphBaseState extends State<_NeumorphBase>
       _c.value = target;
       return;
     }
-    _c.duration = target > _c.value
-        ? CScholarDurations.fast
-        : CScholarDurations.normal;
-    _c.animateTo(target, curve: CScholarCurves.standard);
+    final pressing = target > _c.value;
+    if (target == _kPressed || _c.value == _kPressed) {
+      _c.duration =
+          pressing ? CScholarDurations.fast : CScholarMotion.swap;
+      _c.animateTo(target,
+          curve:
+              pressing ? CScholarCurves.standard : CScholarCurves.overshoot);
+    } else {
+      _c.duration = CScholarMotion.micro;
+      _c.animateTo(target, curve: CScholarCurves.standard);
+    }
   }
 
   void _setDown(bool down) {
@@ -201,18 +224,31 @@ class _NeumorphBaseState extends State<_NeumorphBase>
       animation: _c,
       builder: (context, _) {
         final t = _disabled ? 0.0 : _c.value;
-        final content = Container(
+        final animate = motionEnabled(context);
+        Widget content = Container(
           decoration: _decoration(t),
           child: Opacity(
             opacity: _disabled ? 0.45 : 1,
             child: Transform.translate(
               // 1.5px sink: the surface presses toward the canvas. Clay has no
               // inset well to travel into, so the sink is the whole gesture.
+              // The release overshoot may push [t] a hair past its target;
+              // that transient IS the spring, so it is not clamped away.
               offset: Offset(0, 1.5 * t),
               child: widget.child,
             ),
           ),
         );
+        if (widget.spinContent) {
+          // Icon-button glyph turn: 90 degrees while held, springing back on
+          // release. The content is square, so only the glyph visibly turns.
+          // Reduced motion gets no rotation at all, never a snapped one.
+          content = AnimatedRotation(
+            turns: animate && _down ? 0.25 : 0,
+            duration: animate ? CScholarMotion.micro : Duration.zero,
+            child: content,
+          );
+        }
 
         return Focus(
           focusNode: _focus,
@@ -258,8 +294,11 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 /// `gel: false` = secondary (clay, dark text); `danger: true` = destructive
 /// (deep red, white text — the only other gel fill in the system).
 ///
-/// [loading] blocks taps and swaps the label for an inline clay sweep, so a
-/// double submit is impossible while a request is in flight.
+/// [loading] blocks taps and swaps the label for an inline clay sweep plus a
+/// "Saving…" label through [AnimatedSwap]. The swap slot is pre-sized to the
+/// wider of the two faces (measured with a [TextPainter] at build time, so no
+/// layout animation is involved), which is why the button never resizes under
+/// the pointer when a submit lands.
 class NeumorphButton extends StatelessWidget {
   const NeumorphButton({
     super.key,
@@ -284,10 +323,33 @@ class NeumorphButton extends StatelessWidget {
   final bool loading;
   final NeumorphState? previewState;
 
+  /// Width of [text] in the button label style, so the swap slot can reserve
+  /// the wider face. A fixed [SizedBox] from a build-time measurement keeps
+  /// the width stable without ever animating layout.
+  static double _textWidth(
+      BuildContext context, String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGel = gel || danger;
     final foreground = isGel ? Colors.white : CScholarMaterial.textPrimary;
+    final labelStyle =
+        CScholarTextStyles.inter(14, FontWeight.w600, foreground);
+    // Icon glyph (18px) plus its 8px gap; the sweep plus its 8px gap.
+    final labelFace =
+        _textWidth(context, label, labelStyle) + (icon != null ? 26 : 0);
+    final savingFace =
+        _textWidth(context, 'Saving…', labelStyle) + 48 + 8;
+    final slotWidth = labelFace > savingFace ? labelFace : savingFace;
     final button = _NeumorphBase(
       radius: CScholarRadius.md,
       gel: isGel,
@@ -297,31 +359,53 @@ class NeumorphButton extends StatelessWidget {
       semanticLabel: label,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-        child: Row(
-          mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (loading)
-              SizedBox(
-                width: 48,
-                child: ClayLoader(height: 5, tint: isGel ? Colors.white : null),
-              )
-            else ...[
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: foreground),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(
-                      14, FontWeight.w600, foreground),
-                ),
-              ),
-            ],
-          ],
+        child: SizedBox(
+          width: slotWidth,
+          child: AnimatedSwap(
+            style: SwapStyle.swap,
+            child: loading
+                ? Row(
+                    key: const ValueKey('saving'),
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        child: ClayLoader(
+                            height: 5,
+                            tint: isGel ? Colors.white : null),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Saving…',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: labelStyle,
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    key: const ValueKey('label'),
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 18, color: foreground),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: labelStyle,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -357,6 +441,8 @@ class NeumorphIconButton extends StatelessWidget {
       onTap: onPressed,
       previewState: previewState,
       semanticLabel: tooltip,
+      // Square tile, so the 90-degree press turn reads as the glyph turning.
+      spinContent: true,
       child: SizedBox(
         width: size,
         height: size,

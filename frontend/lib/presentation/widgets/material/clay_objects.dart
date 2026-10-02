@@ -12,7 +12,14 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 
 /// Gel tag. Selected = gel fill; unselected = raised clay **with a rim**, so
 /// the unselected state never relies on shadow alone.
-class ClayChip extends StatelessWidget {
+///
+/// Press sinks to 0.96 and springs back on [CScholarCurves.overshoot]; a
+/// selectable chip that is selected pops a check glyph in through
+/// [AnimatedSwap]. The check slot is always reserved (even unselected), so
+/// toggling never animates width — a width tween would reflow the whole
+/// [Wrap] the chips sit in. Display chips (`onTap: null`) are untouched: no
+/// press state, no check.
+class ClayChip extends StatefulWidget {
   const ClayChip({
     super.key,
     required this.label,
@@ -27,57 +34,108 @@ class ClayChip extends StatelessWidget {
   final IconData? icon;
 
   @override
+  State<ClayChip> createState() => _ClayChipState();
+}
+
+class _ClayChipState extends State<ClayChip> {
+  bool _down = false;
+
+  void _setDown(bool down) {
+    if (_down == down) return;
+    setState(() => _down = down);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(CScholarRadius.full);
-    final chip = AnimatedContainer(
-      duration: motionEnabled(context) ? CScholarDurations.fast : Duration.zero,
-      curve: CScholarCurves.standard,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: selected
-          ? BoxDecoration(
-              borderRadius: radius,
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [CScholarMaterial.gelTop, CScholarMaterial.gelBottom],
+    final animate = motionEnabled(context);
+    final selectable = widget.onTap != null;
+    final chip = AnimatedScale(
+      // Sink only, never layout: a scale keeps the Wrap's line breaks fixed
+      // while the press still reads. Reduced motion holds 1.0 exactly.
+      scale: animate && _down ? 0.96 : 1.0,
+      duration: animate ? CScholarMotion.swap : Duration.zero,
+      curve: CScholarCurves.overshoot,
+      child: AnimatedContainer(
+        duration: animate ? CScholarDurations.fast : Duration.zero,
+        curve: CScholarCurves.standard,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: widget.selected
+            ? BoxDecoration(
+                borderRadius: radius,
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [CScholarMaterial.gelTop, CScholarMaterial.gelBottom],
+                ),
+                // Invisible 1px rim: the unselected face draws a real 1px rim,
+                // so without this the toggle jumps 2px. Transparent paints
+                // nothing — it only keeps the outer size identical, which is
+                // why selecting never moves the Wrap.
+                border: Border.all(color: Colors.transparent, width: 1),
+                boxShadow: CScholarMaterial.gelDrop(depth: 0.6),
+              )
+            : BoxDecoration(
+                borderRadius: radius,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [CScholarMaterial.clayHigh, CScholarMaterial.clay],
+                ),
+                border: Border.all(color: CScholarMaterial.rim),
+                boxShadow: CScholarMaterial.clayDrop(depth: 0.5),
               ),
-              boxShadow: CScholarMaterial.gelDrop(depth: 0.6),
-            )
-          : BoxDecoration(
-              borderRadius: radius,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [CScholarMaterial.clayHigh, CScholarMaterial.clay],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selectable) ...[
+              // Reserved slot: the box is always 14px, so the pop never moves
+              // the label. Reduced motion swaps instantly with no scale.
+              SizedBox(
+                width: 14,
+                child: AnimatedSwap(
+                  style: SwapStyle.pop,
+                  child: widget.selected
+                      ? const Icon(Icons.check_rounded,
+                          key: ValueKey('check'),
+                          size: 14,
+                          color: Colors.white)
+                      : const SizedBox.shrink(key: ValueKey('empty')),
+                ),
               ),
-              border: Border.all(color: CScholarMaterial.rim),
-              boxShadow: CScholarMaterial.clayDrop(depth: 0.5),
+              const SizedBox(width: 6),
+            ],
+            if (widget.icon != null) ...[
+              Icon(widget.icon,
+                  size: 14,
+                  color: widget.selected
+                      ? Colors.white
+                      : CScholarMaterial.textMuted),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              widget.label,
+              style: CScholarTextStyles.inter(
+                12,
+                FontWeight.w600,
+                widget.selected ? Colors.white : CScholarMaterial.textPrimary,
+              ),
             ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon,
-                size: 14,
-                color: selected ? Colors.white : CScholarMaterial.textMuted),
-            const SizedBox(width: 6),
           ],
-          Text(
-            label,
-            style: CScholarTextStyles.inter(
-              12,
-              FontWeight.w600,
-              selected ? Colors.white : CScholarMaterial.textPrimary,
-            ),
-          ),
-        ],
+        ),
       ),
     );
 
-    if (onTap == null) return chip;
+    if (!selectable) return chip;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(onTap: onTap, child: chip),
+      child: GestureDetector(
+        onTapDown: (_) => _setDown(true),
+        onTapUp: (_) => _setDown(false),
+        onTapCancel: () => _setDown(false),
+        onTap: widget.onTap,
+        child: chip,
+      ),
     );
   }
 }
