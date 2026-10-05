@@ -94,7 +94,11 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                       );
                     }
 
+                    // Keyed on the surviving ids: removing one rebuilds the rest
+                    // fresh, so the list re-forms (result cascade replays)
+                    // instead of closing the gap instantly.
                     return ListView.builder(
+                      key: ValueKey(filtered.map((t) => t.id).join(',')),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: filtered.length,
@@ -177,7 +181,11 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                   ),
                                 ),
 
-                                // Right Actions: View & Remove
+                                // Right Actions: View & Save toggle. The toggle
+                                // reads selected (everything here IS saved);
+                                // tapping it unsaves, the row leaves, and the
+                                // keyed list above re-forms the survivors
+                                // instead of closing the gap instantly.
                                 Row(
                                   children: [
                                     TextButton(
@@ -194,22 +202,19 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    TextButton(
-                                      onPressed: () {
-                                        ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Removed "${thesis.title}" from saved studies')),
-                                        );
-                                      },
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: CScholarColors.error,
-                                        backgroundColor: CScholarColors.errorLight,
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                      ),
-                                      child: Text(
-                                        'Remove',
-                                        style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.error),
+                                    Tooltip(
+                                      message: 'Saved — tap to remove',
+                                      child: TactileToggle(
+                                        selected: true,
+                                        onChanged: () {
+                                          ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Removed "${thesis.title}" from saved studies')),
+                                          );
+                                        },
+                                        icon: Icons.bookmark_outline,
+                                        selectedIcon: Icons.bookmark,
+                                        semanticLabel: 'Saved — tap to remove',
                                       ),
                                     ),
                                   ],

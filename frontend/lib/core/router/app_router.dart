@@ -145,7 +145,14 @@ final appRouter = Provider<GoRouter>((ref) {
                   ),
                 );
               }
-              return ThesisDetailScreen(thesisId: id);
+              // Semantic entry points (result cards, rails) hand their match
+              // score through `extra` so the detail screen can meter it.
+              // Direct loads and keyword entries carry no score — the meter
+              // simply stays off rather than guessing one.
+              return ThesisDetailScreen(
+                thesisId: id,
+                similarity: state.extra as double?,
+              );
             },
           ),
           GoRoute(

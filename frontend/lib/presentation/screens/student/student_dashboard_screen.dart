@@ -543,7 +543,10 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                       child: InkWell(
                         borderRadius:
                             BorderRadius.circular(CScholarRadius.md),
-                        onTap: () => context.go('/thesis/${r.thesis.id}'),
+                        onTap: () => context.go(
+                          '/thesis/${r.thesis.id}',
+                          extra: r.similarity,
+                        ),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(

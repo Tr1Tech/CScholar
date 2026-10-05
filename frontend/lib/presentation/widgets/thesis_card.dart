@@ -11,11 +11,27 @@ class ThesisCard extends StatefulWidget {
   final double? similarityScore;
   final VoidCallback? onTap;
 
+  /// Saved state for the banner bookmark toggle. Null (with [onToggleSave]
+  /// null) means display-only: no toggle, exactly the old card.
+  final bool? isSaved;
+
+  /// Save handler. When set, a [TactileToggle] rides top-right on the banner.
+  final VoidCallback? onToggleSave;
+
+  /// Hero sources on/off. A hero needs exactly one source and one target per
+  /// route change: the route rendering the detail target passes false here,
+  /// the same opt-out `student_layout.dart` takes with `heroAvatar: false`
+  /// for the route owning the avatar target.
+  final bool heroBanner;
+
   const ThesisCard({
     super.key,
     required this.thesis,
     this.similarityScore,
     this.onTap,
+    this.isSaved,
+    this.onToggleSave,
+    this.heroBanner = true,
   });
 
   /// Banner palette. Every stop is a DARK tone that carries the 10px w700 white
@@ -48,53 +64,88 @@ class _ThesisCardState extends State<ThesisCard> {
     // Reduced motion (and touch, which never hovers) holds the banner at 1.0
     // exactly — never a snapped zoom.
     final animate = motionEnabled(context);
-    return GestureDetector(
-      onTap: widget.onTap ?? () => context.go('/thesis/${widget.thesis.id}'),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hover = true),
-        onExit: (_) => setState(() => _hover = false),
-        child: CScholarCard(
-          padding: EdgeInsets.zero,
-          lift: true,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(CScholarRadius.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // The banner zooms to 1.03 inside its OWN clip (top corners
-                // match the card, bottom stays square into the body), so the
-                // zoom crops instead of overflowing. Transform only, over the
-                // swap budget — the most premium micro-interaction available
-                // for one transform.
-                ClipRRect(
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(CScholarRadius.xl),
+    // The save toggle overlays the card as a Stack SIBLING, never a
+    // descendant of the card's own GestureDetector: nested tap recognizers
+    // BOTH fire, so a toggle inside the card would also navigate. Siblings
+    // are exclusive — the topmost opaque hit wins and the card never hears
+    // the toggle's tap.
+    return Stack(
+      children: [
+        GestureDetector(
+          // Semantic landings hand their score through (see ResultCard): the
+          // detail screen meters it, plain taps meter nothing.
+          onTap: widget.onTap ??
+              () => context.go(
+                    '/thesis/${widget.thesis.id}',
+                    extra: widget.similarityScore,
                   ),
-                  child: AnimatedScale(
-                    scale: animate && _hover ? 1.03 : 1.0,
-                    duration:
-                        animate ? CScholarMotion.swap : Duration.zero,
-                    curve: CScholarCurves.settle,
-                    child: _banner(),
-                  ),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _hover = true),
+            onExit: (_) => setState(() => _hover = false),
+            child: CScholarCard(
+              padding: EdgeInsets.zero,
+              lift: true,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(CScholarRadius.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // The banner zooms to 1.03 inside its OWN clip (top corners
+                    // match the card, bottom stays square into the body), so the
+                    // zoom crops instead of overflowing. Transform only, over the
+                    // swap budget — the most premium micro-interaction available
+                    // for one transform.
+                    ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(CScholarRadius.xl),
+                      ),
+                      child: AnimatedScale(
+                        scale: animate && _hover ? 1.03 : 1.0,
+                        duration:
+                            animate ? CScholarMotion.swap : Duration.zero,
+                        curve: CScholarCurves.settle,
+                        child: _banner(),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: _body(),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: _body(),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        // Save toggle rides top-right on the banner when the card is
+        // save-aware. White glyphs: every banner stop is dark (5.0:1 or
+        // better with white). Same coordinates the in-banner toggle had —
+        // only the hit-test relationship changed, not the look.
+        if (widget.onToggleSave != null)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: TactileToggle(
+              selected: widget.isSaved ?? false,
+              onChanged: widget.onToggleSave!,
+              icon: Icons.bookmark_outline,
+              selectedIcon: Icons.bookmark,
+              size: 18,
+              color: CScholarMaterial.shadowLight,
+              selectedColor: CScholarMaterial.shadowLight,
+              semanticLabel:
+                  (widget.isSaved ?? false) ? 'Saved' : 'Save study',
+            ),
+          ),
+      ],
     );
   }
 
   Widget _banner() {
     final flat = MediaQuery.highContrastOf(context);
-    return Container(
+    final banner = Container(
       height: 76,
       color: _headerColor,
       child: Stack(
@@ -167,23 +218,43 @@ class _ThesisCardState extends State<ThesisCard> {
         ],
       ),
     );
+    // Banner Hero SOURCE: the slab flies into the detail header. Only the
+    // colour travels (flightShuttleBuilder) — text mid-flight smears. Off on
+    // the target route via [heroBanner], so source and target can never share
+    // a tag in one subtree.
+    if (!widget.heroBanner) return banner;
+    return Hero(
+      tag: thesisBannerTag(widget.thesis.id),
+      flightShuttleBuilder:
+          (flightContext, animation, direction, fromContext, toContext) =>
+              ColoredBox(color: _headerColor),
+      child: banner,
+    );
   }
 
   Widget _body() {
+    final title = Text(
+      widget.thesis.title,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: CScholarTextStyles.poppins(
+        14.5,
+        FontWeight.w700,
+        CScholarColors.textPrimary,
+        height: 1.3,
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-                    Text(
-                      widget.thesis.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.poppins(
-                        14.5,
-                        FontWeight.w700,
-                        CScholarColors.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
+                    // Title Hero SOURCE: flies into the detail title. Text may
+                    // fly (unlike the slab, it stays legible mid-flight).
+                    widget.heroBanner
+                        ? Hero(
+                            tag: thesisTitleTag(widget.thesis.id),
+                            child: title,
+                          )
+                        : title,
                     const SizedBox(height: 4),
                     if (widget.thesis.authors != null && widget.thesis.authors!.isNotEmpty)
                       Text(

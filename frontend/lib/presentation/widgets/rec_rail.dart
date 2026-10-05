@@ -108,7 +108,7 @@ class RecRail extends ConsumerWidget {
     // ripple is deliberately gone.
     return PressableSurface(
       radius: CScholarRadius.md,
-      onTap: () => context.go('/thesis/${t.id}'),
+      onTap: () => context.go('/thesis/${t.id}', extra: similarity),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

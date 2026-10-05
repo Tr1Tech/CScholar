@@ -15,10 +15,17 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
+import 'package:frontend/presentation/widgets/thesis_card.dart';
 
 class ThesisDetailScreen extends ConsumerWidget {
   final int thesisId;
-  const ThesisDetailScreen({super.key, required this.thesisId});
+
+  /// Query-relative semantic match (0..1), handed through the route's `extra`
+  /// by semantic entry points. Null on direct loads and keyword entries —
+  /// the meter stays off rather than metering a number nobody computed.
+  final double? similarity;
+
+  const ThesisDetailScreen({super.key, required this.thesisId, this.similarity});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,13 +88,15 @@ class ThesisDetailScreen extends ConsumerWidget {
               : '';
 
           return SingleChildScrollView(
-            // Header-first on the page rhythm: breadcrumbs at 0, the card
-            // settling right behind. Inner blocks below cascade on their own
-            // rhythms — the banner stays static on purpose (Phase 7 flies it
-            // as a Hero, and a hero that fades while flying is doubled).
-            child: StaggerColumn(
-              pitch: MotionPitch.page,
+            // The banner flies in as a Hero target, so it sits OUTSIDE the
+            // stagger and never fades — a hero that fades while flying is
+            // doubled. Breadcrumbs and card cascade beneath it, header-first.
+            child: Column(
               children: [
+                _heroBanner(thesis),
+                StaggerColumn(
+                  pitch: MotionPitch.page,
+                  children: [
                 // 1. Breadcrumbs Bar
                 Container(
                   width: double.infinity,
@@ -355,6 +364,8 @@ class ThesisDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ],
+          ),
           );
         },
         error: (err, _) => Center(child: Text('Error: $err')),
@@ -395,6 +406,47 @@ class ThesisDetailScreen extends ConsumerWidget {
           sidebar,
           Expanded(child: content),
         ],
+      ),
+    );
+  }
+
+  /// Banner Hero TARGET: the coloured slab the card banner flies into.
+  ///
+  /// Static by construction — it sits outside the stagger, so no fade can
+  /// double the flight. The shuttle carries the slab colour only, never the
+  /// pill text: flying a text block produces smeared, illegible type
+  /// mid-flight. The match badge deliberately gets no hero (a second flying
+  /// pill would read as a competing motion).
+  Widget _heroBanner(Thesis thesis) {
+    final color = ThesisCard
+        .bannerPalette[thesis.id % ThesisCard.bannerPalette.length];
+    return Hero(
+      tag: thesisBannerTag(thesis.id),
+      flightShuttleBuilder:
+          (flightContext, animation, direction, fromContext, toContext) =>
+              ColoredBox(color: color),
+      child: Container(
+        width: double.infinity,
+        height: 120,
+        color: color,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        alignment: Alignment.bottomLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: CScholarMaterial.shadowLight,
+            borderRadius: BorderRadius.circular(CScholarRadius.sm),
+          ),
+          child: Text(
+            thesis.researchType.toUpperCase(),
+            style: CScholarTextStyles.inter(
+              10,
+              FontWeight.w700,
+              CScholarMaterial.textPrimary,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -443,19 +495,24 @@ class ThesisDetailScreen extends ConsumerWidget {
         const SizedBox(height: 14),
 
         // Title rises just behind the card (+60): close enough to read as
-        // one arrival, late enough to read after it.
+        // one arrival, late enough to read after it. The title is also the
+        // Hero source's target — it flies here from the card while rising,
+        // which reads as landing rather than doubling (unlike a fading slab).
         Stagger(
           index: 1,
           step: MotionPitch.page.step,
           max: MotionPitch.page.max,
           rise: MotionPitch.page.rise,
-          child: Text(
-            thesis.title,
-            style: CScholarTextStyles.poppins(
-              26,
-              FontWeight.w800,
-              CScholarColors.textPrimary,
-              height: 1.25,
+          child: Hero(
+            tag: thesisTitleTag(thesis.id),
+            child: Text(
+              thesis.title,
+              style: CScholarTextStyles.poppins(
+                26,
+                FontWeight.w800,
+                CScholarColors.textPrimary,
+                height: 1.25,
+              ),
             ),
           ),
         ),
@@ -506,57 +563,89 @@ class ThesisDetailScreen extends ConsumerWidget {
 
         const SizedBox(height: 24),
 
-        // Action Buttons: View PDF, Save, Share
-        Wrap(
-          spacing: 12,
-          runSpacing: 10,
-          children: [
-            NeumorphButton(
-              onPressed: thesis.pdfUrl == null
-                  ? null
-                  : () {
-                      final pdfUrl = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}/pdf';
-                      _openPdfInNewTab(context, ref, pdfUrl);
-                    },
-              icon: Icons.remove_red_eye_outlined,
-              label: thesis.pdfUrl == null ? 'No PDF' : 'View PDF',
-            ),
-            if (showSave)
+          // Action Buttons: View PDF, Save, Share
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
               NeumorphButton(
-                onPressed: () => ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id),
-                gel: isSaved,
-                icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
-                label: isSaved ? 'Saved' : 'Save',
+                onPressed: thesis.pdfUrl == null
+                    ? null
+                    : () {
+                        final pdfUrl = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}/pdf';
+                        _openPdfInNewTab(context, ref, pdfUrl);
+                      },
+                icon: Icons.remove_red_eye_outlined,
+                label: thesis.pdfUrl == null ? 'No PDF' : 'View PDF',
               ),
-            NeumorphButton(
-              onPressed: () async {
-                final link = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}';
-                await Clipboard.setData(ClipboardData(text: link));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Study share link copied to clipboard!')),
-                  );
-                }
-              },
-              gel: false,
-              icon: Icons.share_outlined,
-              label: 'Share',
+              // The save control is a TactileToggle: sinks on press, springs
+              // on release, one-shot gold ring on save. The tooltip keeps the
+              // affordance hint the old 'Save' label carried.
+              if (showSave)
+                Tooltip(
+                  message: isSaved ? 'Saved — tap to remove' : 'Save study',
+                  child: TactileToggle(
+                    selected: isSaved,
+                    onChanged: () => ref
+                        .read(savedThesisIdsProvider.notifier)
+                        .toggle(thesis.id),
+                    icon: Icons.bookmark_outline,
+                    selectedIcon: Icons.bookmark,
+                    semanticLabel: isSaved ? 'Saved' : 'Save study',
+                  ),
+                ),
+              NeumorphButton(
+                onPressed: () async {
+                  final link = '${AppConfig.apiBaseUrl}/api/theses/${thesis.id}';
+                  await Clipboard.setData(ClipboardData(text: link));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Study share link copied to clipboard!')),
+                    );
+                  }
+                },
+                gel: false,
+                icon: Icons.share_outlined,
+                label: 'Share',
+              ),
+              NeumorphButton(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: _citation(thesis)));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('APA citation copied to clipboard!')),
+                    );
+                  }
+                },
+                gel: false,
+                icon: Icons.format_quote_outlined,
+                label: 'Cite',
+              ),
+            ],
+          ),
+          // Semantic match meter, when the entry point computed one: the bar
+          // fills and the number counts up together over the page budget, so
+          // neither can land before the other and read as a bug. Absent on
+          // direct loads and keyword entries — no score, no meter.
+          if (similarity != null) ...[
+            const SizedBox(height: 24),
+            Text(
+              'SEMANTIC MATCH',
+              style: CScholarTextStyles.inter(
+                12,
+                FontWeight.w700,
+                CScholarColors.textSecondary,
+                letterSpacing: 1.0,
+              ),
             ),
-            NeumorphButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: _citation(thesis)));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('APA citation copied to clipboard!')),
-                  );
-                }
-              },
-              gel: false,
-              icon: Icons.format_quote_outlined,
-              label: 'Cite',
+            const SizedBox(height: 8),
+            EntranceReveal(
+              delay: const Duration(milliseconds: 140),
+              rise: 0,
+              child: ScoreMeter(score: similarity!),
             ),
           ],
-        ),
       ],
     );
   }

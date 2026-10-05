@@ -46,7 +46,14 @@ class ResultCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: InkWell(
-                        onTap: () => context.go('/thesis/${thesis.id}'),
+                        onTap: () => context.go(
+                          '/thesis/${thesis.id}',
+                          // Semantic entries hand their score through: the
+                          // detail screen meters it, keyword entries meter
+                          // nothing. Extra never survives a pasted URL — the
+                          // meter then stays off instead of guessing.
+                          extra: similarity,
+                        ),
                         child: Text(
                           thesis.title,
                           maxLines: 2,
@@ -107,7 +114,10 @@ class ResultCard extends StatelessWidget {
                 Row(
                   children: [
                     InkWell(
-                      onTap: () => context.go('/thesis/${thesis.id}'),
+                      onTap: () => context.go(
+                        '/thesis/${thesis.id}',
+                        extra: similarity,
+                      ),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
