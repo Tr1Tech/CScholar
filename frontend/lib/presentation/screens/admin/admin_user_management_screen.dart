@@ -148,7 +148,10 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
                     onPressed: () => _toggleActive(context, ref, u),
                     tooltip: u.isActive ? 'Deactivate user' : 'Reactivate user',
                     size: 36,
-                    icon: u.isActive ? Icons.block : Icons.check_circle_outline,
+                    // State morphs instead of hard-swapping.
+                    icon: Icons.block,
+                    selectedIcon: Icons.check_circle_outline,
+                    selected: !u.isActive,
                   ),
                 ],
               )),
@@ -257,7 +260,15 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
                 label: 'Password (min 6 characters)',
                 obscureText: obscure,
                 suffixIcon: IconButton(
-                  icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                  // Outline <-> filled morphs instead of hard-swapping.
+                  icon: MorphIcon(
+                    icon: Icons.visibility,
+                    selectedIcon: Icons.visibility_off,
+                    selected: obscure,
+                    color: CScholarColors.textMuted,
+                    selectedColor: CScholarColors.textMuted,
+                    size: 18,
+                  ),
                   onPressed: () => setDialog(() => obscure = !obscure),
                 ),
               ),

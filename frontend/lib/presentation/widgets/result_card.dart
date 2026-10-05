@@ -141,10 +141,15 @@ class ResultCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    // Outline <-> filled morphs through the button's MorphIcon
+                    // instead of hard-swapping: the eye reads it as a
+                    // response, not a repaint.
                     NeumorphIconButton(
                       tooltip: isSaved ? 'Remove from Saved' : 'Save Study',
                       size: 36,
-                      icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                      icon: Icons.bookmark_outline,
+                      selectedIcon: Icons.bookmark,
+                      selected: isSaved,
                       onPressed: onToggleSave,
                     ),
                   ],

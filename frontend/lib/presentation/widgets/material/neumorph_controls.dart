@@ -414,6 +414,11 @@ class NeumorphButton extends StatelessWidget {
 }
 
 /// Icon-only button. Always pass a [tooltip] for icon-only web controls.
+///
+/// When [selectedIcon] is set, the glyph cross-fades and pops through
+/// [MorphIcon] instead of hard-swapping — toggles (save, block, visibility)
+/// must never repaint their glyph. Null keeps the single static glyph,
+/// exactly as before.
 class NeumorphIconButton extends StatelessWidget {
   const NeumorphIconButton({
     super.key,
@@ -423,6 +428,8 @@ class NeumorphIconButton extends StatelessWidget {
     this.size = 44,
     this.tooltip,
     this.previewState,
+    this.selectedIcon,
+    this.selected = false,
   });
 
   final IconData icon;
@@ -432,9 +439,25 @@ class NeumorphIconButton extends StatelessWidget {
   final String? tooltip;
   final NeumorphState? previewState;
 
+  /// Morph target for state toggles. Paired with [selected].
+  final IconData? selectedIcon;
+
+  /// Which glyph shows when [selectedIcon] is set.
+  final bool selected;
+
   @override
   Widget build(BuildContext context) {
     final foreground = gel ? Colors.white : CScholarMaterial.textPrimary;
+    final glyph = selectedIcon == null
+        ? Icon(icon, size: size * 0.42, color: foreground)
+        : MorphIcon(
+            icon: icon,
+            selectedIcon: selectedIcon!,
+            selected: selected,
+            color: foreground,
+            selectedColor: foreground,
+            size: size * 0.42,
+          );
     final button = _NeumorphBase(
       radius: size / 2,
       gel: gel,
@@ -446,7 +469,7 @@ class NeumorphIconButton extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: Icon(icon, size: size * 0.42, color: foreground),
+        child: glyph,
       ),
     );
     if (tooltip == null) return button;

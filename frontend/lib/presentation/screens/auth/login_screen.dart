@@ -129,30 +129,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               validator: (v) => (v == null || v.length < 4)
                   ? 'Password must be at least 4 characters'
                   : null,
-              suffixIcon: AnimatedSwitcher(
-                duration: motionDuration(context, CScholarDurations.fast),
-                switchInCurve: CScholarCurves.entrance,
-                switchOutCurve: CScholarCurves.entrance,
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(
-                    scale: Tween<double>(begin: 0.75, end: 1.0)
-                        .animate(animation),
-                    child: child,
-                  ),
+              suffixIcon: IconButton(
+                tooltip: _obscure ? 'Show password' : 'Hide password',
+                // Outline <-> filled morphs instead of hard-swapping (the
+                // ad-hoc switcher this replaces is now one shared primitive).
+                icon: MorphIcon(
+                  icon: Icons.visibility_outlined,
+                  selectedIcon: Icons.visibility_off_outlined,
+                  selected: _obscure,
+                  color: CScholarColors.textMuted,
+                  selectedColor: CScholarColors.textMuted,
+                  size: 18,
                 ),
-                child: IconButton(
-                  key: ValueKey<bool>(_obscure),
-                  tooltip: _obscure ? 'Show password' : 'Hide password',
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    size: 18,
-                    color: CScholarColors.textMuted,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
+                onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
 
