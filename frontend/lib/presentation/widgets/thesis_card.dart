@@ -4,8 +4,9 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 
-class ThesisCard extends StatelessWidget {
+class ThesisCard extends StatefulWidget {
   final Thesis thesis;
   final double? similarityScore;
   final VoidCallback? onTap;
@@ -33,36 +34,95 @@ class ThesisCard extends StatelessWidget {
   ];
 
   @override
+  State<ThesisCard> createState() => _ThesisCardState();
+}
+
+/// Hover state for the banner zoom. The card keeps its `CScholarCard` lift;
+/// this owns only whether the pointer is over the card, so the banner can
+/// answer separately from the lift.
+class _ThesisCardState extends State<ThesisCard> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
+    // Reduced motion (and touch, which never hovers) holds the banner at 1.0
+    // exactly — never a snapped zoom.
+    final animate = motionEnabled(context);
     return GestureDetector(
-      onTap: onTap ?? () => context.go('/thesis/${thesis.id}'),
-      child: CScholarCard(
-        padding: EdgeInsets.zero,
-        lift: true,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(CScholarRadius.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _banner(),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: _body(),
+      onTap: widget.onTap ?? () => context.go('/thesis/${widget.thesis.id}'),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: CScholarCard(
+          padding: EdgeInsets.zero,
+          lift: true,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(CScholarRadius.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // The banner zooms to 1.03 inside its OWN clip (top corners
+                // match the card, bottom stays square into the body), so the
+                // zoom crops instead of overflowing. Transform only, over the
+                // swap budget — the most premium micro-interaction available
+                // for one transform.
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(CScholarRadius.xl),
+                  ),
+                  child: AnimatedScale(
+                    scale: animate && _hover ? 1.03 : 1.0,
+                    duration:
+                        animate ? CScholarMotion.swap : Duration.zero,
+                    curve: CScholarCurves.settle,
+                    child: _banner(),
+                  ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: _body(),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
   Widget _banner() {
+    final flat = MediaQuery.highContrastOf(context);
     return Container(
       height: 76,
       color: _headerColor,
       child: Stack(
         children: [
+          // Soft radial glow bleeding off the top-right corner, WayFinder
+          // NextClassCard-style: light on the dark banner, never behind the
+          // title pill (top-left) or the badge. Decoration only — dropped
+          // under high contrast with every other glow — and STATIC: a
+          // breathing loop on every card in a forty-result grid would blow
+          // the three-loop viewport budget, so the halo does not tick.
+          if (!flat)
+            Positioned(
+              right: -36,
+              top: -44,
+              child: Container(
+                width: 128,
+                height: 128,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      CScholarMaterial.shadowLight.withValues(alpha: 0.20),
+                      CScholarMaterial.shadowLight.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             right: 12,
             bottom: 4,
@@ -89,7 +149,7 @@ class ThesisCard extends StatelessWidget {
                     boxShadow: CScholarMaterial.clayDrop(depth: 0.3),
                   ),
                   child: Text(
-                    thesis.researchType.toUpperCase(),
+                    widget.thesis.researchType.toUpperCase(),
                     style: CScholarTextStyles.inter(
                       10,
                       FontWeight.w700,
@@ -99,7 +159,8 @@ class ThesisCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                if (similarityScore != null) _semanticBadge(similarityScore!),
+                if (widget.similarityScore != null)
+                  _semanticBadge(widget.similarityScore!),
               ],
             ),
           ),
@@ -113,7 +174,7 @@ class ThesisCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
                     Text(
-                      thesis.title,
+                      widget.thesis.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: CScholarTextStyles.poppins(
@@ -124,9 +185,9 @@ class ThesisCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    if (thesis.authors != null && thesis.authors!.isNotEmpty)
+                    if (widget.thesis.authors != null && widget.thesis.authors!.isNotEmpty)
                       Text(
-                        thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', '),
+                        widget.thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: CScholarTextStyles.inter(
@@ -138,16 +199,16 @@ class ThesisCard extends StatelessWidget {
                     const Spacer(),
                     Row(
                       children: [
-                        if ((thesis.program?.code ?? '').isNotEmpty)
+                        if ((widget.thesis.program?.code ?? '').isNotEmpty)
                           Flexible(
-                            child: _tag(thesis.program!.code),
+                            child: _tag(widget.thesis.program!.code),
                           ),
-                        if ((thesis.program?.code ?? '').isNotEmpty &&
-                            (thesis.academicYear?.label ?? '').isNotEmpty)
+                        if ((widget.thesis.program?.code ?? '').isNotEmpty &&
+                            (widget.thesis.academicYear?.label ?? '').isNotEmpty)
                           const SizedBox(width: 8),
-                        if ((thesis.academicYear?.label ?? '').isNotEmpty)
+                        if ((widget.thesis.academicYear?.label ?? '').isNotEmpty)
                           Text(
-                            thesis.academicYear!.label,
+                            widget.thesis.academicYear!.label,
                             style: CScholarTextStyles.inter(
                               11,
                               FontWeight.w500,
@@ -215,5 +276,6 @@ class ThesisCard extends StatelessWidget {
     );
   }
 
-  Color get _headerColor => bannerPalette[thesis.id % bannerPalette.length];
+  Color get _headerColor =>
+      ThesisCard.bannerPalette[widget.thesis.id % ThesisCard.bannerPalette.length];
 }

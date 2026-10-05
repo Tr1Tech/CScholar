@@ -313,6 +313,7 @@ class Stagger extends StatelessWidget {
     this.rise = 12,
     this.origin = const Offset(0, 1),
     this.delay,
+    this.scaleFrom = 1.0,
   });
 
   final int index;
@@ -331,6 +332,11 @@ class Stagger extends StatelessWidget {
   /// to fit. When non-null, [index], [step] and [max] are ignored.
   final Duration? delay;
 
+  /// Starting scale, for rows that should *settle* onto the page rather than
+  /// just fade — see [EntranceReveal.scaleFrom]. `1.0` (the default) adds no
+  /// scale node at all, so every existing call site is untouched.
+  final double scaleFrom;
+
   @override
   Widget build(BuildContext context) {
     final effective = delay ??
@@ -342,6 +348,7 @@ class Stagger extends StatelessWidget {
       delay: effective,
       rise: rise,
       origin: origin,
+      scaleFrom: scaleFrom,
       child: child,
     );
   }

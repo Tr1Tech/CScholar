@@ -164,6 +164,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
+  /// Signature of everything that defines the result set. Keying the result
+  /// columns on it makes a new query (or filter, sort, mode flip) build a
+  /// FRESH subtree, so the result cascade replays and the list reads as
+  /// re-forming instead of popping in place. Same positions reuse state only
+  /// while the signature holds — scrolling never replays.
+  String get _resultSignature => '$_query|$_selectedProgramId|'
+      '$_selectedYearId|$_selectedCategoryId|$_keyword|$_sortBy|'
+      '$_selectedType|$_isSemantic';
+
   /// Results list, with the AI rail beside it on wide screens.
   /// Rail and list scroll together as one column — no nested scroll views.
   Widget _resultsColumn(
@@ -183,10 +192,22 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         if (useSemantic)
           asyncSlot<List<SemanticResult>>(
             semantic,
-            skeleton: const SkeletonList(count: 4, cardHeight: 150),
+            // Silhouette skeletons: banner block + text lines + tag row, the
+            // same box the cards land in, so the cross-fade is the only
+            // movement at the swap — the page never jumps.
+            skeleton: Column(
+              children: [
+                for (var i = 0; i < 4; i++)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 14),
+                    child: ThesisSkeleton(),
+                  ),
+              ],
+            ),
             data: (results) {
               if (results.isEmpty) {
                 return Column(
+                  key: ValueKey(_resultSignature),
                   children: [
                     _semanticUnavailableNote(),
                     _noResultsFound(),
@@ -194,10 +215,17 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 );
               }
               final filtered = _filterSemanticResults(results);
-              if (filtered.isEmpty) return _noResultsFound();
+              if (filtered.isEmpty) {
+                return Column(
+                  key: ValueKey(_resultSignature),
+                  children: [_noResultsFound()],
+                );
+              }
               return Column(
                 // Thesis results step on the result pitch: long enough to be
-                // seen, clamped hard so forty results never crawl.
+                // seen, clamped hard so forty results never crawl. Keyed on
+                // the result signature, so every re-form replays the landing.
+                key: ValueKey(_resultSignature),
                 children: [
                   for (var i = 0; i < filtered.length; i++)
                     Stagger(
@@ -205,6 +233,8 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                       step: MotionPitch.result.step,
                       max: MotionPitch.result.max,
                       rise: MotionPitch.result.rise,
+                      // New batches settle (0.98), not just fade.
+                      scaleFrom: 0.98,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 14),
                         child: ResultCard(
@@ -232,12 +262,27 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         else
           asyncSlot<List<Thesis>?>(
             theses,
-            skeleton: const SkeletonList(count: 4, cardHeight: 150),
+            // Same silhouette skeletons as the semantic branch.
+            skeleton: Column(
+              children: [
+                for (var i = 0; i < 4; i++)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 14),
+                    child: ThesisSkeleton(),
+                  ),
+              ],
+            ),
             data: (list) {
-              if (list == null || list.isEmpty) return _noResultsFound();
+              if (list == null || list.isEmpty) {
+                return Column(
+                  key: ValueKey(_resultSignature),
+                  children: [_noResultsFound()],
+                );
+              }
               return Column(
                 // Same result rhythm for the keyword branch: both result lists
                 // read as one re-forming cascade, never a pop-in.
+                key: ValueKey(_resultSignature),
                 children: [
                   for (var i = 0; i < list.length; i++)
                     Stagger(
@@ -245,6 +290,8 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                       step: MotionPitch.result.step,
                       max: MotionPitch.result.max,
                       rise: MotionPitch.result.rise,
+                      // New batches settle (0.98), not just fade.
+                      scaleFrom: 0.98,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 14),
                         child: ResultCard(
@@ -304,6 +351,31 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           ],
         );
       },
+    );
+  }
+
+  /// Seated state for the filter strip, read from the shell's [ScrollVeil].
+  ///
+  /// At rest the strip is flush and rimless; once content scrolls underneath
+  /// it gains the strong rim and a deeper shadow. Colour/shadow only over
+  /// [CScholarMotion.swap] — nothing reflows. The rest-state border is
+  /// transparent (not absent) so seating never changes the box by a pixel.
+  /// No veil above (mobile shell) reads as rest; reduced motion snaps.
+  Widget _seatedStrip(Widget child) {
+    final seated = ScrollVeil.seatedOf(context) ?? false;
+    final animate = motionEnabled(context);
+    return AnimatedContainer(
+      duration: animate ? CScholarMotion.swap : Duration.zero,
+      curve: CScholarCurves.standard,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(CScholarRadius.md),
+        border: Border.all(
+          color: seated ? CScholarMaterial.rimStrong : Colors.transparent,
+        ),
+        boxShadow:
+            seated ? CScholarMaterial.clayDrop(depth: 0.8) : const [],
+      ),
+      child: child,
     );
   }
 
@@ -391,17 +463,17 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     // Below the breakpoint the title owns the line and the controls drop
     // under it; above it they sit beside the title exactly as before.
     if (size.width <= 920) {
-      return Column(
+      return _seatedStrip(Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           title,
           const SizedBox(height: 12),
           controls,
         ],
-      );
+      ));
     }
 
-    return Row(
+    return _seatedStrip(Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -411,7 +483,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         // of forcing the title column to zero width.
         Flexible(child: controls),
       ],
-    );
+    ));
   }
 
   Widget _hero(BuildContext context, bool isWide) {

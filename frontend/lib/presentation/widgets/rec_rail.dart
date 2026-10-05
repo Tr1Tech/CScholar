@@ -78,10 +78,18 @@ class RecRail extends ConsumerWidget {
                   12, FontWeight.w500, CScholarColors.textMuted));
         }
         return Column(
+          // Rail rows step dense on tight inside the rail gliding in from
+          // the right — one gesture per row, never competing with the page.
           children: [
             for (var i = 0; i < top.length; i++) ...[
               if (i > 0) const Divider(height: 16),
-              _recRow(context, top[i].thesis, top[i].similarity),
+              Stagger(
+                index: i,
+                step: MotionPitch.tight.step,
+                max: MotionPitch.tight.max,
+                rise: MotionPitch.tight.rise,
+                child: _recRow(context, top[i].thesis, top[i].similarity),
+              ),
             ],
           ],
         );
