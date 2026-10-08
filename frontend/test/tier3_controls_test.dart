@@ -636,7 +636,11 @@ void main() {
         'ClayProgressBar': ('clay_progress.dart', 1),
         'ClayLoader': ('clay_progress.dart', 1),
         'GlassPanel': ('glass_panel.dart', 1),
-        'GlassGroup': ('glass_panel.dart', 1),
+        // No GlassGroup entry since the repository green hero was removed as
+        // a product decision: no shipping screen stacks multiple glass panels
+        // over one backdrop anymore, so there is no shared blur pass to own.
+        // GlassGroup remains for the design lab and future multi-panel
+        // overlays — a lab-only primitive with a named reason, not drift.
         'GlassDialog': ('glass_panel.dart', 1),
         'HoverLift': ('hover_lift.dart', 1),
         'NeumorphField': ('neumorph_field.dart', 1),
@@ -645,9 +649,10 @@ void main() {
         'NeumorphSegmented': ('neumorph_select.dart', 1),
         'ClayChip': ('clay_objects.dart', 1),
         'NeumorphButton': ('neumorph_controls.dart', 10),
-        // 9 since the landing page was removed as a product decision — the
-        // icon button is still adopted across every shell and screen family.
-        'NeumorphIconButton': ('neumorph_controls.dart', 9),
+        // 8 since the dashboard hero went display-only as a product decision
+        // (was 9 since the landing page was removed) — the icon button is
+        // still adopted across every shell and screen family.
+        'NeumorphIconButton': ('neumorph_controls.dart', 8),
       };
 
       final sources = <String, String>{};
@@ -866,13 +871,14 @@ void main() {
     });
 
     test('no stock text field outside the primitives and the allow-list', () {
-      // NeumorphField is the system's ONE text input. Two deliberate
-      // exceptions remain, both decided — not overlooked:
-      //   * the landing + repository hero searches are borderless interiors
-      //     of a GlassPanel; a clay well nested inside glass would put two
-      //     styles on one element;
+      // NeumorphField is the system's ONE text input. One deliberate
+      // exception remains, decided — not overlooked:
       //   * TopbarSearchField is a bespoke pill-radius tonal well (the
       //     primitive only ships md radius), flat-aware with its own rim.
+      // `landing_screen.dart` and the repository hero stay in the allow-list
+      // as history (both were borderless GlassPanel interiors before their
+      // removals as product decisions) — entries with no TextField simply
+      // never trigger.
       const allowed = {
         'lib/presentation/screens/landing_screen.dart',
         'lib/presentation/screens/repository/repository_screen.dart',

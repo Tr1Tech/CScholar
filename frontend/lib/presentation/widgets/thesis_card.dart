@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
@@ -49,6 +50,25 @@ class ThesisCard extends StatefulWidget {
     Color(0xFFB45309),
   ];
 
+  /// Generative cover gradient for a thesis id — same source as [ThesisCover]
+  /// so grid, list and detail banners always agree.
+  static List<Color> gradientFor(int id) =>
+      CScholarColors.coverGradients[id % CScholarColors.coverGradients.length];
+
+  static const List<IconData> _coverIcons = [
+    Icons.article_outlined,
+    Icons.science_outlined,
+    Icons.computer_outlined,
+    Icons.psychology_outlined,
+    Icons.engineering_outlined,
+    Icons.analytics_outlined,
+    Icons.school_outlined,
+    Icons.lightbulb_outline,
+  ];
+
+  static IconData iconFor(int id) => _coverIcons[
+      (id ~/ CScholarColors.coverGradients.length) % _coverIcons.length];
+
   @override
   State<ThesisCard> createState() => _ThesisCardState();
 }
@@ -58,6 +78,27 @@ class ThesisCard extends StatefulWidget {
 /// answer separately from the lift.
 class _ThesisCardState extends State<ThesisCard> {
   bool _hover = false;
+  bool _focused = false;
+  final FocusNode _node = FocusNode();
+
+  @override
+  void dispose() {
+    _node.dispose();
+    super.dispose();
+  }
+
+  void _open(BuildContext context) {
+    // Semantic landings hand their score through (see ResultCard): the
+    // detail screen meters it, plain taps meter nothing.
+    if (widget.onTap != null) {
+      widget.onTap!();
+    } else {
+      context.go(
+        '/thesis/${widget.thesis.id}',
+        extra: widget.similarityScore,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,20 +110,34 @@ class _ThesisCardState extends State<ThesisCard> {
     // BOTH fire, so a toggle inside the card would also navigate. Siblings
     // are exclusive — the topmost opaque hit wins and the card never hears
     // the toggle's tap.
-    return Stack(
+    return Semantics(
+      button: true,
+      label: widget.thesis.title,
+      hint: 'Open study details',
+      child: Stack(
       children: [
-        GestureDetector(
+        Focus(
+          focusNode: _node,
+          onFocusChange: (v) => setState(() => _focused = v),
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                (event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.space)) {
+              _open(context);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: GestureDetector(
           // Semantic landings hand their score through (see ResultCard): the
           // detail screen meters it, plain taps meter nothing.
-          onTap: widget.onTap ??
-              () => context.go(
-                    '/thesis/${widget.thesis.id}',
-                    extra: widget.similarityScore,
-                  ),
+          onTap: () => _open(context),
           child: MouseRegion(
             onEnter: (_) => setState(() => _hover = true),
             onExit: (_) => setState(() => _hover = false),
-            child: CScholarCard(
+            child: Stack(
+              children: [
+                CScholarCard(
               padding: EdgeInsets.zero,
               lift: true,
               child: ClipRRect(
@@ -116,7 +171,30 @@ class _ThesisCardState extends State<ThesisCard> {
                   ],
                 ),
               ),
+                ),
+                // Focus ring painted OVER the card — never around it, so it
+                // adds zero pixels to layout (same contract as ClayNavList).
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: AnimatedContainer(
+                      duration: animate
+                          ? CScholarMotion.micro
+                          : Duration.zero,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                            CScholarRadius.xl),
+                        border: Border.all(
+                          color: CScholarMaterial.gelTop.withValues(
+                              alpha: _focused ? 0.55 : 0),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+          ),
           ),
         ),
         // Save toggle rides top-right on the banner when the card is
@@ -140,14 +218,23 @@ class _ThesisCardState extends State<ThesisCard> {
             ),
           ),
       ],
+      ),
     );
   }
 
   Widget _banner() {
     final flat = MediaQuery.highContrastOf(context);
+    final gradient = ThesisCard.gradientFor(widget.thesis.id);
+    final icon = ThesisCard.iconFor(widget.thesis.id);
     final banner = Container(
-      height: 76,
-      color: _headerColor,
+      height: 92,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+      ),
       child: Stack(
         children: [
           // Soft radial glow bleeding off the top-right corner, WayFinder
@@ -176,13 +263,36 @@ class _ThesisCardState extends State<ThesisCard> {
             ),
           Positioned(
             right: 12,
-            bottom: 4,
+            bottom: -8,
             child: Icon(
-              Icons.article_outlined,
+              icon,
               color: CScholarMaterial.shadowLight.withValues(alpha: 0.22),
-              size: 48,
+              size: 64,
             ),
           ),
+          Positioned(
+            right: 14,
+            bottom: 10,
+            child: Icon(
+              icon,
+              color: CScholarMaterial.shadowLight.withValues(alpha: 0.92),
+              size: 22,
+            ),
+          ),
+          // Gold identity dot — same mark as ThesisCover, ties grid to list.
+          if (!flat)
+            Positioned(
+              top: 10,
+              right: 12,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: CScholarMaterial.goldTop,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Column(
@@ -219,7 +329,7 @@ class _ThesisCardState extends State<ThesisCard> {
       ),
     );
     // Banner Hero SOURCE: the slab flies into the detail header. Only the
-    // colour travels (flightShuttleBuilder) — text mid-flight smears. Off on
+    // gradient travels (flightShuttleBuilder) — text mid-flight smears. Off on
     // the target route via [heroBanner], so source and target can never share
     // a tag in one subtree.
     if (!widget.heroBanner) return banner;
@@ -227,7 +337,15 @@ class _ThesisCardState extends State<ThesisCard> {
       tag: thesisBannerTag(widget.thesis.id),
       flightShuttleBuilder:
           (flightContext, animation, direction, fromContext, toContext) =>
-              ColoredBox(color: _headerColor),
+              Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+        ),
+      ),
       child: banner,
     );
   }
@@ -238,10 +356,10 @@ class _ThesisCardState extends State<ThesisCard> {
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       style: CScholarTextStyles.poppins(
-        14.5,
+        14,
         FontWeight.w700,
         CScholarColors.textPrimary,
-        height: 1.3,
+        height: 1.35,
       ),
     );
     return Column(
@@ -292,34 +410,38 @@ class _ThesisCardState extends State<ThesisCard> {
     );
   }
 
-  /// Match badge. The fill is the system scrim (slate-tinted, not a black
-  /// alpha) so it belongs to the palette; white ink stays legible on every
-  /// banner stop in [_bannerPalette].
+  /// Match badge — gold AI identity. Gold paper fill + amber ink (5.42:1 on
+  /// goldSoft) so AI matches read as prestige, not as another green status.
+  /// Max 1 per card, never behind body text.
   Widget _semanticBadge(double score) {
     final pct = (score * 100).round();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: CScholarMaterial.scrim,
-        borderRadius: BorderRadius.circular(CScholarRadius.full),
-        border: Border.all(
-          color: CScholarMaterial.shadowLight.withValues(alpha: 0.45),
+    return Tooltip(
+      message:
+          'AI semantic match — ranked by meaning, not keywords. Tap to see why.',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: CScholarColors.goldSoft,
+          borderRadius: BorderRadius.circular(CScholarRadius.full),
+          border: Border.all(color: CScholarMaterial.rimDraft),
+          boxShadow: CScholarShadows.goldGlow,
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.auto_awesome, size: 11, color: CScholarColors.gold),
-          const SizedBox(width: 4),
-          Text(
-            '$pct% match',
-            style: CScholarTextStyles.inter(
-              10.5,
-              FontWeight.w700,
-              CScholarMaterial.shadowLight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.auto_awesome,
+                size: 11, color: CScholarColors.warningFg),
+            const SizedBox(width: 4),
+            Text(
+              '$pct% match',
+              style: CScholarTextStyles.inter(
+                10.5,
+                FontWeight.w700,
+                CScholarColors.warningFg,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -346,7 +468,4 @@ class _ThesisCardState extends State<ThesisCard> {
       ),
     );
   }
-
-  Color get _headerColor =>
-      ThesisCard.bannerPalette[widget.thesis.id % ThesisCard.bannerPalette.length];
 }

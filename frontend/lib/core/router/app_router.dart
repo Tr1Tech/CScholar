@@ -120,6 +120,8 @@ final appRouter = Provider<GoRouter>((ref) {
             path: '/repository',
             builder: (context, state) => RepositoryScreen(
               initialQuery: state.uri.queryParameters['q'],
+              initialSemantic:
+                  state.uri.queryParameters['mode'] == 'semantic',
             ),
           ),
           GoRoute(

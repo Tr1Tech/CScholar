@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/common/auth_shell.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
@@ -151,32 +152,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        // control-exempt: Task C.1 — "Remember me" is still a
-                        // stock Checkbox; decide NeumorphToggle vs exemption.
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: (v) =>
-                              setState(() => _rememberMe = v ?? true),
-                          activeColor: CScholarColors.primaryGreen,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4)),
+                  child: Semantics(
+                    label: 'Remember me',
+                    toggled: _rememberMe,
+                    child: InkWell(
+                      borderRadius:
+                          BorderRadius.circular(CScholarRadius.full),
+                      onTap: () =>
+                          setState(() => _rememberMe = !_rememberMe),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            NeumorphToggle(
+                              value: _rememberMe,
+                              onChanged: (v) =>
+                                  setState(() => _rememberMe = v),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text('Remember me',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.inter(12,
+                                      FontWeight.w500,
+                                      CScholarColors.textMuted)),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text('Remember me',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: CScholarTextStyles.inter(12,
-                                FontWeight.w400, CScholarColors.textMuted)),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

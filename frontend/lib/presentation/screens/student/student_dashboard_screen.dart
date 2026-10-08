@@ -9,12 +9,12 @@ import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
-import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/motion_ambient.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
+import 'package:frontend/presentation/widgets/thesis_cover.dart';
 
 class StudentDashboardScreen extends ConsumerStatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -24,23 +24,6 @@ class StudentDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _search() {
-    final query = _searchController.text.trim();
-    if (query.isNotEmpty) {
-      context.go('/repository?q=${Uri.encodeComponent(query)}');
-    } else {
-      context.go('/repository');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -75,7 +58,9 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 StaggerColumn(
                   pitch: MotionPitch.page,
                   children: [
-                    // 1. Hero Greeting & Prominent Search Banner
+                    // 1. Greeting banner (display only — no actions).
+                    // Minimal by design: badge, greeting, date. Browsing
+                    // and searching live on the Repository page.
                     EntranceReveal(
                       scaleFrom: 0.98,
                       rise: 0,
@@ -86,62 +71,76 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         // panel's own surface (never behind glass or a list).
                         // Gated and bounded inside DriftingWash itself.
                         child: DriftingWash(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Good ${_timeOfDay()}${(user?.username ?? '').isEmpty ? '' : ', ${user!.username}'}!',
-                                style: CScholarTextStyles.poppins(
-                                  24,
-                                  FontWeight.w800,
-                                  CScholarColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'What are you researching today?',
-                                style: CScholarTextStyles.inter(
-                                  14,
-                                  FontWeight.w400,
-                                  CScholarColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              // Search row steps one page beat after the
-                              // greeting (+40): the eye lands on the hello,
-                              // then the box it can act on.
-                              Stagger(
-                                index: 1,
-                                step: MotionPitch.page.step,
-                                max: MotionPitch.page.max,
-                                rise: MotionPitch.page.rise,
-                                child: Container(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 840),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: NeumorphField(
-                                          controller: _searchController,
-                                          hintText:
-                                              'Search thesis, capstone, topic, author, keyword...',
-                                          textInputAction:
-                                              TextInputAction.search,
-                                          onSubmitted: (_) => _search(),
-                                        ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final isNarrow =
+                                  constraints.maxWidth < 760;
+                              final left = Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Eyebrow badge — institutional scope at a glance.
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: CScholarColors
+                                          .primaryGreenVeryLight,
+                                      borderRadius: BorderRadius.circular(
+                                          CScholarRadius.full),
+                                      border: Border.all(
+                                          color: CScholarMaterial
+                                              .rimPublished),
+                                    ),
+                                    child: Text(
+                                      'CEIT • 2025–2026 REPOSITORY',
+                                      style: CScholarTextStyles.inter(
+                                        10.5,
+                                        FontWeight.w700,
+                                        CScholarColors.primaryGreen,
+                                        letterSpacing: 0.6,
                                       ),
-                                      const SizedBox(width: 8),
-                                      NeumorphIconButton(
-                                        icon: Icons.search,
-                                        tooltip: 'Search',
-                                        gel: true,
-                                        onPressed: _search,
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Good ${_timeOfDay()}${(user?.username ?? '').isEmpty ? '' : ', ${user!.username}'}!',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: CScholarTextStyles.poppins(
+                                      24,
+                                      FontWeight.w800,
+                                      CScholarColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _greetingSubtitle(),
+                                    style: CScholarTextStyles.inter(
+                                      13.5,
+                                      FontWeight.w400,
+                                      CScholarColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              );
+                              if (isNarrow) return left;
+                              // Wide: a quiet decorative trio fills the
+                              // right side — static art, nothing to tap.
+                              return Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(flex: 7, child: left),
+                                  const SizedBox(width: 24),
+                                  const Expanded(
+                                    flex: 4,
+                                    child: _HeroArt(),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -281,6 +280,36 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         ),
       ),
     );
+  }
+
+  String _greetingSubtitle() {
+    final now = DateTime.now();
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    final day = weekdays[now.weekday - 1];
+    final month = months[now.month - 1];
+    return '$day, $month ${now.day}, ${now.year} • Browse and discover CEIT research below.';
   }
 
   Widget _metricCard({
@@ -589,24 +618,37 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                                   ],
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: CScholarColors
-                                      .primaryGreenVeryLight,
-                                  borderRadius: BorderRadius.circular(
-                                      CScholarRadius.full),
-                                  border: Border.all(
-                                      color:
-                                          CScholarMaterial.rimPublished),
-                                ),
-                                child: Text(
-                                  '${(r.similarity * 100).round()}%',
-                                  style: CScholarTextStyles.inter(
-                                      11,
-                                      FontWeight.w700,
-                                      CScholarColors.primaryGreen),
+                              Tooltip(
+                                message:
+                                    'AI recommendation — ${(r.similarity * 100).round()}% semantically similar to your recent views. Open to see why.',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: CScholarColors.goldSoft,
+                                    borderRadius: BorderRadius.circular(
+                                        CScholarRadius.full),
+                                    border: Border.all(
+                                        color:
+                                            CScholarMaterial.rimDraft),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.auto_awesome,
+                                          size: 11,
+                                          color:
+                                              CScholarColors.warningFg),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${(r.similarity * 100).round()}%',
+                                        style: CScholarTextStyles.inter(
+                                            11,
+                                            FontWeight.w700,
+                                            CScholarColors.warningFg),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -638,5 +680,49 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     if (hour < 12) return 'morning';
     if (hour < 17) return 'afternoon';
     return 'evening';
+  }
+}
+
+/// Static decorative trio for the greeting banner — pure display, no taps,
+/// no counts, no buttons. Kept compact so the banner stays a greeting.
+class _HeroArt extends StatelessWidget {
+  const _HeroArt();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 148,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            left: 12,
+            top: 12,
+            child: _TiltedCover(seed: 3, angle: -0.12),
+          ),
+          Positioned(
+            right: 12,
+            top: 12,
+            child: _TiltedCover(seed: 5, angle: 0.12),
+          ),
+          ThesisCover(seed: 1, width: 96, height: 120, iconSize: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _TiltedCover extends StatelessWidget {
+  final int seed;
+  final double angle;
+  const _TiltedCover({required this.seed, required this.angle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: angle,
+      child: ThesisCover(
+          seed: seed, width: 84, height: 104, iconSize: 32),
+    );
   }
 }

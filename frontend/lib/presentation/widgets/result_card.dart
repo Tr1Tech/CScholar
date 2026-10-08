@@ -190,36 +190,57 @@ class ResultCard extends StatelessWidget {
     );
   }
 
-  /// Real match badge — only rendered when a semantic similarity exists.
-  /// The ring is a SOLID token colour: at 35% alpha a 3px ring is a 1.4:1
-  /// affordance and disappears in bright light.
+  /// Real match badge — gold AI identity with explainability tooltip.
+  /// Circular data gauge, now gold paper + amber ink so AI rank is distinct
+  /// from green status chips. Fixed 52px slot (same as before) so the
+  /// repository row never reflows — the label scales down inside it.
   Widget _matchBadge(double score) {
     final pct = (score * 100).round().clamp(0, 100);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // tile-exempt: this is a circular DATA gauge carrying a percentage, not
-        // an icon tile — ClayIconTile would turn a number into a square chip.
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: CScholarColors.primaryGreenLight,
-            border: Border.all(
-                color: CScholarColors.primaryGreen, width: 2.5),
+    return Tooltip(
+      message:
+          'AI semantic match $pct% — ranked by meaning. Open the study to see related work.',
+      child: SizedBox(
+        width: 52,
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // tile-exempt: this is a circular DATA gauge carrying a percentage, not
+          // an icon tile — ClayIconTile would turn a number into a square chip.
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: CScholarColors.goldSoft,
+              border: Border.all(
+                  color: CScholarColors.warningFg, width: 2.5),
+              boxShadow: CScholarShadows.goldGlow,
+            ),
+            child: Center(
+              child: Text('$pct%',
+                  style: CScholarTextStyles.inter(
+                      13, FontWeight.w800, CScholarColors.warningFg)),
+            ),
           ),
-          child: Center(
-            child: Text('$pct%',
-                style: CScholarTextStyles.inter(
-                    13, FontWeight.w800, CScholarColors.primaryGreen)),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.auto_awesome,
+                    size: 10, color: CScholarColors.warningFg),
+                const SizedBox(width: 2),
+                Text('AI Match',
+                    style: CScholarTextStyles.inter(
+                        10, FontWeight.w700, CScholarColors.warningFg)),
+              ],
+            ),
           ),
+        ],
         ),
-        const SizedBox(height: 2),
-        Text('Match',
-            style: CScholarTextStyles.inter(
-                10, FontWeight.w500, CScholarColors.textMuted)),
-      ],
+      ),
     );
   }
 }

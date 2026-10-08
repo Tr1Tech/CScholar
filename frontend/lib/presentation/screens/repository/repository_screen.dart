@@ -6,7 +6,6 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
-import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -19,12 +18,14 @@ import 'package:frontend/presentation/widgets/result_card.dart';
 import 'package:frontend/presentation/widgets/rec_rail.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
-/// V2 repository (new design): gradient hero with glass search + live
-/// filter boxes, result cards with generative covers, AI rail.
+/// Research repository: light control header (title, search, quick topics,
+/// filters) over the results list with the AI rail.
 /// Semantic mode can be preselected via `?mode=semantic`.
 class RepositoryScreen extends ConsumerStatefulWidget {
   final String? initialQuery;
-  const RepositoryScreen({super.key, this.initialQuery});
+  final bool initialSemantic;
+  const RepositoryScreen(
+      {super.key, this.initialQuery, this.initialSemantic = false});
 
   @override
   ConsumerState<RepositoryScreen> createState() => _RepositoryScreenState();
@@ -47,6 +48,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   @override
   void initState() {
     super.initState();
+    _isSemantic = widget.initialSemantic;
     if (widget.initialQuery != null &&
         widget.initialQuery!.trim().isNotEmpty) {
       _query = widget.initialQuery!.trim();
@@ -137,23 +139,26 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            // The hero opens the page: fade only, no rise — it is a full-bleed
-            // surface, and a rising gradient reads as the page sliding.
-            Stagger(
-              index: 0,
-              step: MotionPitch.page.step,
-              max: MotionPitch.page.max,
-              rise: 0,
-              child: _hero(context, isWide),
-            ),
             Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: isWide ? 32 : 16, vertical: 24),
               child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 1200),
-                  child: _resultsColumn(context, useSemantic, theses,
-                      semantic, savedIds),
+                  child: StaggerColumn(
+                    pitch: MotionPitch.page,
+                    children: [
+                      // Control header opens the page: title, search and
+                      // filters in one light card — no full-bleed hero.
+                      EntranceReveal(
+                        rise: 0,
+                        child: _controlHeader(context, isWide),
+                      ),
+                      const SizedBox(height: 20),
+                      _resultsColumn(context, useSemantic, theses,
+                          semantic, savedIds),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -486,214 +491,317 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     ));
   }
 
-  Widget _hero(BuildContext context, bool isWide) {
+  /// Light control header — title, search, quick topics and filters in one
+  /// clay card. No full-bleed hero: the page stays bright and the search
+  /// field is a tonal well on clay, never white-on-green.
+  Widget _controlHeader(BuildContext context, bool isWide) {
     final programs = ref.watch(programsProvider);
     final academicYears = ref.watch(academicYearsProvider);
     final categories = ref.watch(categoriesProvider);
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-          horizontal: isWide ? 32 : 16, vertical: isWide ? 36 : 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            CScholarColors.heroDeep,
-            CScholarColors.heroMid,
-            CScholarColors.heroGlow,
-          ],
+
+    final programName = programs.maybeWhen(
+      data: (list) => list
+          .where((p) => p.id == _selectedProgramId)
+          .map((p) => p.name)
+          .join(),
+      orElse: () => '',
+    );
+    final yearLabel = academicYears.maybeWhen(
+      data: (list) => list
+          .where((y) => y.id == _selectedYearId)
+          .map((y) => y.label)
+          .join(),
+      orElse: () => '',
+    );
+    final categoryName = categories.maybeWhen(
+      data: (list) => list
+          .where((c) => c.id == _selectedCategoryId)
+          .map((c) => c.name)
+          .join(),
+      orElse: () => '',
+    );
+
+    final pills = <({String label, VoidCallback clear})>[
+      if (_selectedType != null)
+        (label: _selectedType!, clear: () => setState(() => _selectedType = null)),
+      if (_selectedProgramId != null && programName.isNotEmpty)
+        (
+          label: programName,
+          clear: () => setState(() => _selectedProgramId = null)
         ),
+      if (_selectedYearId != null && yearLabel.isNotEmpty)
+        (
+          label: yearLabel,
+          clear: () => setState(() => _selectedYearId = null)
+        ),
+      if (_selectedCategoryId != null && categoryName.isNotEmpty)
+        (
+          label: categoryName,
+          clear: () => setState(() => _selectedCategoryId = null)
+        ),
+      if (_keyword.isNotEmpty)
+        (
+          label: '“$_keyword”',
+          clear: () {
+            _keywordController.clear();
+            setState(() => _keyword = '');
+          }
+        ),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(isWide ? 24 : 18),
+      decoration: BoxDecoration(
+        color: CScholarMaterial.clay,
+        borderRadius: BorderRadius.circular(CScholarRadius.xl),
+        boxShadow: CScholarShadows.card,
       ),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          // One shared blur pass for the search pane plus the four filter
-          // panes below it — that is what GlassGroup exists for.
-          child: GlassGroup(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              Text('Discover. Learn. Build the Future.',
-                  style: CScholarTextStyles.poppins(
-                      isWide ? 30 : 24,
-                      FontWeight.w800,
-                      CScholarColors.white,
-                      height: 1.2)),
-              const SizedBox(height: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Text(
-                  'Find relevant theses and capstone projects using semantic search and AI-powered recommendations.',
-                  style: CScholarTextStyles.inter(
-                      13.5, FontWeight.w400, CScholarMaterial.shadowDark,
-                      height: 1.5),
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Eyebrow — scope at a glance, same language as the dashboard.
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: CScholarColors.primaryGreenVeryLight,
+              borderRadius: BorderRadius.circular(CScholarRadius.full),
+              border: Border.all(color: CScholarMaterial.rimPublished),
+            ),
+            child: Text(
+              'CEIT REPOSITORY • AI-POWERED SEARCH',
+              style: CScholarTextStyles.inter(
+                10.5,
+                FontWeight.w700,
+                CScholarColors.primaryGreen,
+                letterSpacing: 0.6,
               ),
-              const SizedBox(height: 18),
-              // Glass search box — the shared primitive, so the low-power kill
-              // switch (glassEnabled) and the high-contrast fallback apply.
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: GlassPanel(
-                  radius: CScholarRadius.lg,
-                  // Deliberate overrides of the chrome recipe — .62 fill /
-                  // 18 blur. The hero copy sits behind this box, so it needs a
-                  // more opaque, sharper pane to stay legible.
-                  fill: CScholarColors.white.withValues(alpha: 0.92),
-                  blur: 12,
-                  padding: const EdgeInsets.all(6),
-                  // The hero's dark gradient is the only content behind this
-                  // box, so a cast shadow would land on nothing.
-                  shadows: const [],
-                  child: Row(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Icon(Icons.search,
-                            color: CScholarColors.textHint, size: 22),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _heroController,
-                          onChanged: _onHeroChanged,
-                          onSubmitted: (_) => _submitHero(),
-                          style: CScholarTextStyles.inter(14,
-                              FontWeight.w400, CScholarColors.textPrimary),
-                          decoration: const InputDecoration(
-                            hintText:
-                                'Try searching for a topic, technology, or keyword...',
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            filled: false,
-                            contentPadding:
-                                EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                      NeumorphIconButton(
-                        onPressed: _submitHero,
-                        icon: Icons.arrow_forward,
-                        tooltip: 'Search',
-                        gel: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Live filter boxes
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final boxes = [
-                    _heroFilterBox<String>(
-                      label: 'Research Type',
-                      value: _selectedType,
-                      items: const {
-                        null: 'All',
-                        'Thesis': 'Thesis',
-                        'Capstone': 'Capstone',
-                      },
-                      onChanged: (v) =>
-                          setState(() => _selectedType = v),
-                    ),
-                    _heroFilterBox<int>(
-                      label: 'Program',
-                      value: _selectedProgramId,
-                      asyncItems: programs,
-                      itemLabel: (p) => (p as Program).name,
-                      itemId: (p) => (p as Program).id,
-                      onChanged: (v) =>
-                          setState(() => _selectedProgramId = v),
-                    ),
-                    _heroFilterBox<int>(
-                      label: 'Academic Year',
-                      value: _selectedYearId,
-                      asyncItems: academicYears,
-                      itemLabel: (y) => (y as AcademicYear).label,
-                      itemId: (y) => (y as AcademicYear).id,
-                      onChanged: (v) =>
-                          setState(() => _selectedYearId = v),
-                    ),
-                    _heroFilterBox<int>(
-                      label: 'Category',
-                      value: _selectedCategoryId,
-                      asyncItems: categories,
-                      itemLabel: (c) => (c as Category).name,
-                      itemId: (c) => (c as Category).id,
-                      onChanged: (v) =>
-                          setState(() => _selectedCategoryId = v),
-                    ),
-                  ];
-                  if (constraints.maxWidth > 860) {
-                    return Row(
-                      children: [
-                        for (var i = 0; i < boxes.length; i++) ...[
-                          // Filter boxes cascade on the tight rhythm — barely a
-                          // stagger, reading as one gesture. The wrapper sits
-                          // INSIDE the Expanded (never between Flex and flex).
-                          Expanded(
-                            child: Stagger(
-                              index: i,
-                              step: MotionPitch.tight.step,
-                              max: MotionPitch.tight.max,
-                              rise: MotionPitch.tight.rise,
-                              child: boxes[i],
-                            ),
-                          ),
-                          if (i < boxes.length - 1)
-                            const SizedBox(width: 10),
-                        ],
-                        const SizedBox(width: 10),
-                        TextButton.icon(
-                          onPressed: _activeFilterCount > 0
-                              ? _clearFilters
-                              : null,
-                          icon: const Icon(Icons.clear_all,
-                              size: 16, color: CScholarColors.white),
-                          label: const Text('Clear all',
-                              style: TextStyle(
-                                  fontSize: 12, color: CScholarColors.white)),
-                        ),
-                      ],
-                    );
-                  }
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      ...boxes.asMap().entries.map((entry) => SizedBox(
-                          width: (constraints.maxWidth - 10) / 2,
-                          child: Stagger(
-                            index: entry.key,
-                            step: MotionPitch.tight.step,
-                            max: MotionPitch.tight.max,
-                            rise: MotionPitch.tight.rise,
-                            child: entry.value,
-                          ))),
-                      if (_activeFilterCount > 0)
-                        TextButton.icon(
-                          onPressed: _clearFilters,
-                          icon: const Icon(Icons.clear_all,
-                              size: 16, color: CScholarColors.white),
-                          label: const Text('Clear all',
-                              style: TextStyle(
-                                  fontSize: 12, color: CScholarColors.white)),
-                        ),
-                    ],
-                  );
-                },
-              ),
-              ],
             ),
           ),
-        ),
+          const SizedBox(height: 10),
+          Text('Research Repository',
+              style: CScholarTextStyles.poppins(
+                  isWide ? 26 : 22,
+                  FontWeight.w800,
+                  CScholarColors.textPrimary,
+                  height: 1.2)),
+          const SizedBox(height: 6),
+          Text(
+            'Search CEIT theses and capstone projects by keyword — or toggle Semantic Search below to rank by meaning.',
+            style: CScholarTextStyles.inter(
+                13, FontWeight.w400, CScholarColors.textMuted,
+                height: 1.5),
+          ),
+          const SizedBox(height: 18),
+          // Search row: tonal well on clay + green go button.
+          Row(
+            children: [
+              Expanded(
+                child: NeumorphField(
+                  controller: _heroController,
+                  hintText:
+                      'Search by topic, technology, author, or keyword...',
+                  prefixIcon: Icons.search_outlined,
+                  textInputAction: TextInputAction.search,
+                  onChanged: _onHeroChanged,
+                  onSubmitted: (_) => _submitHero(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              NeumorphIconButton(
+                onPressed: _submitHero,
+                icon: Icons.arrow_forward,
+                tooltip: 'Search',
+                gel: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Quick topics — one tap to value, no filter hunting.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (final topic in const [
+                'Machine Learning',
+                'IoT',
+                'Web System',
+                'Mobile App',
+              ])
+                InkWell(
+                  borderRadius:
+                      BorderRadius.circular(CScholarRadius.full),
+                  onTap: () {
+                    _heroController.text = topic;
+                    _submitHero();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: CScholarMaterial.clayDeep,
+                      borderRadius: BorderRadius.circular(
+                          CScholarRadius.full),
+                      border:
+                          Border.all(color: CScholarMaterial.rim),
+                    ),
+                    child: Text(
+                      topic,
+                      style: CScholarTextStyles.inter(
+                        11.5,
+                        FontWeight.w600,
+                        CScholarColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: CScholarMaterial.rim, height: 1),
+          ),
+          // Filters — same card, own section. No more detached strip.
+          Row(
+            children: [
+              Text('FILTERS', style: CScholarTextStyles.sectionLabel),
+              const Spacer(),
+              if (_activeFilterCount > 0)
+                TextButton.icon(
+                  onPressed: _clearFilters,
+                  icon: const Icon(Icons.clear_all, size: 16),
+                  label: const Text('Clear all',
+                      style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: CScholarColors.textMuted,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final boxWidth = isWide
+                  ? (constraints.maxWidth - 30) / 4
+                  : (constraints.maxWidth - 10) / 2;
+              Widget box(Widget child) => SizedBox(
+                    width: boxWidth,
+                    child: child,
+                  );
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  box(_clayFilterBox<String>(
+                    label: 'Research Type',
+                    value: _selectedType,
+                    items: const {
+                      null: 'All',
+                      'Thesis': 'Thesis',
+                      'Capstone': 'Capstone',
+                    },
+                    onChanged: (v) =>
+                        setState(() => _selectedType = v),
+                  )),
+                  box(_clayFilterBox<int>(
+                    label: 'Program',
+                    value: _selectedProgramId,
+                    asyncItems: programs,
+                    itemLabel: (p) => (p as Program).name,
+                    itemId: (p) => (p as Program).id,
+                    onChanged: (v) =>
+                        setState(() => _selectedProgramId = v),
+                  )),
+                  box(_clayFilterBox<int>(
+                    label: 'Academic Year',
+                    value: _selectedYearId,
+                    asyncItems: academicYears,
+                    itemLabel: (y) => (y as AcademicYear).label,
+                    itemId: (y) => (y as AcademicYear).id,
+                    onChanged: (v) =>
+                        setState(() => _selectedYearId = v),
+                  )),
+                  box(_clayFilterBox<int>(
+                    label: 'Category',
+                    value: _selectedCategoryId,
+                    asyncItems: categories,
+                    itemLabel: (c) => (c as Category).name,
+                    itemId: (c) => (c as Category).id,
+                    onChanged: (v) =>
+                        setState(() => _selectedCategoryId = v),
+                  )),
+                ],
+              );
+            },
+          ),
+          if (pills.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '$_activeFilterCount active:',
+                  style: CScholarTextStyles.inter(
+                    11.5,
+                    FontWeight.w600,
+                    CScholarColors.textMuted,
+                  ),
+                ),
+                for (final pill in pills)
+                  InkWell(
+                    borderRadius:
+                        BorderRadius.circular(CScholarRadius.full),
+                    onTap: pill.clear,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color:
+                            CScholarColors.primaryGreenVeryLight,
+                        borderRadius: BorderRadius.circular(
+                            CScholarRadius.full),
+                        border: Border.all(
+                            color:
+                                CScholarMaterial.rimPublished),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            pill.label,
+                            style: CScholarTextStyles.inter(
+                              11.5,
+                              FontWeight.w700,
+                              CScholarColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: CScholarColors.primaryGreen,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _heroFilterBox<T>({
+  /// Clay dropdown box for the filter grid (tonal well, no glass).
+  Widget _clayFilterBox<T>({
     required String label,
     required T? value,
     Map<T?, String>? items,
@@ -705,8 +813,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     Widget dropdown;
     if (items != null) {
       dropdown = NeumorphSelectField<T>(
-        // Controlled: the screen owns the filter value, so "Clear all" stays
-        // in sync by construction (a FormField would keep the stale pick).
         value: value,
         items: items.entries
             .map((e) =>
@@ -737,25 +843,17 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         ),
       );
     }
-    // Floating chrome over the dark hero overlay is glass per the fusion law.
-    // Same recipe as the hero search box above (.92 fill / 12 blur, no cast
-    // shadow — a shadow here would land on the gradient, not on content).
-    return GlassPanel(
-      radius: CScholarRadius.md,
-      fill: CScholarColors.white.withValues(alpha: 0.92),
-      blur: 12,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shadows: const [],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label,
-              style: CScholarTextStyles.inter(
-                  10.5, FontWeight.w500, CScholarColors.textMuted)),
-          dropdown,
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label,
+            style: CScholarTextStyles.inter(
+                10.5, FontWeight.w700, CScholarColors.textSecondary,
+                letterSpacing: 0.4)),
+        const SizedBox(height: 6),
+        dropdown,
+      ],
     );
   }
 

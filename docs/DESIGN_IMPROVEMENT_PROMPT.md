@@ -4,12 +4,159 @@
 > working inside the CScholar repo. Paste **PART 0 → PART 13** as a single task, then let the agent
 > work phase by phase (PART 11).
 >
+> **Resuming an interrupted run?** Read **PART R** first — it records which phases are already
+> committed, the verified test baseline, the measured gap list, and whether anything is left to do.
+>
 > **What this document is not:** a request to redesign, restyle, or relayout CScholar. The material
 > system (clay + glass, sage canvas, WCAG audits) is already good and is **frozen**. This brief adds
 > *time* — motion, choreography, micro-interactions — on top of it.
 >
 > Design language source: the sibling project `csucc_wayfinder/mobile_app` (CSUCC WayFinder),
 > analysed in PART 1.
+
+---
+
+## PART R — PROGRESS & RESUME STATE (read this first)
+
+> **Status: THE RUN IS COMPLETE.** All eight phases (1–8) are committed and verified;
+> HEAD = `6073cc9` (Phase 8). There is nothing left to resume — **R.7** is the post-run
+> verification, **R.6** shows every measured gap closed.
+>
+> **Re-verified on this tree (2026-10-05, at `6073cc9`):** `flutter analyze` → *No issues found*;
+> `flutter test` → **290 passed**; `flutter build web --release` ships; `frontend/pubspec.yaml`
+> untouched since the baseline (no new dependency). Working tree clean except this document
+> (its own edit, uncommitted) and untracked `.idea/`.
+
+### R.1 Commit map
+
+| Phase | Commit | Subject | State |
+|---|---|---|---|
+| — | `a651773` | Previous session's uncommitted work (pre-upgrade baseline; this doc landed here) | baseline |
+| 1 · Foundation | `905f72f` | Add the motion budget v2, named pitches and the ambient gate | ✅ done |
+| 2 · Primitives | `57f7c29` | Add the ten motion primitives and demo them in the design lab | ✅ done |
+| 3 · Chrome & navigation | `19b7897` | Seat the topbar, morph the nav glyphs, layer the route transition, unify dialog/sheet openings | ✅ done |
+| 4 · Controls | `df6af1a` | Spring the controls: overshoot releases, swapping labels, turning glyphs | ✅ done |
+| 5 · Dashboards | `73fc4bb` | Choreograph every page: named pitches, diagonal KPIs, living numbers | ✅ done |
+| 6 · Repository & results | `3b81dbc` | Seat the results: silhouettes, re-forms, seated strip, living cards | ✅ done |
+| 7 · Thesis detail & save | `65ed7b2` | Fly the thesis: banner/title heroes, metered matches, tactile saves | ✅ done |
+| 8 · Polish & proof | `6073cc9` | Polish the edges: floating empties, morphing glyphs, proven release | ✅ done — **HEAD** |
+
+### R.2 Phase 1 delivered (`905f72f`)
+
+`core/constants/cscholar_constants.dart` + `common/motion.dart`:
+
+- **`CScholarMotion`** — the two-budget token class. Transition: `micro` 120 / `swap` 200 /
+  `enter` 280 / `page` 360. Ambient: `breathe` 2400 / `drift` 16000 / `shimmer` 1400 / `pulse` 1200.
+  Plus the `ambientEnabled` global kill switch.
+- **`MotionPitch`** enum, four presets: `tight` (24/160/8), `page` (48/240/12), `feature`
+  (72/320/16), `result` (56/280/14).
+- **`CScholarCurves`** extended with `settle`, `overshoot`, `exit`, `anticipate`, `steady`.
+  **`standard` and `entrance` are unchanged.**
+- `EntranceReveal` gained `scaleFrom`; `Stagger` / `StaggerColumn` gained `pitch:` and
+  `origin:` / `columns:` — all **optional**, so no existing call site changed behaviour.
+- `CScholarDurations` was **not** touched (`motion_test.dart` pins `slow == 300ms`).
+
+### R.3 Phase 2 delivered (`57f7c29`)
+
+New file `common/motion_ambient.dart` (353 lines), additions to `common/motion.dart` (now 1100
+lines) and `common/loading_skeleton.dart`:
+
+- **One-shot:** `AnimatedSwap` (+ `SwapStyle`), `MorphIcon`, `TactileToggle`, `ScoreMeter`,
+  `ScrollVeil`.
+- **Ambient** (in `motion_ambient.dart`): `PulseDot`, `BreathingGlow`, `DriftingWash`.
+- **Skeleton:** `ThesisSkeleton`.
+- Every ambient widget carries its **own** `RepaintBoundary` and returns a static equivalent when
+  `ambientMotionEnabled` is false — so a caller cannot break the gate or the boundary by forgetting.
+- Design lab gained **section 15 · Motion vocabulary** (~line 1291) and **section 16 ·
+  Choreography** (~line 1590).
+- `test/motion_test.dart` grew from 10 to **23 cases**; `screens_render_test.dart` installs the
+  ambient kill switch in `setUpAll`.
+
+### R.4 Phase 3 delivered (`19b7897`)
+
+- `clay_nav_list.dart` — the selected glyph now goes through `MorphIcon`; the focus ring fades in.
+- `topbar.dart`, `app_shell.dart`, `student_layout.dart`, `faculty_dashboard_screen.dart` —
+  `ScrollVeil` seats the chrome on scroll.
+- `motion.dart` — `cscholarTransition` now drives the **outgoing** half through
+  `secondaryAnimation` (the covered page's retreat), plus the `showClayDialog` helper.
+- `showClayDialog` adopted in `admin_programs`, `admin_thesis_management`, `admin_user_management`,
+  `login`, `faculty_students`, `faculty_theses`, `faculty_thesis_form`.
+- `glass_panel.dart` wired for the new opening; `test/motion_test.dart` +16 lines.
+
+### R.5 Phases 4–8 delivered (`df6af1a`, `73fc4bb`, `3b81dbc`, `65ed7b2`, `6073cc9`)
+
+- **Phase 4 · Controls** (`df6af1a`, 2026-10-03) — button releases spring on `overshoot` while the
+  label ↔ "Saving…" swap runs in a build-time measured slot (the button never resizes under the
+  pointer); icon-button glyphs turn 90° via `AnimatedRotation`; fields fade the focus ring as an
+  opacity ramp of a fixed hue, lift the placeholder 2px by transform, and swap error text through
+  `AnimatedSwap`; the select caret turns 180° while the menu is up (open state derived from
+  `ModalRoute.isCurrent`, so barrier-dismiss and Escape reset it); `ClayChip` sinks 0.96 and pops
+  its check into a permanently reserved slot, so toggling never reflows the `Wrap`.
+- **Phase 5 · Dashboards** (`73fc4bb`, 2026-10-03) — all 19 `StaggerColumn` call sites carry a named
+  `MotionPitch`; KPI strips cascade diagonally via the new `StaggerColumn.diagonalDelay`; explicit
+  PART 7 beats on every dashboard; `KpiCard` counts in tabular figures with a one-shot,
+  change-only sweep; `DriftingWash` sits behind the student greeting hero.
+- **Phase 6 · Repository & results** (`3b81dbc`, 2026-10-05) — the repository loads into
+  `ThesisSkeleton` (same box the cards land in, bottom spacing matched); result columns are keyed
+  on the query/filter/sort/mode signature so every re-form replays the cascade with a 0.98 settle
+  (`Stagger.scaleFrom`, default 1.0 elsewhere); the results header seats past the shell
+  `ScrollVeil` trigger; `ThesisCard` grows a static corner glow and a cropped 1.03 banner zoom on
+  web hover; rail rows step on `MotionPitch.tight`.
+- **Phase 7 · Thesis detail & save** (`65ed7b2`, 2026-10-05) — `ThesisCard` hosts the banner + title
+  `Hero` sources (slab-only shuttle; `heroBanner: false` on the detail route mirrors
+  `heroAvatar`); detail renders the banner target statically, flies the title, meters the match
+  with `ScoreMeter` (score handed through the route extra, absent on direct loads), and saves
+  through `TactileToggle`; the saved list removes via the toggle and re-forms on an ids-keyed
+  cascade.
+- **Phase 8 · Polish & proof** (`6073cc9`, 2026-10-05) — `EmptyState` settles (`scaleFrom: 0.96`) and
+  its tile floats ±2px on `breathe` behind a private gated loop (own `RepaintBoundary`, static
+  under reduced motion / high contrast / the kill switch); the last hard icon swaps — login + admin
+  password visibility, result save, admin block/reactivate — go through `MorphIcon`
+  (`NeumorphIconButton` gained optional `selectedIcon`/`selected`, defaults preserve the static
+  glyph); SnackBars audited, no change needed (Material's entrance already fades + rises);
+  `main.dart` switch/checkbox themes stay colour-only by design — `NeumorphToggle` is the tier-3
+  answer.
+
+### R.6 Evidence-based gap list (measured; ALL CLOSED)
+
+Measured by grep on the current tree — these are facts, not estimates:
+
+| PART 12 item | Measured on this tree (2026-10-05) | State |
+|---|---|---|
+| `MotionPitch` used **by screens** | `pitch: MotionPitch` appears **22 times across 19 screens**; line-checked: **0** `StaggerColumn(` call sites lack a pitch | ✅ closed |
+| `TactileToggle` applied | `thesis_card.dart`, `thesis_detail_screen.dart`, `saved_theses_screen.dart` | ✅ closed |
+| `ScoreMeter` applied | `thesis_detail_screen.dart` | ✅ closed |
+| `ThesisSkeleton` applied | `repository_screen.dart` | ✅ closed |
+| `DriftingWash` applied | `student_dashboard_screen.dart` (greeting hero) | ✅ closed |
+| `PulseDot` / `BreathingGlow` applied | design-lab demo only — **no PART 12 line requires them**, and PART 13 forbids motion that answers neither question; apply them the day a screen earns a live indicator or a breathing halo | ⚠️ vocab only, by choice |
+| Thesis `Hero` continuity | `thesisBannerTag` / `thesisTitleTag` used in `thesis_card.dart` + `thesis_detail_screen.dart` | ✅ closed |
+| Controls micro-interactions | `neumorph_controls` / `neumorph_field` / `neumorph_select` / `clay_objects` all landed in Phase 4; the last hard glyph swaps in Phase 8 | ✅ closed |
+
+So: the vocabulary is **applied**. Every box in PART 12 is satisfied — R.7 holds the verification
+commands, and the PART 11 table below is fully committed.
+
+### R.7 Final state & verification (nothing left to resume)
+
+> All eight phases are committed. If you are an agent asked to "continue" this brief: **the work is
+> done — verify, do not re-do.**
+>
+> 1. `cd frontend` and run `flutter analyze` → expect *No issues found*; `flutter test` → expect
+>    **290 passed** (re-verified 2026-10-05 at `6073cc9`).
+> 2. Belt-and-braces: `flutter build web --release` → expect `✔ Built build\web` (proven twice on
+>    2026-10-05; ignore the wasm dry-run notice printed to stderr — exit code stays 0).
+> 3. If both are green, report the run complete and stop. Do not re-litigate the vocabulary, do not
+>    "improve" an already-committed phase, do not weaken `motion_test.dart`, and do not touch
+>    `CScholarDurations`.
+>
+> Residuals deliberately left — they are not defects: `PulseDot` and `BreathingGlow` remain
+> vocabulary + design-lab demos (no screen currently earns a live indicator or a breathing halo
+> under PART 13's "answer a question" law); SnackBars, the `main.dart` switch/checkbox themes and
+> `CScholarDurations` were audited and left unchanged by design (see Phase 8 in R.5).
+>
+> Any future motion work starts from the committed vocabulary — `CScholarMotion`, `MotionPitch`,
+> `common/motion.dart`, `common/motion_ambient.dart` — and keeps every PART 13 rule: one commit per
+> change, `flutter analyze` clean and `flutter test` green at the end, and a stop-and-report if the
+> brief conflicts with the code.
 
 ---
 
@@ -927,6 +1074,10 @@ was written for it.
 
 One phase per commit. Each phase ends with `flutter analyze` clean and `flutter test` green.
 
+> **Position when this doc was last updated (2026-10-05): ALL eight phases are complete and
+> committed** (`905f72f` … `6073cc9`) — nothing in this table remains to be done. Per-phase commit
+> hashes are in **PART R.1**; post-run verification is in **PART R.7**.
+
 | Phase | Deliverable | Files |
 |---|---|---|
 | **1 · Foundation** | `CScholarMotion`, extended `CScholarCurves`, `MotionPitch`, `ambientMotionEnabled`, `selectionHaptic`. `Stagger` / `StaggerColumn` / `EntranceReveal` gain their optional params. **Zero visual change yet** — verify by comparing screenshots of every screen before/after. | `core/constants/cscholar_constants.dart`, `common/motion.dart` |
@@ -1015,6 +1166,8 @@ x Do NOT add motion just to satisfy the brief. Every animation must answer one o
 
 ## Kickoff message for the agent
 
+**A. Starting from scratch** (historical — the repo is already past this point, so use B):
+
 > Read `docs/DESIGN_IMPROVEMENT_PROMPT.md` in full before writing any code.
 >
 > Implement it in the 8 phases of PART 11, one commit per phase, in order. Phase 1 must produce
@@ -1028,3 +1181,18 @@ x Do NOT add motion just to satisfy the brief. Every animation must answer one o
 > so I can approve the motion vocabulary before you apply it anywhere.
 >
 > If any requirement conflicts with the code you find, stop and tell me instead of choosing.
+
+**B. The run is complete — verify, do not re-do** (this is the case the repo is in — use this one):
+
+> Read **PART R** of `docs/DESIGN_IMPROVEMENT_PROMPT.md` first. Phases 1–8 are all committed
+> (`905f72f` … `6073cc9`) — do **not** redo any phase or re-litigate the vocabulary.
+>
+> First: `cd frontend` and run `flutter analyze` + `flutter test`, and paste both results. Expected:
+> analyze clean, **290 tests pass** (the tree was verified green at `6073cc9` on 2026-10-05). If
+> either fails, stop and report before changing anything.
+>
+> If both are green, the brief in this document is **done** — say so and stop (PART R.7). Only if
+> explicitly asked to add motion beyond it: re-read PART 5, PART 6 and PART 7 for the rules, keep
+> every gate, `RepaintBoundary` and disposal path, never touch `CScholarDurations` or
+> `motion_test.dart`, one commit per change, and if anything in the brief conflicts with the code
+> you find, stop and tell me instead of choosing.

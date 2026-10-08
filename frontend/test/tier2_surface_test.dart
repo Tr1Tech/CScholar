@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -259,7 +260,12 @@ void main() {
       );
       expect(find.text('87% match'), findsOneWidget);
       final badge = _decorationOf(tester, find.text('87% match'));
-      expect(badge.color, CScholarMaterial.scrim);
+      // Gold AI identity: goldSoft paper + amber ink (5.42:1), distinct from
+      // green status chips.
+      expect(badge.color, CScholarColors.goldSoft);
+      final label =
+          tester.widget<Text>(find.text('87% match'));
+      expect(label.style!.color, CScholarColors.warningFg);
       expect(tester.takeException(), isNull);
     });
 

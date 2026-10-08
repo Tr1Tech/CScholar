@@ -202,7 +202,9 @@ class ThesisDetailScreen extends ConsumerWidget {
                                         child: Text(
                                           _displayAbstract(
                                               thesis.abstract),
-                                          textAlign: TextAlign.justify,
+                                          textAlign: isDesktop
+                                              ? TextAlign.justify
+                                              : TextAlign.left,
                                           style: CScholarTextStyles.inter(
                                             14.5,
                                             FontWeight.w400,
@@ -325,15 +327,41 @@ class ThesisDetailScreen extends ConsumerWidget {
                                                     style: CScholarTextStyles.inter(13.5, FontWeight.w600, CScholarColors.textPrimary),
                                                   ),
                                                 ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: CScholarColors.primaryGreenVeryLight,
-                                                    borderRadius: BorderRadius.circular(CScholarRadius.full),
-                                                  ),
-                                                  child: Text(
-                                                    sim,
-                                                    style: CScholarTextStyles.inter(11.5, FontWeight.w700, CScholarColors.primaryGreen),
+                                                Tooltip(
+                                                  message:
+                                                      'AI recommendation — $sim to the study you are viewing.',
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: CScholarColors.goldSoft,
+                                                      borderRadius: BorderRadius.circular(CScholarRadius.full),
+                                                      border: Border.all(
+                                                          color: CScholarMaterial
+                                                              .rimDraft),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(
+                                                            Icons
+                                                                .auto_awesome,
+                                                            size: 11,
+                                                            color:
+                                                                CScholarColors
+                                                                    .warningFg),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          sim,
+                                                          style: CScholarTextStyles.inter(
+                                                              11.5,
+                                                              FontWeight.w700,
+                                                              CScholarColors
+                                                                  .warningFg),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -418,34 +446,72 @@ class ThesisDetailScreen extends ConsumerWidget {
   /// mid-flight. The match badge deliberately gets no hero (a second flying
   /// pill would read as a competing motion).
   Widget _heroBanner(Thesis thesis) {
-    final color = ThesisCard
-        .bannerPalette[thesis.id % ThesisCard.bannerPalette.length];
+    final gradient = ThesisCard.gradientFor(thesis.id);
+    final icon = ThesisCard.iconFor(thesis.id);
     return Hero(
       tag: thesisBannerTag(thesis.id),
       flightShuttleBuilder:
           (flightContext, animation, direction, fromContext, toContext) =>
-              ColoredBox(color: color),
+              Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+        ),
+      ),
       child: Container(
         width: double.infinity,
-        height: 120,
-        color: color,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-        alignment: Alignment.bottomLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: CScholarMaterial.shadowLight,
-            borderRadius: BorderRadius.circular(CScholarRadius.sm),
+        height: 148,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
           ),
-          child: Text(
-            thesis.researchType.toUpperCase(),
-            style: CScholarTextStyles.inter(
-              10,
-              FontWeight.w700,
-              CScholarMaterial.textPrimary,
-              letterSpacing: 0.5,
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -12,
+              bottom: -18,
+              child: Icon(
+                icon,
+                size: 120,
+                color: CScholarMaterial.shadowLight.withValues(alpha: 0.16),
+              ),
             ),
-          ),
+            Positioned(
+              right: 28,
+              bottom: 18,
+              child: Icon(
+                icon,
+                size: 34,
+                color: CScholarMaterial.shadowLight.withValues(alpha: 0.92),
+              ),
+            ),
+            Positioned(
+              left: 32,
+              bottom: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: CScholarMaterial.shadowLight,
+                  borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                ),
+                child: Text(
+                  thesis.researchType.toUpperCase(),
+                  style: CScholarTextStyles.inter(
+                    10,
+                    FontWeight.w700,
+                    CScholarMaterial.textPrimary,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

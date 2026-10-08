@@ -26,16 +26,27 @@ class CScholarColors {
   static const Color primaryGreenLight = Color(0xFFE6F5E6);
   static const Color primaryGreenVeryLight = Color(0xFFF0FDF4);
 
-  // Deep sidebars
-  static const Color sidebarDeep = Color(0xFF033F15);
+  // Deep sidebars — UNIFIED: one forest for every role. Role identity comes
+  // from the active-pill + role chip, not from a different sidebar hue.
+  // Legacy aliases are kept so old references compile, but they all resolve
+  // to [forest].
+  static const Color forest = Color(0xFF043E18);
+  static const Color sidebarDeep = forest;
   static const Color sidebarHover = Color(0xFF05541C);
   static const Color sidebarActive = Color(0xFF0A6423);
-  static const Color adminSidebar = Color(0xFF004D00);
-  static const Color adminSidebarHover = Color(0xFF005F00);
-  static const Color repoSidebar = Color(0xFF014421);
+  static const Color adminSidebar = forest;
+  static const Color adminSidebarHover = Color(0xFF05541C);
+  static const Color repoSidebar = forest;
   static const Color repoActive = Color(0xFF0A5C30);
   static const Color savedSidebarActive = Color(0xFF14833B);
-  static const Color forest = Color(0xFF043E18);
+
+  /// Role accent dot / chip — use this to distinguish roles now that the
+  /// sidebar shell is unified.
+  static const Map<String, Color> roleAccent = {
+    'student': Color(0xFF1D4ED8),
+    'faculty': Color(0xFF7E22CE),
+    'admin': Color(0xFFA34A08),
+  };
 
   // Accents
   static const Color gold = CScholarMaterial.goldTop;
