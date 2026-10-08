@@ -16,7 +16,7 @@ def health():
             {
                 "status": "ok",
                 "service": "CScholar API",
-                "project": "capstopn (CEIT thesis repository)",
+                "project": "cscholar (CEIT thesis repository)",
                 "phase": 1,
             }
         ),
