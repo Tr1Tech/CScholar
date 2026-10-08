@@ -38,7 +38,6 @@ cscholar/
 │   ├── setup.md      # PostgreSQL + pgvector install guide
 │   └── logic/        # Lab 5 views / functions / procedures / triggers
 ├── docs/         # ERD, normalization, data dictionary, traceability
-├── stitch_cscholar/ # Stitch design artifacts
 └── README.md
 ```
 
