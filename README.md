@@ -1,6 +1,6 @@
 # CScholar
 
-**Semantic Search and AI-Powered Recommendation System for the Caraga State University (CSU) Thesis and Capstone Repository — CEIT edition**
+**Semantic Search and AI-Powered Recommendation System for the Caraga State University (CSU) Thesis and Capstone Repository - CEIT edition**
 
 A thesis/capstone repository for the **College of Engineering and Information Technology (CEIT)** at CSU.
 Authorized students, faculty, and admins can browse, filter, search, and discover CEIT research
