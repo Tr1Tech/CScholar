@@ -44,7 +44,7 @@ cscholar/
 
 ## Development Phases
 
-1. Project architecture & repository setup ✅
+1. Project architecture & repository setup
 2. PostgreSQL database + pgvector
 3. Flask backend setup
 4. Authentication & authorization
@@ -63,7 +63,7 @@ cscholar/
 
 ## Database Setup
 
-See `db/setup.md` for PostgreSQL + pgvector install options. Quick version:
+See `db/setup.md` for PostgreSQL + pgvector install options. Run these from the repo root (`cscholar/`) in a terminal with `psql` in PATH:
 
 ```bash
 createdb cscholar
