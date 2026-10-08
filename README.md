@@ -26,17 +26,25 @@ using AI-powered **semantic search** and **content-based recommendations**.
 ## Project Structure
 
 ```
-capstopn/
+cscholar/
 ├── backend/      # Flask API (Python)
-├── frontend/     # Flutter app (web + mobile) — built in Phase 9/10
-├── db/           # SQL schema + mock seed data (Phase 2+)
-├── docs/         # Capstone papers, ERD, diagrams
+│   ├── app/routes/   # health, auth, thesis, upload, embedding, ocr, meta, swagger
+│   ├── app/services/ # embeddings and helpers
+│   └── run.py        # dev server entry point
+├── frontend/     # Flutter app (web + mobile)
+├── db/           # SQL schema + seed data + DB logic
+│   ├── schema.sql    # 16 tables + pgvector (schema: ceit_repo)
+│   ├── seed.sql      # fictional sample data (dev only)
+│   ├── setup.md      # PostgreSQL + pgvector install guide
+│   └── logic/        # Lab 5 views / functions / procedures / triggers
+├── docs/         # ERD, normalization, data dictionary, traceability
+├── stitch_cscholar/ # Stitch design artifacts
 └── README.md
 ```
 
 ## Development Phases
 
-1. Project architecture & repository setup ✅ (this commit)
+1. Project architecture & repository setup ✅
 2. PostgreSQL database + pgvector
 3. Flask backend setup
 4. Authentication & authorization
@@ -53,7 +61,20 @@ capstopn/
 15. Admin dashboard & logs
 16. Testing, security, deployment
 
-## Running the Backend (Phase 1)
+## Database Setup
+
+See `db/setup.md` for PostgreSQL + pgvector install options. Quick version:
+
+```bash
+createdb cscholar
+psql -U postgres -d cscholar -f db/schema.sql
+psql -U postgres -d cscholar -f db/seed.sql
+psql -U postgres -d cscholar -f db/logic/cscholar_lab5_logic.sql
+```
+
+Details live in `db/README.md` (schema/seed) and `db/logic/README.md` (views, functions, procedure, triggers, materialized-view refresh).
+
+## Running the Backend
 
 ```bash
 cd backend
@@ -69,5 +90,15 @@ Then open: http://localhost:5000/api/health
 
 Expected response:
 ```json
-{"status":"ok","service":"CScholar API","project":"capstopn (CEIT thesis repository)","phase":1}
+{"status":"ok","service":"CScholar API","project":"cscholar (CEIT thesis repository)","phase":1}
 ```
+
+## Docs
+
+| File | Contents |
+|---|---|
+| `docs/ERD.md` | Final ERD (CEIT scope) |
+| `docs/normalization.md` | Normalization notes |
+| `docs/data_dictionary.md` | Column-level data dictionary |
+| `docs/requirements_traceability.md` | Requirements → tables traceability |
+| `docs/DESIGN_IMPROVEMENT_PROMPT.md` | Frontend design notes |
