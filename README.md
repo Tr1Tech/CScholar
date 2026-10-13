@@ -6,7 +6,7 @@ A thesis/capstone repository for the **College of Engineering and Information Te
 Authorized students, faculty, and admins can browse, filter, search, and discover CEIT research
 using AI-powered **semantic search** and **content-based recommendations**.
 
-> Scope note: this system covers **CEIT only**, for a limited academic year (e.g. 2025–2026).
+> Scope note: this system covers **CEIT only**, for a limited academic year (e.g. 2025-2026).
 > It does not cover other CSU colleges unless explicitly requested later.
 
 ## Technology Stack (agreed baseline)
