@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CScholar — UI Wireframes Only (Lab 6 Part D)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#f2f5f1;color:#1d2939;padding:28px;line-height:1.55}
+.doc{max-width:1280px;margin:0 auto}
+.banner{background:#fff;border:3px solid #0b6b3a;border-radius:14px;padding:20px 24px;margin-bottom:20px}
+.banner h1{font-size:22px;color:#084d2a}.banner p{font-size:13px;color:#5b6b7f;margin-top:4px}
+h2.sec{font-size:15px;color:#fff;background:#0b6b3a;border-radius:8px;padding:8px 14px;margin:22px 0 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}body{padding:12px}}
+.frame{border:2.5px solid #1d2939;border-radius:14px;background:#fff;overflow:hidden}
+.frame-h{background:#101828;color:#fff;font-size:12px;font-weight:bold;padding:9px 12px}
+.frame-h small{display:block;font-weight:normal;color:#cbd5e1;font-size:11px;margin-top:2px}
+.wf{border:1.8px solid #98a2b3;border-radius:7px;padding:8px 10px;font-size:12px;margin:0 8px 8px;background:#fff}
+.scr{padding-top:8px}
+.wf.dash{border-style:dashed;background:#f8fafc;color:#475467}
+.wf.btn{border-color:#1d2939;background:#e4e7ec;text-align:center;font-weight:bold}
+.wf.pri{background:#1d2939;color:#fff;text-align:center;font-weight:bold}
+.wf.grn{background:#0b6b3a;color:#fff;border-color:#084d2a;text-align:center;font-weight:bold}
+.wf.dark{background:#101828;color:#fff;font-weight:bold;border-color:#101828}
+.row{display:flex;gap:8px;margin:0 8px}.row .wf{flex:1;margin:0 0 8px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin:0 8px 8px}.chip{border:1.3px solid #667085;border-radius:14px;padding:2px 9px;font-size:11px;background:#f2f4f7}
+.note{font-size:12px;background:#fffbe6;border:1.5px dashed #b54708;border-radius:8px;padding:8px 10px;margin:0 8px 8px}
+.tag{font-size:10px;border:1px solid #0b6b3a;color:#084d2a;border-radius:4px;padding:0 5px;background:#eef6ef}
+table.tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+table.tbl th,table.tbl td{border:1px solid #98a2b3;padding:5px 6px;text-align:left}
+table.tbl th{background:#e4e7ec}
+@media print{body{background:#fff;padding:0}.frame{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="banner">
+<h1>CScholar — UI Wireframes <span class="tag">PART D ONLY</span></h1>
+<p>Low-fidelity Flutter Web wireframes: structure, hierarchy, content placement, interaction flow. Desktop primary (1440) for all major screens + 390 / 768 / 1440 variants for 3 critical screens (S03 Search, S04 Detail, S07 Upload).</p>
+</div>
+
+<h2 class="sec">Desktop / Wide 1440px — all major screens</h2>
+<div class="grid2">
+
+<div class="frame"><div class="frame-h">S01 — Login<small>/login · /register</small></div><div class="scr">
+<div class="wf grn">[ CSU Logo ] CScholar — CEIT Thesis Repository</div>
+<div class="wf dash" style="text-align:center">Hero: “Semantic Search for CEIT Research” + illustration</div>
+<div class="wf">Email* [ juan@carsu.edu.ph ]</div>
+<div class="wf">Password* [ •••••• ] [Show]</div>
+<div class="row"><div class="wf">☑ Remember me</div><div class="wf" style="text-align:right">Forgot password?</div></div>
+<div class="wf pri">[ Login ]</div>
+<div class="wf dash">⛔ “Invalid credentials…” (email kept)</div>
+<div class="wf" style="text-align:center">No account? <b>Register</b> (role: Student/Faculty)</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S02 — Student Dashboard<small>/student/dashboard</small></div><div class="scr">
+<div class="wf dark">☰ CScholar │ Dashboard · Repository · Saved · Profile &nbsp; 🔍 ⏺</div>
+<div class="wf dash">Hero: “Hi, Juan!” + date + AY badge [2025–26 Active]</div>
+<div class="row"><div class="wf">📄 Theses<br><b>248</b></div><div class="wf">🎓 Programs<br><b>3</b></div><div class="wf">⭐ Saved<br><b>12</b></div></div>
+<div class="wf">🔍 [ “machine learning…” ] + [Keyword|Semantic]</div>
+<div class="chips"><span class="chip">Program ▾</span><span class="chip">Type ▾</span><span class="chip">Year ▾</span><span class="chip">Category ▾</span></div>
+<div class="wf">ThesisCard ×N: cover │ title │ authors │ abstract… [Save☆][View→] SIM%</div>
+<div class="wf">RecRail → “Because you viewed X” ×3</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S03 — Repository / Search <span class="tag">CRITICAL ★</span><small>/repository?q=&amp;mode=</small></div><div class="scr">
+<div class="wf dark">← Repository &nbsp; Saved(12) · Profile</div>
+<div class="row"><div class="wf">🔍 [ “flood prediction IoT” ]</div><div class="wf grn" style="flex:.4">[Search]</div></div>
+<div class="row"><div class="wf">◉ Keyword ○ Semantic AI</div><div class="wf">Sort: Relevance ▾</div></div>
+<div class="chips"><span class="chip">☑BSIT</span><span class="chip">☑BSCS</span><span class="chip">☐BSIS</span><span class="chip">Year▾</span><span class="chip">AI/IoT/Web▾</span></div>
+<div class="wf"><b>Result 1 — 0.87 ▓▓▓▓░</b> title · authors · year [Save][Details→]</div>
+<div class="wf"><b>Result 2 — 0.81 ▓▓▓▓░</b> title · authors · year [Save][Details→]</div>
+<div class="wf dash">Empty: “0 matches — [Clear filters][Try semantic]”</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S04 — Research Details <span class="tag">CRITICAL ★</span><small>/thesis/:id</small></div><div class="scr">
+<div class="wf dark">← Back &nbsp; [Save☆] [Share] [Cite📋]</div>
+<div class="wf grn">H1: “IoT-Based Flood Monitoring for Butuan”</div>
+<div class="chips"><span class="chip">Capstone</span><span class="chip">Published</span><span class="chip">BSIT·2025</span><span class="chip">SIM 0.87</span></div>
+<div class="wf">Authors¹² · Adviser · Categories · Keywords · file (name/size/MIME)</div>
+<div class="wf">Abstract (3–5 lines)…</div>
+<div class="row"><div class="wf grn">[ View / Download PDF ]</div><div class="wf btn">[ Cite ]</div></div>
+<div class="wf dash">📄 PDF preview</div>
+<div class="wf">You may also like ×3</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S05 — Profile + Saved<small>/profile · /saved</small></div><div class="scr">
+<div class="wf dark">☰ Profile &nbsp; [Edit]</div>
+<div class="row"><div class="wf dash" style="flex:.5;text-align:center">◯ Avatar</div><div class="wf" style="flex:1.5">Juan D. · @juan · <b>Student·BSIT</b> · Active ●</div></div>
+<div class="row"><div class="wf">📚 Saved(12)</div><div class="wf">👁 History</div><div class="wf">⚙ Settings</div></div>
+<div class="wf">SavedRow ×N: thumb │ title │ prog/year [Remove✕][Open→]</div>
+<div class="wf btn">[ Logout ]</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S06/S08 — Admin: Dashboard + Tables<small>/admin/dashboard · /admin/users · /admin/thesis/management</small></div><div class="scr">
+<div class="wf dark">☰ Admin · AY 2025–26 ▾ · ⏺</div>
+<div class="row"><div class="wf">Users<br><b>312</b></div><div class="wf">Theses<br><b>248</b></div><div class="wf">Searches<br><b>1.2k</b></div><div class="wf">Pending<br><b>9</b></div></div>
+<div class="wf">Nav: Dashboard│Users│Theses│Programs│AYs│Logs│Settings</div>
+<div class="wf"><table class="tbl"><tr><th>Title</th><th>Type</th><th>Status</th><th>Act</th></tr><tr><td>Flood IoT…</td><td>Capstone</td><td>draft→approved ▾</td><td>[Edit][Archive]</td></tr></table></div>
+<div class="wf"><table class="tbl"><tr><th>User</th><th>Role</th><th>Active</th></tr><tr><td>@maria</td><td>faculty ▾</td><td>[Toggle ●]</td></tr></table></div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S07 — Upload / Add-Edit Thesis <span class="tag">CRITICAL ★</span><small>/faculty/thesis/new · /admin/thesis/new</small></div><div class="scr">
+<div class="wf dark">← New Thesis/Capstone &nbsp; Draft ●</div>
+<div class="wf">Title* [ … ] (≤300) · Abstract* textarea</div>
+<div class="row"><div class="wf">Type ▾</div><div class="wf">Program ▾</div><div class="wf">AY ▾</div></div>
+<div class="wf">Authors +[Add] ①②③ · Advisers +[Add] · Categories ☐ · Keywords [a, b]</div>
+<div class="wf dash">⬆ Drop PDF / [Browse] → ▓▓▓░</div>
+<div class="row"><div class="wf btn">[Save Draft]</div><div class="wf grn">[Submit]</div></div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S09 — Faculty Dashboard / Analytics<small>/faculty/dashboard · /faculty/analytics</small></div><div class="scr">
+<div class="wf dark">☰ Faculty · ⏺ &nbsp; My Theses · Students · Analytics</div>
+<div class="row"><div class="wf">Advisees<br><b>18</b></div><div class="wf">Supervised<br><b>9</b></div><div class="wf">Views<br><b>430</b></div></div>
+<div class="wf dash">📊 Chart placeholder (views per program) + advisee table</div>
+</div></div>
+
+</div>
+
+<h2 class="sec">Responsive variants — S03 / S04 / S07 at 390 / 768 / 1440</h2>
+<div class="grid3">
+<div class="frame"><div class="frame-h">S03 Search · 390 Mobile</div><div class="scr">
+<div class="wf dark">☰ 🔍 CScholar ⏺</div>
+<div class="wf">🔍 Query + [Go]</div><div class="wf btn">[ Filters (3 active) ▾ ]</div>
+<div class="wf">Result card stacked ×N</div>
+<div class="note">Drawer nav; filters in bottom-sheet; full-width cards; ≥44px targets.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S03 Search · 768 Tablet</div><div class="scr">
+<div class="wf dark">Rail icons │ Repository + results</div>
+<div class="wf">Query field + button inline</div><div class="wf">Cards: 2-col grid</div>
+<div class="note">NavigationRail; chips wrap; sort inline.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S03 Search · 1440 Desktop</div><div class="scr">
+<div class="wf dark">Sidebar │ filters │ results 2-col</div>
+<div class="wf">Persistent filter column + grid</div>
+<div class="note">Fixed filter column; GridView 2–3 col.</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S04 Detail · 390 Mobile</div><div class="scr">
+<div class="wf dark">← Title… [Save]</div>
+<div class="wf grn">Title H1 (wraps)</div>
+<div class="chips"><span class="chip">Capstone</span><span class="chip">SIM</span></div>
+<div class="wf">Meta stacked · [PDF] full-width sticky</div>
+<div class="note">PDF opens full-screen; recs horizontal scroll.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S04 Detail · 768 Tablet</div><div class="scr">
+<div class="wf dark">← Back ··· [Save][Share]</div>
+<div class="wf">Title + chips row</div><div class="wf">Meta 2-col · PDF 16:9</div>
+<div class="note">Row→Wrap under 920px.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S04 Detail · 1440 Desktop</div><div class="scr">
+<div class="wf dark">← Back ··· [Save][Share][Cite]</div>
+<div class="wf">2-col: article (720) + rail (360)</div>
+<div class="note">Max 1200 centered; rail sticky.</div>
+</div></div>
+
+<div class="frame"><div class="frame-h">S07 Upload · 390 Mobile</div><div class="scr">
+<div class="wf dark">← New ①Details ②Files ③Review</div>
+<div class="wf">1 field per row, full-width</div><div class="wf grn">[Continue]</div>
+<div class="note">Stepper; dropzone → file picker.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S07 Upload · 768 Tablet</div><div class="scr">
+<div class="wf dark">← New Thesis ··· Draft ●</div>
+<div class="wf">Title full · Type+Program 2-col</div><div class="wf">Dropzone + progress</div>
+<div class="note">Sections in cards.</div>
+</div></div>
+<div class="frame"><div class="frame-h">S07 Upload · 1440 Desktop</div><div class="scr">
+<div class="wf dark">← New ··· Draft ● [Save][Submit]</div>
+<div class="wf">Left: fields · Right: files + review</div>
+<div class="note">Actions pinned in AppBar.</div>
+</div></div>
+</div>
+
+</div>
+</body>
+</html>

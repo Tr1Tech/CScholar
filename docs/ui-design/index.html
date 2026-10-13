@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CScholar — IT110 Lab Activity 6: Flutter Web UI Flow + Responsive Wireframes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#0b6b3a;--green-d:#084d2a;--gold:#e8a800;--ink:#1d2939;--mut:#5b6b7f;--line:#c9d4c0;--bg:#f2f5f1}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);padding:28px;line-height:1.55}
+.doc{max-width:1280px;margin:0 auto}
+.banner{background:#fff;border:3px solid var(--green);border-radius:14px;padding:22px 26px;margin-bottom:20px}
+.banner h1{font-size:24px;color:var(--green-d)}
+.banner h2{font-size:15px;color:var(--mut);font-weight:normal;margin-top:4px}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.badges span{font-size:12px;border:1.5px solid var(--green);border-radius:20px;padding:3px 12px;background:#eef6ef}
+.sec{background:#fff;border:2px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:20px}
+.sec>h2{background:var(--green);color:#fff;font-size:16px;padding:8px 14px;border-radius:8px;margin:-6px -6px 14px}
+.sec h3{font-size:14px;color:var(--green-d);margin:14px 0 8px}
+.sec p,.sec li{font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+th{background:var(--green);color:#fff;padding:7px 8px;text-align:left}
+td{border:1px solid #9db3a0;padding:7px 8px;vertical-align:top}
+tr:nth-child(even) td{background:#f6faf6}
+code{background:#eef2ee;padding:1px 5px;border-radius:4px;font-size:11.5px}
+.flow{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding:10px 4px}
+.fnode{min-width:170px;border:2.5px solid var(--green);border-radius:12px;padding:12px;text-align:center;font-size:12px;background:#f3faf3}
+.fnode b{display:block;font-size:13px;margin-bottom:4px}
+.fnode small{color:var(--mut)}
+.fnode.blue{border-color:#2563eb;background:#eff4ff}
+.fnode.purple{border-color:#7c3aed;background:#f4efff}
+.fnode.orange{border-color:#d97706;background:#fff8ec}
+.farr{align-self:center;font-size:20px;color:var(--green);padding:0 6px;white-space:nowrap}
+.farr small{display:block;font-size:10px;color:var(--mut)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}body{padding:12px}}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr}}
+.frame{border:2.5px solid var(--ink);border-radius:14px;background:#fff;overflow:hidden}
+.frame-h{background:#101828;color:#fff;font-size:12px;font-weight:bold;padding:9px 12px}
+.frame-h small{display:block;font-weight:normal;color:#cbd5e1;font-size:11px;margin-top:2px}
+.wf{border:1.8px solid #98a2b3;border-radius:7px;padding:8px 10px;font-size:12px;margin:8px;background:#fff}
+.wf.dash{border-style:dashed;background:#f8fafc;color:#475467}
+.wf.btn{border-color:var(--ink);background:#e4e7ec;text-align:center;font-weight:bold}
+.wf.pri{background:var(--ink);color:#fff;text-align:center;font-weight:bold}
+.wf.grn{background:var(--green);color:#fff;border-color:var(--green-d);text-align:center;font-weight:bold}
+.row{display:flex;gap:8px;margin:0 8px}.row .wf{flex:1;margin:0 0 8px}.wf{margin-bottom:8px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin:0 8px 8px}.chip{border:1.3px solid #667085;border-radius:14px;padding:2px 9px;font-size:11px;background:#f2f4f7}
+.tbl{font-size:11px}.tbl th,.tbl td{padding:5px 6px}
+.annot{font-size:11px;color:#fff;background:#7c3aed;border-radius:6px;padding:5px 9px;margin:0 8px 8px}
+.annot.g{background:#0b6b3a}.annot.o{background:#b54708}.annot.b{background:#175cd3}
+.note{font-size:12px;background:#fffbe6;border:1.5px dashed #b54708;border-radius:8px;padding:8px 10px;margin:0 8px 8px}
+.tag{font-size:10px;border:1px solid var(--green);color:var(--green-d);border-radius:4px;padding:0 5px;background:#eef6ef}
+.check li{list-style:none;padding:3px 0} .check li::before{content:"☐ "}
+.rule{background:#eef6ef;border:2px solid var(--green);border-radius:8px;padding:10px 14px;font-size:12.5px;margin-top:10px}
+.print-note{font-size:12px;color:var(--mut)}
+@media print{body{background:#fff;padding:0}.sec,.frame{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="banner">
+<h1>CScholar — IT110 Lab Activity 6 (v2)</h1>
+<h2>Designing the Flutter Web Client-Side Interface · System: <b>CScholar — Semantic Search &amp; AI Recommendation for CSU CEIT Thesis/Capstone Repository</b> · Stack: Flutter Web + Flask REST + PostgreSQL/pgvector · Roles: Student / Faculty / Admin · CEIT only (BSIT·BSCS·BSIS, AY 2025–2026) · Design v2.0 — Oct 2026</h2>
+<div class="badges"><span>Block: ______</span><span>Date: ______</span><span>Instructor: Jean Y. Villasin, MIT</span><span>Members: ______</span><span>Source: docs/ui_wireframes.html v1 → rebuilt to meet Lab 6 rubric (80 pts)</span></div>
+</div>
+
+<!-- PART A -->
+<div class="sec">
+<h2>Part A — Requirements → UI Flow Traceability (FR-01…FR-20)</h2>
+<table>
+<tr><th>Use Case / Req ID</th><th>Actor</th><th>Entry Point</th><th>Required Screen Sequence</th><th>Decision / Validation</th><th>Expected Destination</th></tr>
+<tr><td>FR-01 login</td><td>Student/Faculty/Admin</td><td><code>/login</code></td><td>S01 Login → role redirect</td><td>Valid credentials? → role?</td><td>role dashboard</td></tr>
+<tr><td>FR-02 roles, FR-03 active</td><td>All / Admin</td><td>Guard on every route</td><td>Login → guard → dashboard; Admin S08 toggles <code>is_active</code></td><td>role ∈ {student,faculty,admin}; active?</td><td>allowed screen or back to login</td></tr>
+<tr><td>FR-18 normal search + filters</td><td>Student</td><td>S02 Dashboard search bar / S03 Repository</td><td>S03 list → filter chips → S04 Detail</td><td>filters JSONB logged to <code>search_logs</code></td><td>S04 Thesis Detail</td></tr>
+<tr><td>FR-16 semantic search</td><td>Student</td><td>S03 mode toggle “Semantic AI”</td><td>S03 → embedding query (pgvector HNSW) → ranked cards + SIM meter</td><td>query non-empty; top-k cosine</td><td>S04 with <code>similarity</code> extra</td></tr>
+<tr><td>FR-17 recommendations</td><td>Student</td><td>S02 rail / S04 “You may also like”</td><td>source thesis → content-based rank → rail cards</td><td>score logged to <code>recommendation_logs</code></td><td>S04 of recommended thesis</td></tr>
+<tr><td>FR-06/07/08 create-edit + lifecycle</td><td>Faculty/Admin</td><td>S07 Upload form</td><td>S07 → validate → draft → approved → published</td><td>required title/abstract; type Thesis/Capstone</td><td>S06 management table updated</td></tr>
+<tr><td>FR-09/10 PDF + file meta</td><td>Faculty/Admin</td><td>S07 dropzone</td><td>Browse → progress → <code>thesis_files</code> row (name/path/size/MIME)</td><td>PDF only, size limit</td><td>S04 PDF preview/download</td></tr>
+<tr><td>FR-11…14 authors/advisers/categories/keywords</td><td>Faculty/Admin</td><td>S07 repeatable fields</td><td>Add author (ordered) / adviser / category / keyword chips</td><td>junction rows; <code>order_index</code></td><td>S04 metadata block</td></tr>
+<tr><td>FR-04/05 programs &amp; AY</td><td>Admin</td><td>S08 Programs / AYs</td><td>CRUD tables; mark one AY active</td><td><code>code UNIQUE</code>; single active AY</td><td>filters across S02/S03/S07</td></tr>
+<tr><td>FR-19 audit + Saved/Profile</td><td>Student</td><td>S05 Profile/Saved</td><td>Save ☆ → saved list; profile shows creator/timestamps</td><td>owner-only remove</td><td>S05 updated list</td></tr>
+</table>
+<div class="rule"><b>Traceability rule:</b> every Must/High-priority user-facing requirement above maps to ≥1 screen/action/state. No wireframe feature exists without an FR (v1 gap closed).</div>
+</div>
+
+<!-- UI FLOW -->
+<div class="sec">
+<h2>UI-Flow Diagram — critical path (entry → navigation → feature → form/detail → validation/request → success/error)</h2>
+<div class="flow">
+<div class="fnode"><b>Actor</b><small>Student / Faculty / Admin<br>(authorized user)</small></div>
+<div class="farr">→<small>opens</small></div>
+<div class="fnode blue"><b>S01 Login / Entry</b><small>Form + validation<br>error feedback<br><code>/login /register</code></small></div>
+<div class="farr">→<small>valid login + guard</small></div>
+<div class="fnode"><b>Dashboard</b><small>role shell + KPIs<br>responsive nav<br>S02 / S06 / S09</small></div>
+<div class="farr">→<small>route</small></div>
+<div class="fnode purple"><b>S03 Repository</b><small>search + filters<br>list/grid<br>empty + loading<br><code>/repository</code></small></div>
+<div class="farr">→<small>select / save</small></div>
+<div class="fnode orange"><b>S04 Detail / S07 Form</b><small>inputs + SIM meter<br>save/cancel<br>success + error<br><code>/thesis/:id</code></small></div>
+</div>
+<div class="flow">
+<div class="fnode orange" style="min-width:220px"><b>↩ success → refreshed screen</b><small>S04 shows saved state / S06 table row updates; error → form preserved + retry</small></div>
+<div class="farr">·</div>
+<div class="fnode" style="min-width:220px;border-style:dashed"><b>Guards</b><small>unauth → <code>/login</code> · wrong role → own dashboard · bad id/unknown route → error screen + [Back]</small></div>
+</div>
+<p style="font-size:12px;color:var(--mut)">Reference: Lab Manual Fig.1 pattern (Actor → Login → Dashboard → Feature → Form/Detail → refreshed screen). All labels/routes replaced with CScholar's own.</p>
+</div>
+
+<!-- PART C -->
+<div class="sec">
+<h2>Part C — Navigation &amp; Routing Plan (from <code>lib/core/router/app_router.dart</code>)</h2>
+<table>
+<tr><th>Route / Path</th><th>Screen / View</th><th>Allowed Role(s)</th><th>Entered From</th><th>Exit / Back Behavior</th><th>Guard / Condition</th></tr>
+<tr><td><code>/login</code>, <code>/register</code></td><td>S01 Auth (AuthShell)</td><td>public</td><td>direct URL, logout, expired session</td><td>success → role dashboard; back → stays</td><td>if signed in → redirect to own dashboard</td></tr>
+<tr><td><code>/student/dashboard</code></td><td>S02 Student Dashboard</td><td>student</td><td>login, bottom nav</td><td>nav rail persists</td><td>auth + role=student</td></tr>
+<tr><td><code>/repository?q=&amp;mode=</code></td><td>S03 Repository/Search</td><td>student (faculty/admin have own lists)</td><td>dashboard search, nav</td><td>back → dashboard; direct URL with query restores filters</td><td>auth; deep-linkable</td></tr>
+<tr><td><code>/thesis/:id</code></td><td>S04 Research Details (role-aware)</td><td>student/faculty/admin</td><td>card tap (carries <code>extra.similarity</code>)</td><td>back → originating list</td><td>auth; invalid id → error + [Back to Repository]</td></tr>
+<tr><td><code>/saved</code>, <code>/profile</code></td><td>S05 Saved + Profile</td><td>student</td><td>nav</td><td>back → dashboard</td><td>auth + student</td></tr>
+<tr><td><code>/faculty/dashboard /theses /thesis/new /thesis/:id/edit /students /analytics /settings</code></td><td>S09 Faculty set + S07 form</td><td>faculty</td><td>login, sidebar</td><td>submit → My Theses refreshed</td><td>auth + faculty; edit requires ownership</td></tr>
+<tr><td><code>/admin/dashboard /thesis/management /thesis/new /thesis/:id/edit /programs /users /settings</code></td><td>S06/S08 Admin set + S07 form</td><td>admin</td><td>login, sidebar</td><td>CRUD → table refresh</td><td>auth + admin</td></tr>
+<tr><td><code>/:unmatched</code>, expired session</td><td>404 / session-expired screen</td><td>public</td><td>bad URL, back/forward</td><td>[Back to Sign In] / [Back to dashboard]</td><td>browser back never leaks unauthorized state</td></tr>
+</table>
+</div>
+
+<!-- PART B -->
+<div class="sec">
+<h2>Part B — Screen Inventory + Widget/State Plan (IDs stable across flow &amp; wireframes)</h2>
+<table>
+<tr><th>Screen ID / Name</th><th>Purpose / Main User</th><th>Major UI Sections / Candidate Flutter Widgets</th><th>Reusable Candidates</th><th>State Needed</th><th>Data / API</th></tr>
+<tr><td><b>S01</b> Login / Register</td><td>Authenticate; all roles</td><td><code>AuthShell + Form + NeumorphField + NeumorphButton + Select(role)</code></td><td>AppButton, FieldLabel</td><td><b>local:</b> obscure, remember, loading, error</td><td>POST /auth/login</td></tr>
+<tr><td><b>S02</b> Student Dashboard</td><td>Entry + KPIs + recs; student</td><td><code>Scaffold + StudentLayout + ClaySurface hero + KpiCard + ThesisCard + RecRail + SkeletonList</code></td><td>KpiCard, ThesisCard, StatusChip</td><td><b>shared/async:</b> user, recent, stats, savedIds, recommendations</td><td>GET theses/recent, stats, recommendations</td></tr>
+<tr><td><b>S03</b> Repository / Search</td><td>Keyword + semantic discovery; student</td><td><code>SearchBar + Toggle + FilterChips(Wrap) + GridView/ListView(ResultCard) + Pagination</code></td><td>ResultCard, FilterChip</td><td><b>shared:</b> query+filters across screens; <b>async:</b> results</td><td>GET /search (+ vector); POST search_logs</td></tr>
+<tr><td><b>S04</b> Research Details</td><td>Full record + PDF + recs</td><td><code>Column + StatusChips + MetaTable + PdfPreview + CiteButton + RecRail</code></td><td>StatusChip, ThesisCard</td><td><b>local:</b> saved toggle; <b>async:</b> thesis, recs</td><td>GET /thesis/:id, recommendations</td></tr>
+<tr><td><b>S05</b> Saved + Profile</td><td>Personal library; student</td><td><code>Avatar + Tabs + ListView(SavedRow) + EditForm</code></td><td>SavedRow, AppButton</td><td><b>shared:</b> savedIds</td><td>GET /saved, /profile</td></tr>
+<tr><td><b>S06</b> Admin Dashboard + Thesis Mgmt</td><td>Moderate lifecycle; admin</td><td><code>AdminSidebar + KpiRow + DataTable(status dropdown, actions)</code></td><td>DataRow, StatusChip</td><td><b>async:</b> theses page, users</td><td>PATCH status; GET admin stats</td></tr>
+<tr><td><b>S07</b> Upload / Add-Edit Thesis</td><td>Create/edit record; faculty/admin</td><td><code>Form + TextFormField(title/abstract) + Dropdowns + ChipInput + FileDropzone + progress</code></td><td>FieldLabel, FileDrop</td><td><b>local:</b> form keys, file progress, submitting</td><td>POST/PUT thesis + upload PDF</td></tr>
+<tr><td><b>S08</b> Users / Programs / AYs / Logs</td><td>Governance; admin</td><td><code>Tables + Toggle(is_active) + Dialogs(confirm)</code></td><td>ConfirmDialog</td><td><b>async:</b> lists</td><td>PATCH users, CRUD programs/AYs</td></tr>
+<tr><td><b>S09</b> Faculty Dashboard / My Theses / Analytics</td><td>Advisee oversight; faculty</td><td><code>FacultySidebar + Topbar + Charts + Tables</code></td><td>KpiCard, DataRow</td><td><b>async:</b> advisees, views</td><td>GET faculty stats</td></tr>
+</table>
+<p style="font-size:12px"><b>Classification:</b> presentational (StatelessWidget later) → Header, KpiCard, StatusChip, ThesisCard, EmptyPanel · local-state (StatefulWidget) → password visibility, tab, search toggle, save toggle, form interaction · shared/async (Riverpod: authProvider, currentUserProvider, recentThesesProvider, savedThesisIdsProvider, recommendedThesesProvider) → user, filters, loaded records, request state.</p>
+</div>
+
+<!-- PART D WIREFRAMES -->
+<div class="sec">
+<h2>Part D — Responsive Wireframes (desktop primary + 3 critical screens × 3 widths: 390 / 768 / 1440)</h2>
+
+<h3>Desktop / Wide (1440px) — all major screens</h3>
+<div class="grid2">
+<div class="frame"><div class="frame-h">S01 — Login · 1440: centered AuthShell card (max 460) + hero panel<small>Scaffold → AuthShell → Form → NeumorphField ×2 → NeumorphButton · FR-01</small></div>
+<div class="wf grn">[ CSU Logo ] CScholar — CEIT Thesis Repository</div>
+<div class="wf dash" style="text-align:center">Hero: “Semantic Search for CEIT Research” + illustration</div>
+<div class="wf">Label: Email* · TextFormField [ juan@carsu.edu.ph ]</div>
+<div class="wf">Label: Password* · TextFormField [ •••••• ] [Show]</div>
+<div class="row"><div class="wf">☑ Remember me</div><div class="wf" style="text-align:right">Forgot password?</div></div>
+<div class="wf pri">[ Login ] — disabled while submitting…</div>
+<div class="wf dash" style="color:#a00">⛔ Error state: “Invalid credentials…” (preserves email)</div>
+<div class="wf" style="text-align:center">No account? <b>Register</b></div>
+<div class="annot g">Responsive: LayoutBuilder centers card; hero stacks above form &lt;760px</div></div>
+
+<div class="frame"><div class="frame-h">S02 — Student Dashboard · 1440: sidebar + 3-col content<small>StudentLayout → ClaySurface hero → KpiCard ×3 → ThesisCard list + RecRail · FR-17/18</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">☰ CScholar &nbsp;|&nbsp; Dashboard · Repository · Saved · Profile &nbsp;&nbsp; 🔍 ⏺</div>
+<div class="wf dash">Hero (ClaySurface): “Hi, Juan!” + date + AY badge [2025–26 Active]</div>
+<div class="row"><div class="wf">📄 Theses<br><b>248</b></div><div class="wf">🎓 Programs<br><b>3</b></div><div class="wf">⭐ Saved<br><b>12</b></div></div>
+<div class="wf">🔍 SearchBar [ “machine learning…” ] + toggle [Keyword|Semantic]</div>
+<div class="chips"><span class="chip">Program ▾</span><span class="chip">Type ▾</span><span class="chip">Year ▾</span><span class="chip">Category ▾</span></div>
+<div class="wf">ThesisCard ×N: cover | title | authors | abstract… [Save☆][View→] SIM%</div>
+<div class="wf">RecRail →: “Because you viewed X” cards ×3</div>
+<div class="annot g">Grid: KPI 3-col → 1-col narrow; list 2-col → 1-col; rail horizontal scroll</div></div>
+
+<div class="frame"><div class="frame-h">S03 — Repository / Search · 1440: filters left, results right <span class="tag">CRITICAL ★</span><small>SearchBar + Wrap chips + GridView(ResultCard) · FR-16/18</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">← Repository &nbsp;&nbsp; Saved(12) · Profile</div>
+<div class="row"><div class="wf">🔍 Query [ “flood prediction IoT” ]</div><div class="wf grn" style="flex:.4">[Search]</div></div>
+<div class="row"><div class="wf">◉ Keyword ○ Semantic AI</div><div class="wf">Sort: Relevance ▾</div></div>
+<div class="chips"><span class="chip">☑BSIT</span><span class="chip">☑BSCS</span><span class="chip">☐BSIS</span><span class="chip">Year▾</span><span class="chip">AI/IoT/Web▾</span></div>
+<div class="wf"><b>Result 1 — 0.87 ▓▓▓▓░</b> title · authors · year · chips [Save][Details→]</div>
+<div class="wf"><b>Result 2 — 0.81 ▓▓▓▓░</b> title · authors · year [Save][Details→]</div>
+<div class="wf dash">Loading: SkeletonList · Empty: “No matches — clear filters / try semantic” + [Reset]</div>
+<div class="annot b">State: loading/empty/success/error answered per Part H; query logged (search_logs)</div></div>
+
+<div class="frame"><div class="frame-h">S04 — Research Details · 1440: 2-col (meta + PDF) <span class="tag">CRITICAL ★</span><small>StatusChips + MetaTable + PdfPreview + RecRail · FR-06…14</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">← Back &nbsp;&nbsp; [Save☆] [Share] [Cite📋]</div>
+<div class="wf grn">H1 Title: “IoT-Based Flood Monitoring for Butuan”</div>
+<div class="chips"><span class="chip">Capstone</span><span class="chip">Published</span><span class="chip">BSIT·2025</span><span class="chip">SIM 0.87</span></div>
+<div class="wf">Authors¹² (ordered) · Adviser · Categories · Keywords · file (name/size/MIME) · creator/timestamps</div>
+<div class="wf">Abstract paragraph (3–5 lines)…</div>
+<div class="row"><div class="wf grn">[ View / Download PDF ]</div><div class="wf btn">[ Cite ]</div></div>
+<div class="wf dash">📄 PDF preview (pdf_url; binary out of DB) · Error: “Preview failed [Retry] [Download]”</div>
+<div class="wf">You may also like ×3 (logged similarity_score)</div></div>
+
+<div class="frame"><div class="frame-h">S05 — Profile + Saved · 1440<small>Avatar + Tabs + SavedRow list · FR-19</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">☰ Profile &nbsp;&nbsp; [Edit]</div>
+<div class="row"><div class="wf dash" style="flex:.5;text-align:center">◯ Avatar</div><div class="wf" style="flex:1.5">Juan D. · @juan · <b>Student·BSIT</b> · Active ●</div></div>
+<div class="row"><div class="wf">📚 Saved(12)</div><div class="wf">👁 History</div><div class="wf">⚙ Settings</div></div>
+<div class="wf">SavedRow: thumb | title | prog/year [Remove✕][Open→] ×N · Empty: “Nothing saved yet [Browse]”</div>
+<div class="wf btn">[ Logout ] + confirm dialog</div></div>
+
+<div class="frame"><div class="frame-h">S06/S08 — Admin: Dashboard + Users/Thesis tables · 1440<small>AdminSidebar + DataTable + Toggle · FR-03/04/05/08</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">☰ Admin · AY 2025–26 ▾ · ⏺</div>
+<div class="row"><div class="wf">Users<br><b>312</b></div><div class="wf">Theses<br><b>248</b></div><div class="wf">Searches<br><b>1.2k</b></div><div class="wf">Pending<br><b>9</b></div></div>
+<div class="wf">Nav: Dashboard|Users|Theses|Programs|AYs|Logs|Settings</div>
+<div class="wf"><table class="tbl"><tr><th>Title</th><th>Type</th><th>Status</th><th>Act</th></tr><tr><td>Flood IoT…</td><td>Capstone</td><td>draft→approved ▾</td><td>[Edit][Archive]</td></tr></table></div>
+<div class="wf"><table class="tbl"><tr><th>User</th><th>Role</th><th>Active</th></tr><tr><td>@maria</td><td>faculty ▾</td><td>[Toggle ●]</td></tr></table></div>
+<div class="annot o">Destructive (Archive/Deactivate) → ConfirmDialog + undo toast</div></div>
+
+<div class="frame"><div class="frame-h">S07 — Upload / Add-Edit Thesis · 1440: 2-col form <span class="tag">CRITICAL ★</span><small>Form + Dropdowns + ChipInput + FileDropzone · FR-06…10</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">← New Thesis/Capstone &nbsp;&nbsp; Draft ●</div>
+<div class="wf">Title* [ … ] (≤300) · Abstract* textarea (multiline)</div>
+<div class="row"><div class="wf">Type ▾</div><div class="wf">Program ▾</div><div class="wf">AY ▾</div></div>
+<div class="wf">Authors +[Add] (①②③) · Advisers +[Add] · Categories ☐ · Keywords [a, b]</div>
+<div class="wf dash">⬆ Drop PDF / [Browse] → progress ▓▓▓░ · Error: “PDF only, ≤25MB”</div>
+<div class="row"><div class="wf btn">[Save Draft]</div><div class="wf grn">[Submit → approved]</div></div>
+<div class="annot b">Submit disabled while uploading; failure preserves draft + [Retry]</div></div>
+
+<div class="frame"><div class="frame-h">S09 — Faculty: Dashboard / Analytics · 1440<small>FacultySidebar + Topbar + charts + tables</small></div>
+<div class="wf" style="background:#101828;color:#fff;font-weight:bold">☰ Faculty · ⏺ &nbsp;&nbsp; My Theses · Students · Analytics</div>
+<div class="row"><div class="wf">Advisees<br><b>18</b></div><div class="wf">Supervised<br><b>9</b></div><div class="wf">Views<br><b>430</b></div></div>
+<div class="wf dash">📊 Bar/line chart placeholder (views per program) + table of advisees</div></div>
+</div>
+
+<h3>Responsive variants — 3 critical screens × 390 / 768 / 1440 (navigation, columns, cards, tables adapt; no tiny text / no h-overflow)</h3>
+<div class="grid3">
+<div class="frame"><div class="frame-h">S03 Search · 390 Mobile<small>Drawer nav · 1-col · filters collapse</small></div>
+<div class="wf" style="background:#101828;color:#fff">☰ 🔍 CScholar ⏺</div>
+<div class="wf">🔍 Query + [Go]</div><div class="wf btn">[ Filters (3 active) ▾ ]</div>
+<div class="wf">Result card (stacked) ×N</div>
+<div class="note">Drawer replaces sidebar; chips in bottom-sheet; cards full-width; ≥44px targets.</div></div>
+<div class="frame"><div class="frame-h">S03 Search · 768 Tablet<small>Rail + 2-col grid</small></div>
+<div class="wf" style="background:#101828;color:#fff">Rail icons │ Repository + results</div>
+<div class="wf">Query row (field + button inline)</div><div class="wf">Cards: 2-col grid</div>
+<div class="note">NavigationRail (icons); filter bar wraps (Wrap); sort moves inline.</div></div>
+<div class="frame"><div class="frame-h">S03 Search · 1440 Desktop<small>Sidebar + filters左 results右 (see above)</small></div>
+<div class="wf" style="background:#101828;color:#fff">Sidebar │ filters │ results 2-col</div>
+<div class="wf">Full table/grid + persistent filter column</div>
+<div class="note">MediaQuery ≥1100: fixed filter column; results GridView 2–3 col.</div></div>
+
+<div class="frame"><div class="frame-h">S04 Detail · 390 Mobile<small>stacked; actions sticky bottom</small></div>
+<div class="wf" style="background:#101828;color:#fff">← Title (truncated) [Save]</div>
+<div class="wf grn">Title H1 (wraps)</div><div class="chips"><span class="chip">Capstone</span><span class="chip">SIM</span></div>
+<div class="wf">Meta stacked · [PDF] full-width sticky</div>
+<div class="note">PDF opens full-screen viewer; recs horizontal scroll.</div></div>
+<div class="frame"><div class="frame-h">S04 Detail · 768 Tablet<small>meta 2-col; PDF inline</small></div>
+<div class="wf" style="background:#101828;color:#fff">← Back ····· [Save][Share]</div>
+<div class="wf">Title + chips row</div><div class="wf">Meta 2-col · PDF viewer 16:9</div>
+<div class="note">Row→Wrap at &lt;920 (thesis_detail_screen isDesktop flag).</div></div>
+<div class="frame"><div class="frame-h">S04 Detail · 1440 Desktop<small>content + rec rail (see above)</small></div>
+<div class="wf" style="background:#101828;color:#fff">← Back ········ [Save][Share][Cite]</div>
+<div class="wf">2-col: article (720) + rail (360)</div>
+<div class="note">Max content 1200 centered; rail sticky.</div></div>
+
+<div class="frame"><div class="frame-h">S07 Upload · 390 Mobile<small>single-col; stepper</small></div>
+<div class="wf" style="background:#101828;color:#fff">← New ①Details ②Files ③Review</div>
+<div class="wf">Field ×1 per row · dropdowns full-width</div><div class="wf grn">[Continue]</div>
+<div class="note">Stepper prevents long scroll; dropzone → file picker.</div></div>
+<div class="frame"><div class="frame-h">S07 Upload · 768 Tablet<small>grouped 2-col where safe</small></div>
+<div class="wf" style="background:#101828;color:#fff">← New Thesis ······ Draft ●</div>
+<div class="wf">Title full · Type+Program 2-col</div><div class="wf">Dropzone + progress inline</div>
+<div class="note">Form sections in Cards; validation summary on top on submit.</div></div>
+<div class="frame"><div class="frame-h">S07 Upload · 1440 Desktop<small>2-col form (see above)</small></div>
+<div class="wf" style="background:#101828;color:#fff">← New ········· Draft ● [Save][Submit]</div>
+<div class="wf">Left: fields · Right: files + review</div>
+<div class="note">Actions pinned in AppBar; no h-overflow; overflow via vertical scroll.</div></div>
+</div>
+<table><tr><th>Screen / Module</th><th>Narrow 390</th><th>Medium 768</th><th>Wide 1440</th><th>Overflow Strategy</th></tr>
+<tr><td>S03 Repository</td><td>drawer; 1-col; filters sheet</td><td>rail; 2-col grid; wrap chips</td><td>sidebar + fixed filter col; 2–3 col</td><td>vertical scroll; chips wrap; no h-scroll</td></tr>
+<tr><td>S04 Detail</td><td>stack; sticky [PDF]</td><td>2-col meta; inline PDF</td><td>article + sticky rail</td><td>long abstract scrolls; PDF paginates</td></tr>
+<tr><td>S07 Upload</td><td>stepper 1-col</td><td>grouped cards</td><td>2-col; pinned actions</td><td>section scroll; draft autosaved</td></tr>
+<tr><td>S02/S06 tables</td><td>cards replace tables</td><td>essential columns + overflow menu</td><td>full DataTable</td><td>column priority; horizontal scroll only inside table</td></tr></table>
+</div>
+
+<!-- PART E -->
+<div class="sec">
+<h2>Part E — Reusable Components + Visual Consistency</h2>
+<table><tr><th>Component / Pattern</th><th>Purpose</th><th>Used In</th><th>Inputs / Variants</th><th>State / Callback</th><th>Accessibility Note</th></tr>
+<tr><td>Primary action button (NeumorphButton)</td><td>Submit/search/save</td><td>S01,S03,S07</td><td>label, primary/ghost, loading</td><td>onPressed; disabled+spinner when busy</td><td>≥48px; focus ring; label not color-only</td></tr>
+<tr><td>Form field (NeumorphField/Select)</td><td>Labeled input + error</td><td>S01,S07</td><td>label, hint, required, error</td><td>validator; onChanged</td><td>visible Label above; hint ≠ label</td></tr>
+<tr><td>Navigation item (StudentLayout/AdminSidebar)</td><td>Primary destinations</td><td>S02,S06,S09</td><td>icon+label, active</td><td>onTap → go()</td><td>selected announced; keyboard reachable</td></tr>
+<tr><td>Record card/row (ThesisCard/ResultCard/SavedRow)</td><td>Uniform result presentation</td><td>S02,S03,S04,S05</td><td>thesis, similarity?, saved</td><td>onSave, onOpen</td><td>title is heading; SIM has text %</td></tr>
+<tr><td>Status/feedback (StatusChip, Toast, Dialog)</td><td>Type/status/state messaging</td><td>All</td><td>chip type; dialog confirm/destructive</td><td>onConfirm/onRetry</td><td>icon + text; never color-alone</td></tr>
+<tr><td>Project-specific (ThesisCover, RecRail, PdfPreview)</td><td>CScholar identity + AI features</td><td>S02,S03,S04</td><td>thesis; score 0..1</td><td>onSelect</td><td>covers decorative (alt=""); scores as text</td></tr></table>
+<p style="font-size:12px"><b>Consistency guide:</b> type — Poppins H1 22 / H2 18 / body 14 / caption 12; spacing 8pt (8/16/24); actions — primary dark right/pinned, secondary ghost left; fields — label above, helper below, error red + icon + text; cards 12-radius + 2px border; icons + text always; nav — mobile drawer / tablet rail / desktop sidebar; destructive → confirm + undo toast; feedback via inline + snackbar with [Retry].</p>
+</div>
+
+<!-- PART F -->
+<div class="sec">
+<h2>Part F — Forms &amp; Input Validation Plan (client = immediate feedback; API still validates + authorizes)</h2>
+<table><tr><th>Form / Field</th><th>Input / Control</th><th>Client-Side Rule</th><th>When Error Appears</th><th>Error / Helper Message</th><th>Submit / API Behavior</th></tr>
+<tr><td>Login: email</td><td>TextFormField.email</td><td>required; email format</td><td>on blur + submit</td><td>“Enter a valid CarSU email (name@carsu.edu.ph).”</td><td>button disabled while calling; 401 → inline error, email kept</td></tr>
+<tr><td>Login: password</td><td>TextFormField.obscure + Show</td><td>required; ≥8</td><td>on submit</td><td>“Password must be at least 8 characters.”</td><td>never log; session expiry → re-login, work kept where possible</td></tr>
+<tr><td>Register: role</td><td>Radio/Select</td><td>must pick student/faculty</td><td>on submit</td><td>“Choose Student or Faculty.”</td><td>admin accounts created by admin only</td></tr>
+<tr><td>S07: title / abstract</td><td>Text fields (multiline)</td><td>required; title ≤300; abstract ≥50</td><td>inline live count + submit</td><td>“Title is required (max 300).” / “Add at least 50 characters.”</td><td>draft autosave; submit → POST; 422 → field errors mapped</td></tr>
+<tr><td>S07: type/program/AY</td><td>Dropdowns</td><td>required; AY defaults active</td><td>on submit</td><td>“Select a program (BSIT/BSCS/BSIS).”</td><td>invalid → 400, form preserved</td></tr>
+<tr><td>S07: PDF file</td><td>Dropzone/Browse</td><td>PDF only; ≤25 MB; 1 file</td><td>on select</td><td>“Only PDF up to 25 MB.”</td><td>progress bar; cancel; retry keeps fields; server re-validates MIME/size</td></tr>
+<tr><td>S03: search query</td><td>SearchBar</td><td>≥2 chars or show recent</td><td>on submit</td><td>“Type at least 2 characters.”</td><td>empty → recent list, not error; failures → error card + [Retry]</td></tr></table>
+</div>
+
+<!-- PART H -->
+<div class="sec">
+<h2>Part H — Loading / Empty / Success / Error States (each answers: what happened? doing now? next? safe retry?)</h2>
+<table><tr><th>Screen / Action</th><th>Loading</th><th>Empty / No-Data</th><th>Success</th><th>Error / Recovery</th><th>Access / Offline</th></tr>
+<tr><td>S02 Dashboard</td><td>SkeletonList + shimmer (layout reserved)</td><td>“No records yet — [Browse repository]”</td><td>KPIs + cards render</td><td>“Couldn't load — [Retry]” (cached if any)</td><td>offline banner; reads cached</td></tr>
+<tr><td>S03 Search</td><td>skeleton cards; cancel prior request</td><td>“0 matches — [Clear filters] [Try semantic]”</td><td>ranked cards + count; logged</td><td>“Search failed — [Retry]” filters kept</td><td>keyword works offline-cache; semantic needs net</td></tr>
+<tr><td>S04 Detail / PDF</td><td>skeleton meta + viewer spinner</td><td>n/a (404 → “Not found [Back]”)</td><td>full meta + preview; saved ✓ toast</td><td>“Preview failed [Retry][Download]”</td><td>download for offline; viewer needs net</td></tr>
+<tr><td>S07 Submit / S06 moderation</td><td>button spinner + disabled; progress %</td><td>n/a</td><td>toast + redirect to refreshed table</td><td>field errors mapped; draft preserved + [Retry]</td><td>submit blocked offline (“will send when online” only if queued)</td></tr>
+<tr><td>Auth / guards</td><td>restoring session… (no bounce)</td><td>n/a</td><td>role dashboard</td><td>401 inline; expired → login with return URL</td><td>protected routes → login</td></tr></table>
+</div>
+
+<!-- PART G -->
+<div class="sec">
+<h2>Part G — Accessibility &amp; Usability Review</h2>
+<table><tr><th>Review Area</th><th>Required Design Evidence</th><th>Status / Revision Note</th></tr>
+<tr><td>Labels &amp; instructions</td><td>Every input has visible Label above; placeholder is hint only (S01/S07 annotated)</td><td>☐ Pass — verify in build</td></tr>
+<tr><td>Keyboard &amp; focus</td><td>Logical tab order; visible focus ring; drawer/rail/dialog trap + Esc; no mouse-only flow</td><td>☐ Pass</td></tr>
+<tr><td>Contrast &amp; non-color cues</td><td>Body ≥4.5:1; status = icon + text (Published ● + word; error ⛔ + text; SIM = bar + %)</td><td>☐ Pass</td></tr>
+<tr><td>Text &amp; layout resilience</td><td>200% text wraps without h-overflow (Wrap/chips/list verified at 390)</td><td>☐ Pass</td></tr>
+<tr><td>Touch/click targets</td><td>Buttons/chips/nav ≥44–48px, ≥8px gaps</td><td>☐ Pass</td></tr>
+<tr><td>Feedback &amp; recovery</td><td>Errors name problem + fix + [Retry]; destructive → ConfirmDialog + undo; drafts preserved</td><td>☐ Pass</td></tr>
+<tr><td>Semantics</td><td>Headings hierarchy; covers decorative; PDF viewer labeled; tables have headers</td><td>☐ Pass</td></tr>
+<tr><td>Consistency</td><td>Same terms/routes/buttons/feedback everywhere (see Part E guide)</td><td>☐ Pass</td></tr></table>
+</div>
+
+<!-- PART J -->
+<div class="sec">
+<h2>Part J — Design Review &amp; Revision Log (fill during 5–7 min review + 2–3 min Q&amp;A)</h2>
+<table><tr><th>Issue ID</th><th>Reviewer Finding / Question</th><th>Affected Screen / Use Case</th><th>Priority</th><th>Revision Decision / Action</th><th>Status</th></tr>
+<tr><td>R-01</td><td><i>(example — delete/overwrite) Filter chips crowd 390px search</i></td><td><i>S03 / FR-18</i></td><td><i>High</i></td><td><i>Move filters to bottom-sheet + count badge</i></td><td><i>Done in v2</i></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
+<h3>Post-lab reflection (one line each — for team to complete)</h3>
+<p>1. Hardest workflow SRS→flow? …<br>2. First reusable widget? … (suggest ThesisCard/ResultCard → S02/S03/S04)<br>3. Biggest narrow→wide change? … (drawer→rail→sidebar; tables→cards)<br>4. Riskiest undesigned state? … (S07 submit failure losing draft / S03 empty without guidance)<br>5. Must-fix before Flutter build? …</p>
+</div>
+
+<div class="sec">
+<h2>Submission — what to export from this file</h2>
+<p>1. <b>UI-flow diagram:</b> screenshot/print the “UI-Flow Diagram” section → PDF/PNG.<br>2. <b>Wireframes:</b> print this page (or screenshot each <b>.frame</b>) — desktop set + 390/768/1440 triples for S03, S04, S07.<br>3. <b>Tables:</b> Parts A/B/C/E/F/H/G/J above are the screen inventory, route map, component, validation, state-matrix, accessibility &amp; review-log deliverables.<br>4. Commit under <code>docs/ui-design/</code> as <code>IT110_LA6_CScholar</code> and submit link via MasaoLMS/Google Classroom.</p>
+<p class="print-note">Prev version <code>docs/ui_wireframes.html</code> (v1) kept for history — v2 supersedes it for Lab 6. v1 gap: single-width screens only, no flow/routes/widget-state/validation/state-matrix/accessibility/review-log.</p>
+</div>
+
+</div>
+</body>
+</html>

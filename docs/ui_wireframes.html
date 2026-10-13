@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CScholar – 1. UI Wireframes (Low Fidelity)</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:#f4f4f5;color:#222;padding:32px}
+  .doc{max-width:1240px;margin:0 auto}
+  .doc-head{background:#fff;border:2px solid #222;border-radius:12px;padding:24px 28px;margin-bottom:28px}
+  .doc-head h1{font-size:26px;margin-bottom:6px}
+  .doc-head p{color:#555;font-size:14px;line-height:1.6}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .meta span{font-size:12px;border:1.5px solid #222;border-radius:20px;padding:4px 12px;background:#fff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr} body{padding:16px}}
+  .phone{border:2.5px solid #222;border-radius:18px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+  .phone-head{background:#fafafa;border-bottom:2px solid #222;padding:12px 16px}
+  .phone-head b{font-size:13px;letter-spacing:.4px;text-transform:uppercase}
+  .phone-head small{display:block;color:#666;font-size:12px;margin-top:3px;line-height:1.5}
+  .screen{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:420px}
+  .wf{border:2px solid #999;border-radius:8px;background:#fff;padding:10px 12px;font-size:13px}
+  .wf.dashed{border-style:dashed;background:#f9f9f9;color:#666}
+  .wf.dark{background:#222;color:#fff;border-color:#222;text-align:center;font-weight:bold}
+  .wf.btn{border:2px solid #222;border-radius:8px;text-align:center;font-weight:bold;background:#e9e9e9}
+  .wf.btn.primary{background:#222;color:#fff}
+  .row{display:flex;gap:10px}.row>.wf{flex:1}
+  .bar{display:flex;align-items:center;justify-content:space-between;border:2px solid #222;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:bold;background:#efefef}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1.5px solid #888;border-radius:20px;padding:3px 10px;font-size:11px;background:#f5f5f5}
+  .card{border:2px solid #888;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.6;background:#fff}
+  .card b{display:block;font-size:13px}
+  table.wire{width:100%;border-collapse:collapse;font-size:12px}
+  table.wire th,table.wire td{border:1.5px solid #888;padding:7px;text-align:left}
+  table.wire th{background:#e8e8e8}
+  .note{font-size:12px;color:#444;background:#fffbe6;border:1.5px dashed #a80;border-radius:8px;padding:8px 10px;line-height:1.5}
+  .foot{margin-top:24px;background:#fff;border:2px solid #222;border-radius:12px;padding:18px 22px;font-size:13px;line-height:1.7}
+  @media print{body{background:#fff;padding:0}.phone{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="doc-head">
+<h1>1. UI Wireframes — CScholar (CEIT Thesis &amp; Capstone Repository)</h1>
+<p>Low-fidelity layout showing buttons, text fields, navigation bars, cards, tables and interface elements.
+Covers: <b>Login, Dashboard, Search/Repository, Research Details, Profile</b> + bonus <b>Admin</b> &amp; <b>Upload</b> screens.
+Roles: Student / Faculty / Admin (FR-01, FR-02). CEIT only: BSIT · BSCS · BSIS (FR-04, FR-20).</p>
+<div class="meta"><span>Flutter: web + mobile</span><span>Backend: Flask REST</span><span>DB: PostgreSQL + pgvector</span><span>AI: all-MiniLM-L6-v2</span></div>
+</div>
+
+<div class="grid">
+
+<!-- 1 LOGIN -->
+<div class="phone">
+<div class="phone-head"><b>Screen 1 — Login (Auth)</b><small>FR-01 login · FR-02 role redirect → /student, /faculty, /admin/dashboard</small></div>
+<div class="screen">
+<div class="wf dark">[ CSU Logo ] &nbsp; CScholar</div>
+<div class="wf dashed" style="text-align:center">Hero panel — “Semantic Search for CEIT Research”<br>illustration / glass panel placeholder</div>
+<div class="wf">✉ Email text field &nbsp; <span style="color:#888">[ juan@carsu.edu.ph ]</span></div>
+<div class="wf">🔒 Password text field &nbsp; <span style="color:#888">[ •••••••• ] [Show]</span></div>
+<div class="row"><div class="wf">☑ Remember me</div><div class="wf" style="text-align:right">Forgot password?</div></div>
+<div class="wf btn primary">[ Login Button ]</div>
+<div class="wf dashed" style="text-align:center;color:#a00">⚠ Error label placeholder — “Invalid credentials…”</div>
+<div class="wf" style="text-align:center">No account? <b>Register</b> → username, email, password, role select</div>
+<div class="note">Elements: 2 text fields, 1 checkbox, 1 primary button, 1 link. On success → role-based route (see LoginScreen).</div>
+</div>
+</div>
+
+<!-- 2 DASHBOARD -->
+<div class="phone">
+<div class="phone-head"><b>Screen 2 — Student Dashboard</b><small>FR-18 recent · FR-17 recommendations · FR-04 program · FR-05 AY</small></div>
+<div class="screen">
+<div class="bar"><span>☰ CScholar</span><span>🔍 ⏺ Avatar ▾</span></div>
+<div class="wf dashed">👋 Greeting banner — “Hi, Juan! Browse CEIT research” + date + AY badge [2025–2026 Active]</div>
+<div class="row"><div class="wf">📄 KPI: Total Theses<br><b>248</b></div><div class="wf">🎓 KPI: Programs<br><b>3</b></div><div class="wf">⭐ KPI: Saved<br><b>12</b></div></div>
+<div class="wf">🔍 Search bar text field — [ “machine learning traffic…” ] + [Semantic/Key] toggle</div>
+<div class="chips"><span class="chip">Program: All ▾</span><span class="chip">Type: Thesis/Capstone ▾</span><span class="chip">Year ▾</span><span class="chip">Category ▾</span></div>
+<div class="card"><b>Recent thesis card × N</b>cover thumb | title | authors | abstract snippet (2 lines)<br>[Save ☆] [View →] similarity % badge</div>
+<div class="card"><b>“Because you viewed X” rail →</b> rec-card | rec-card | rec-card (FR-17 + recommendation_logs)</div>
+<div class="note">Nav (StudentLayout): Dashboard · Repository · Saved · Profile. Cards = thesis_card + rec_rail.</div>
+</div>
+</div>
+
+<!-- 3 SEARCH -->
+<div class="phone">
+<div class="phone-head"><b>Screen 3 — Repository / Search</b><small>FR-18 normal search + filters + search_logs · FR-16 semantic (pgvector HNSW)</small></div>
+<div class="screen">
+<div class="bar"><span>← Repository</span><span>Saved (12) · Profile</span></div>
+<div class="row"><div class="wf">🔍 Query field [ “flood prediction using IoT” ]</div><div class="wf btn primary" style="flex:.5">[Search]</div></div>
+<div class="row"><div class="wf btn">◉ Keyword ○ Semantic AI</div><div class="wf">Sort: Relevance ▾</div></div>
+<div class="chips"><span class="chip">☑ BSIT</span><span class="chip">☑ BSCS</span><span class="chip">☐ BSIS</span><span class="chip">2024 ▾</span><span class="chip">AI / IoT / Web ▾</span><span class="chip">Adviser ▾</span></div>
+<div class="card"><b>Result 1 — 0.87 match ▓▓▓▓░</b>Title · authors · year · type chip · keywords<br>abstract snippet… [Save] [Details →]</div>
+<div class="card"><b>Result 2 — 0.81 match ▓▓▓▓░</b>Title · authors · year · type chip<br>abstract snippet… [Save] [Details →]</div>
+<div class="wf dashed">Pagination / infinite scroll skeleton — result_card + loading_skeleton</div>
+<div class="note">Every query + filters + result_count logged to search_logs (JSONB filters, nullable user_id).</div>
+</div>
+</div>
+
+<!-- 4 DETAIL -->
+<div class="phone">
+<div class="phone-head"><b>Screen 4 — Research Details</b><small>FR-06 title/abstract · FR-07 type · FR-08 status · FR-09 PDF · FR-11~14 authors/advisers/categories/keywords</small></div>
+<div class="screen">
+<div class="bar"><span>← Back to list</span><span>[Save ☆] [Share]</span></div>
+<div class="wf dark">Title (H1) — e.g. “IoT-Based Flood Monitoring for Butuan”</div>
+<div class="chips"><span class="chip">Capstone</span><span class="chip">Published</span><span class="chip">BSIT · 2025</span><span class="chip">SIM 0.87</span></div>
+<div class="wf">Authors (ordered): Dela Cruz¹, Santos² · Advisers: Engr. Reyes · Categories: IoT, Disaster · Keywords: esp32, flood</div>
+<div class="card"><b>Abstract</b><br>Full abstract paragraph placeholder (3–5 lines)…<br><br><b>Metadata table:</b> program · AY · creator · created/updated · file (name, size, MIME)</div>
+<div class="row"><div class="wf btn primary">[ View / Download PDF ]</div><div class="wf btn">[ Cite 📋 ]</div></div>
+<div class="wf dashed">📄 PDF preview placeholder (PyMuPDF-extracted, pdf_url — binary out of DB)</div>
+<div class="card"><b>You may also like (content-based, FR-17)</b> rec card × 3 + logged similarity_score</div>
+</div>
+</div>
+
+<!-- 5 PROFILE -->
+<div class="phone">
+<div class="phone-head"><b>Screen 5 — Profile + Saved Theses</b><small>FR-19 creator/timestamps · FR-02 role badge · saved list</small></div>
+<div class="screen">
+<div class="bar"><span>☰ Profile</span><span>[Edit]</span></div>
+<div class="row"><div class="wf dashed" style="flex:.6;text-align:center">◯<br>Avatar</div><div class="wf" style="flex:1.4">Juan Dela Cruz<br>@juan · <b>Student</b> · BSIT<br>carsu email · Active ●</div></div>
+<div class="row"><div class="wf">📚 Saved (12)</div><div class="wf">👁 History</div><div class="wf">⚙ Settings</div></div>
+<div class="card"><b>Saved thesis row × N</b> thumb | title | program/year [Remove ✕] [Open →]</div>
+<div class="card"><b>Saved thesis row</b> thumb | title | program/year [Remove ✕] [Open →]</div>
+<div class="wf btn">[ Logout ]</div>
+<div class="note">Student tabs: Dashboard · Repository · Saved · Profile. Faculty swaps Saved→My Theses/Analytics.</div>
+</div>
+</div>
+
+<!-- 6 ADMIN -->
+<div class="phone">
+<div class="phone-head"><b>Screen 6 — Admin Dashboard + Management (table)</b><small>FR-03 activate/deactivate · FR-04 programs · FR-05 AYs · FR-08 lifecycle · Phase 15 logs</small></div>
+<div class="screen">
+<div class="bar"><span>☰ Admin · CScholar</span><span>AY: 2025–26 ▾ · Admin ⏺</span></div>
+<div class="row"><div class="wf">Users<br><b>312</b></div><div class="wf">Theses<br><b>248</b></div><div class="wf">Searches<br><b>1.2k</b></div><div class="wf">Pending<br><b>9</b></div></div>
+<div class="wf btn primary">Sidebar nav: Dashboard | Users | Theses | Programs | AYs | Logs | Settings</div>
+<div class="card"><b>Thesis Management table</b>
+<table class="wire" style="margin-top:6px"><tr><th>Title</th><th>Type</th><th>Status ▾</th><th>Action</th></tr>
+<tr><td>Flood IoT…</td><td>Capstone</td><td>draft→approved</td><td>[Edit][Archive]</td></tr>
+<tr><td>⋯</td><td>Thesis</td><td>published</td><td>[Edit][Hide]</td></tr></table></div>
+<div class="card"><b>User table</b>
+<table class="wire" style="margin-top:6px"><tr><th>Username</th><th>Role</th><th>Active</th></tr>
+<tr><td>@maria</td><td>faculty ▾</td><td>[Toggle ●/○]</td></tr>
+<tr><td>@jose</td><td>student ▾</td><td>[Toggle ●/○]</td></tr></table></div>
+</div>
+</div>
+
+<!-- 7 UPLOAD -->
+<div class="phone">
+<div class="phone-head"><b>Screen 7 — Upload / Add Thesis (Faculty &amp; Admin)</b><small>FR-06~10 create/edit · FR-10 file meta · FR-15 embeddings · FR-08 status flow</small></div>
+<div class="screen">
+<div class="bar"><span>← New Thesis / Capstone</span><span>Draft ●</span></div>
+<div class="wf">Title text field [ … ] (VARCHAR 300, required)</div>
+<div class="wf">Abstract textarea (multiline, required)</div>
+<div class="row"><div class="wf">Type ▾ Thesis/Capstone</div><div class="wf">Program ▾ BSIT/BSCS/BSIS</div><div class="wf">AY ▾ 2025–26</div></div>
+<div class="wf">Authors field + [Add] (ordered ①②③) · Advisers field + [Add]</div>
+<div class="wf">Categories ☐AI ☐IoT ☐Web · Keywords input [comma-separated]</div>
+<div class="wf dashed" style="text-align:center">⬆ Drop PDF here / [Browse] → filename · size · MIME · progress ▓▓▓░</div>
+<div class="row"><div class="wf btn">[Save Draft]</div><div class="wf btn primary">[Submit → approved → published]</div></div>
+<div class="note">On upload: PyMuPDF extract → thesis_files row → Sentence-Transformer chunks → thesis_embeddings (384-d).</div>
+</div>
+</div>
+
+<!-- 8 REGISTER (small bonus) -->
+<div class="phone">
+<div class="phone-head"><b>Screen 8 — Register (bonus)</b><small>FR-01 · FR-02 role select · FR-03 is_active default true</small></div>
+<div class="screen" style="min-height:0">
+<div class="wf">Username field · Email field · Password + Confirm</div>
+<div class="wf">Role select: (•) Student ( ) Faculty — admin created by admin</div>
+<div class="wf btn primary">[ Create Account ]</div>
+<div class="wf" style="text-align:center">Have account? <b>Login →</b></div>
+</div>
+</div>
+
+</div><!-- /grid -->
+
+<div class="foot">
+<b>How to use this file:</b> open <code>docs/ui_wireframes.html</code> in a browser → screenshot each phone card for your report (matches the “Low Fidelity wireframes” thumbnail in your brief). Each screen lists its widgets (text fields, buttons, nav bars, cards, tables) and the FR it implements. Navigation map: Login → role dashboard → Repository/Search → Details → Saved/Profile; Faculty adds “My Theses + Upload + Analytics”; Admin adds “Users/Theses/Programs/AYs/Logs”.
+</div>
+
+</div>
+</body>
+</html>

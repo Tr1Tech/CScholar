@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CScholar — Widget Annotations + UI States (Lab 6)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#f2f5f1;color:#1d2939;padding:28px;line-height:1.55}
+.doc{max-width:1100px;margin:0 auto}
+.banner{background:#fff;border:3px solid #0b6b3a;border-radius:14px;padding:20px 24px;margin-bottom:20px}
+.banner h1{font-size:20px;color:#084d2a}.banner p{font-size:13px;color:#5b6b7f;margin-top:4px}
+.sec{background:#fff;border:2px solid #c9d4c0;border-radius:12px;padding:20px 22px;margin-bottom:20px}
+.sec>h2{background:#0b6b3a;color:#fff;font-size:15px;padding:8px 14px;border-radius:8px;margin:-6px -6px 14px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+th{background:#0b6b3a;color:#fff;padding:7px 8px;text-align:left}
+td{border:1px solid #9db3a0;padding:7px 8px;vertical-align:top}
+tr:nth-child(even) td{background:#f6faf6}
+code{background:#eef2ee;padding:1px 5px;border-radius:4px;font-size:11.5px}
+.rule{background:#eef6ef;border:2px solid #0b6b3a;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-top:10px}
+@media print{body{background:#fff;padding:0}.sec{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<div class="banner">
+<h1>CScholar — Widget Annotations + UI States</h1>
+<p>Companion to <code>wireframes.html</code> (Part D). Covers Lab 6 Sec. 15 annotations + Sec. 12 / Part H interface states. Per-state rule: what happened? what is the system doing? what next? safe retry?</p>
+</div>
+
+<div class="sec">
+<h2>A. Flutter UI Design Annotations (applied to CScholar)</h2>
+<table>
+<tr><th>Area (per manual)</th><th>Annotation</th><th>CScholar usage</th></tr>
+<tr><td>Page shell</td><td><code>Scaffold / responsive shell</code></td><td>S01 <code>AuthShell</code>; S02 <code>StudentLayout</code>; S06 <code>AdminSidebar</code> shell; S09 <code>FacultySidebar</code> shell</td></tr>
+<tr><td>Navigation</td><td><code>NavigationRail / Drawer / menu / tabs</code></td><td>390: Drawer · 768: NavigationRail · 1440: Sidebar; bottom tabs on S05 (Saved/History/Settings)</td></tr>
+<tr><td>Layout</td><td><code>Row / Column / Wrap / Grid / List</code></td><td>S03: <code>Wrap</code> chips + <code>GridView(ResultCard)</code>; S04: <code>Column</code> → <code>Row</code> ≥920px; S06: <code>DataTable</code> → cards on narrow</td></tr>
+<tr><td>Form</td><td><code>Form / TextFormField / dropdown</code></td><td>S01: email + password + role select; S07: title/abstract/type/program/AY/authors/dropzone; S03: SearchBar + sort dropdown</td></tr>
+<tr><td>Reusable UI</td><td><code>ThesisCard / StatusChip / AppButton / FieldLabel</code></td><td><code>ThesisCard, ResultCard, RecRail, KpiCard, StatusChip, NeumorphButton/Field, ThesisCover, PdfPreview</code></td></tr>
+<tr><td>Responsive logic</td><td><code>LayoutBuilder / MediaQuery / width class</code></td><td>Breakpoints 390 / 768 / 1440; <code>isDesktop = width &gt; 920</code> (S04); <code>constraints.maxWidth &lt; 760</code> (S02 hero)</td></tr>
+<tr><td>Async state</td><td><code>loading / empty / success / error</code></td><td>See table B — every data screen declares all four + retry behavior</td></tr>
+</table>
+</div>
+
+<div class="sec">
+<h2>B. UI-State Matrix (Part H)</h2>
+<table>
+<tr><th>Screen / Action</th><th>Loading</th><th>Empty / No-Data</th><th>Success</th><th>Error / Recovery</th></tr>
+<tr><td><b>S01</b> Login / Register</td><td>Button spinner + disabled; “Signing in…”</td><td>—</td><td>Redirect to role dashboard</td><td>401 inline “Invalid credentials…”, input preserved; expired session → login with return URL</td></tr>
+<tr><td><b>S02</b> Dashboard</td><td><code>SkeletonList</code> shimmer, layout reserved</td><td>“No records yet — [Browse repository]”</td><td>KPIs + cards + rail render</td><td>“Couldn't load — [Retry]”, show cache if any</td></tr>
+<tr><td><b>S03</b> Search (keyword + semantic)</td><td>Skeleton cards; cancel prior request</td><td>“0 matches — [Clear filters] [Try semantic]”</td><td>Ranked cards + count + SIM bars; logged to <code>search_logs</code></td><td>“Search failed — [Retry]”, filters kept</td></tr>
+<tr><td><b>S04</b> Detail + PDF</td><td>Skeleton meta + viewer spinner</td><td>Invalid id → “Not found [Back to list]”</td><td>Full meta + preview; “Saved ✓” toast</td><td>“Preview failed [Retry] [Download]”; save failure → toast + toggle reverted</td></tr>
+<tr><td><b>S05</b> Saved + Profile</td><td>Skeleton rows</td><td>“Nothing saved yet — [Browse]”</td><td>List + profile render; remove → undo toast</td><td>“Couldn't update — [Retry]”, list unchanged</td></tr>
+<tr><td><b>S06/S08</b> Admin tables</td><td>Table shimmer</td><td>“No pending items ✓”</td><td>Row updates + toast (approved/published/archived; user toggled)</td><td>“Action failed — [Retry]”; destructive → ConfirmDialog first</td></tr>
+<tr><td><b>S07</b> Upload / Submit</td><td>Button disabled + spinner; upload progress %</td><td>—</td><td>Toast + redirect to refreshed table (draft → approved → published)</td><td>Field errors mapped inline; PDF reject “PDF only, ≤25 MB”; draft autosaved + [Retry]</td></tr>
+<tr><td><b>Global</b> unknown route / offline</td><td>Restoring session… (no bounce)</td><td>—</td><td>Deep link resolves</td><td>404 “Page not found [Back]”; offline banner, cached reads; submit blocked with message</td></tr>
+</table>
+<div class="rule"><b>State-design rule:</b> no infinite spinners · empty states always offer a next step · errors preserve user work and state whether retry is safe.</div>
+</div>
+
+</div>
+</body>
+</html>
