@@ -222,6 +222,7 @@ class ThesisFormPayload {
   final List<String> keywordTerms;
   final String? pdfUrl;
   final String? status;
+  final bool confirmDuplicate;
 
   ThesisFormPayload({
     required this.title,
@@ -235,6 +236,7 @@ class ThesisFormPayload {
     required this.keywordTerms,
     this.pdfUrl,
     this.status,
+    this.confirmDuplicate = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -249,6 +251,7 @@ class ThesisFormPayload {
     'keyword_terms': keywordTerms,
     if (pdfUrl != null) 'pdf_url': pdfUrl,
     if (status != null) 'status': status,
+    if (confirmDuplicate) 'confirm_duplicate': true,
   };
 }
 

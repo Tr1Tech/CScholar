@@ -15,6 +15,7 @@ import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
+import 'package:frontend/presentation/widgets/common/duplicate_dialog.dart';
 import 'package:file_picker/file_picker.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -120,31 +121,45 @@ class _AdminAddEditThesisScreenState extends ConsumerState<AdminAddEditThesisScr
     });
 
     final api = ref.read(thesisApiProvider);
-    final payload = ThesisFormPayload(
-      title: _titleCtrl.text.trim(),
-      abstract_: _abstractCtrl.text.trim(),
-      programId: _program!.id,
-      academicYearId: _year!.id,
-      researchType: _researchType!,
-      authorIds: _authorIds.toList(),
-      adviserId: _adviser?.id,
-      categoryIds: [_category!.id],
-      keywordTerms: _keywordsCtrl.text
-          .split(RegExp(r'[,;]'))
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      pdfUrl: _pdfUrl,
-      // Repository searches intentionally exclude drafts. Admin-created
-      // studies should be visible to repository users immediately.
-      status: widget.thesisId == null ? 'published' : null,
-    );
+    ThesisFormPayload buildPayload({bool confirmDuplicate = false}) =>
+        ThesisFormPayload(
+          title: _titleCtrl.text.trim(),
+          abstract_: _abstractCtrl.text.trim(),
+          programId: _program!.id,
+          academicYearId: _year!.id,
+          researchType: _researchType!,
+          authorIds: _authorIds.toList(),
+          adviserId: _adviser?.id,
+          categoryIds: [_category!.id],
+          keywordTerms: _keywordsCtrl.text
+              .split(RegExp(r'[,;]'))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
+          pdfUrl: _pdfUrl,
+          // Repository searches intentionally exclude drafts. Admin-created
+          // studies should be visible to repository users immediately.
+          status: widget.thesisId == null ? 'published' : null,
+          confirmDuplicate: confirmDuplicate,
+        );
 
     try {
       if (widget.thesisId != null) {
-        await api.update(widget.thesisId!, payload);
+        await api.update(widget.thesisId!, buildPayload());
       } else {
-        await api.create(payload);
+        try {
+          await api.create(buildPayload());
+        } catch (e) {
+          final dupes = parseDuplicateCandidates(e);
+          if (dupes.isEmpty || !mounted) rethrow;
+          final confirmed =
+              await showDuplicateConfirmDialog(context, dupes);
+          if (confirmed != true || !mounted) {
+            setState(() => _isSubmitting = false);
+            return;
+          }
+          await api.create(buildPayload(confirmDuplicate: true));
+        }
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

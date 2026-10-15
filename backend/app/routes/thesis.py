@@ -266,6 +266,20 @@ def create_thesis():
             return jsonify({"error": "Invalid pdf_url — upload the PDF first"}), 400
         faculty_pdf_url = data["pdf_url"]
 
+    # Soft duplicate guard (no UNIQUE constraint on purpose — same title
+    # with a different study/scope is legitimate in real life). An exact
+    # normalized title match returns 409 with candidates; the client may
+    # resubmit with confirm_duplicate:true to save anyway as draft.
+    try:
+        dupes = db.find_possible_duplicates(data.get("title", ""), data.get("abstract", ""))
+    except Exception:
+        dupes = []
+    if dupes and not data.get("confirm_duplicate"):
+        return jsonify({
+            "error": "Possible duplicate thesis found. Resubmit with confirm_duplicate:true to proceed anyway.",
+            "possible_duplicates": dupes,
+        }), 409
+
     thesis_id = db.create_thesis(
         title=data["title"],
         abstract=data["abstract"],
@@ -301,6 +315,10 @@ def create_thesis():
         pass  # Never block thesis creation on embedding failure
 
     thesis = db.get_thesis_by_id(thesis_id)
+    if dupes:
+        # Confirmed duplicate — saved anyway, but flag it so the UI and
+        # admin review queue can surface it.
+        thesis["duplicate_warning"] = dupes
     return jsonify(thesis), 201
 
 

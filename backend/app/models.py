@@ -546,6 +546,53 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
         put_conn(conn)
 
 
+def find_possible_duplicates(title, abstract=None, limit=5):
+    """Soft duplicate guard for thesis submission (no UNIQUE constraint).
+
+    Matches on normalized title: case-insensitive, trimmed, inner
+    whitespace collapsed — so "  IoT  System " == "iot system".
+    Title-only match = "exact_title" (common in real life, still allowed).
+    Title + abstract both matching = "exact_title_and_abstract"
+    (almost certainly a copy-paste / resubmission).
+
+    Returns a list of dicts (id, title, status, program_id,
+    academic_year_id, match_type). Never raises — returns [] on DB error
+    so submission is never blocked by the guard itself.
+    """
+    norm_title = re.sub(r"\s+", " ", (title or "")).strip().lower()
+    if not norm_title:
+        return []
+    norm_abstract = re.sub(r"\s+", " ", (abstract or "")).strip().lower()
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, title, abstract, status, program_id, "
+                "       academic_year_id, creator_id, created_at "
+                "FROM theses "
+                "WHERE LOWER(btrim(title)) = LOWER(btrim(%s)) "
+                "ORDER BY created_at DESC LIMIT %s",
+                (title.strip(), limit),
+            )
+            dupes = []
+            for r in cur.fetchall():
+                row_abstract = re.sub(r"\s+", " ", (r[2] or "")).strip().lower()
+                full = bool(norm_abstract and row_abstract == norm_abstract)
+                dupes.append({
+                    "id": r[0],
+                    "title": r[1],
+                    "status": r[3],
+                    "program_id": r[4],
+                    "academic_year_id": r[5],
+                    "match_type": "exact_title_and_abstract" if full else "exact_title",
+                })
+            return dupes
+    except Exception:
+        return []
+    finally:
+        put_conn(conn)
+
+
 def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft",
                   author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None, pdf_url=None):
     conn = get_conn()

@@ -18,6 +18,7 @@ import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
+import 'package:frontend/presentation/widgets/common/duplicate_dialog.dart';
 
 /// Faculty: submit a new thesis, or edit your own draft. Creates always save
 /// as a draft for admin review (the backend forces `draft` for faculty
@@ -560,20 +561,32 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
           context.go('/faculty/theses');
         }
       } else {
-        await ref.read(thesisApiProvider).create(
-              ThesisFormPayload(
-                title: _titleCtrl.text.trim(),
-                abstract_: _abstractCtrl.text.trim(),
-                programId: _programId!,
-                academicYearId: _yearId!,
-                researchType: _researchType!,
-                authorIds: _authorIds.toList(),
-                categoryIds: _categoryIds.toList(),
-                keywordTerms: keywords,
-                pdfUrl: _pdfUrl,
-                status: 'draft',
-              ),
+        ThesisFormPayload buildPayload({bool confirmDuplicate = false}) =>
+            ThesisFormPayload(
+              title: _titleCtrl.text.trim(),
+              abstract_: _abstractCtrl.text.trim(),
+              programId: _programId!,
+              academicYearId: _yearId!,
+              researchType: _researchType!,
+              authorIds: _authorIds.toList(),
+              categoryIds: _categoryIds.toList(),
+              keywordTerms: keywords,
+              pdfUrl: _pdfUrl,
+              status: 'draft',
+              confirmDuplicate: confirmDuplicate,
             );
+        try {
+          await ref.read(thesisApiProvider).create(buildPayload());
+        } catch (e) {
+          final dupes = parseDuplicateCandidates(e);
+          if (dupes.isEmpty || !mounted) rethrow;
+          final confirmed =
+              await showDuplicateConfirmDialog(context, dupes);
+          if (confirmed != true || !mounted) return;
+          await ref
+              .read(thesisApiProvider)
+              .create(buildPayload(confirmDuplicate: true));
+        }
         ref.invalidate(facultyThesesProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
