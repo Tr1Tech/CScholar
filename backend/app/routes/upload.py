@@ -1,6 +1,7 @@
 """PDF upload routes — extract text with PyMuPDF, associate with thesis."""
 
 import os
+import threading
 import uuid
 from flask import Blueprint, request, jsonify, current_app
 from werkzeug.utils import secure_filename
@@ -16,6 +17,32 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _reembed_thesis_async(thesis_id, pdf_text):
+    """Chunk + re-embed a thesis in a background thread (best-effort)."""
+    def _work():
+        try:
+            from ..services.chunking import build_thesis_chunks
+            from ..services.embeddings import embedding_service
+            if not embedding_service.available:
+                return
+            thesis = db.get_thesis_by_id(thesis_id)
+            if not thesis:
+                return
+            chunks = build_thesis_chunks(
+                thesis.get("title", ""), thesis.get("abstract", ""), pdf_text)
+            if not chunks:
+                return
+            vectors = embedding_service.embed_batch(chunks)
+            if not vectors or len(vectors) != len(chunks):
+                return
+            db.replace_thesis_embeddings(
+                thesis_id, list(zip(chunks, vectors)),
+                embedding_service.model_name)
+        except Exception:
+            pass  # Never break uploads on embedding failures.
+    threading.Thread(target=_work, daemon=True).start()
 
 
 @upload_bp.route("/api/upload/pdf", methods=["POST"])
@@ -94,6 +121,23 @@ def upload_pdf():
             db.update_thesis(thesis_id, pdf_url=pdf_url)
         except Exception as e:
             return jsonify({"error": f"Failed to update thesis record: {str(e)}"}), 500
+        try:
+            db.create_thesis_file(
+                thesis_id=thesis_id,
+                filename=filename,
+                file_path=pdf_url,
+                file_size=len(file_bytes),
+                mime_type="application/pdf",
+                uploaded_by=request.current_user["id"],
+            )
+        except Exception:
+            pass  # Metadata row is nice-to-have; never fail the upload.
+        # Re-embed in the background so recommendations/search see the full
+        # PDF body. Fire-and-forget: extraction already succeeded above.
+        try:
+            _reembed_thesis_async(thesis_id, text)
+        except Exception:
+            pass
 
     return jsonify({
         "message": "PDF uploaded and parsed successfully",

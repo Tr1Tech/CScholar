@@ -48,6 +48,27 @@ class EmbeddingService:
             logger.error(f"Failed to embed text: {e}")
             return None
 
+    def embed_batch(self, texts: List[str], batch_size: int = 32) -> Optional[List[List[float]]]:
+        """Generate embeddings for many chunks in one batched call.
+
+        5-10x faster than looping embed() for a full-PDF backfill.
+        Returns None when the model is unavailable or encoding fails.
+        """
+        self._load_model()
+        if not self._available:
+            return None
+        if not texts:
+            return []
+        try:
+            embeddings = self._model.encode(
+                texts, batch_size=batch_size, convert_to_numpy=True,
+                show_progress_bar=False,
+            )
+            return [row.tolist() for row in embeddings]
+        except Exception as e:
+            logger.error(f"Failed to embed batch of {len(texts)} texts: {e}")
+            return None
+
 
 # Singleton instance
 embedding_service = EmbeddingService()

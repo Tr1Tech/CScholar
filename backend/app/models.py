@@ -1154,7 +1154,11 @@ def get_thesis_embedding(thesis_id):
 
 
 def upsert_thesis_embedding(thesis_id, chunk_text, embedding_vector, model_name):
-    """Insert or update embedding for a thesis."""
+    """Insert or update embedding for a thesis (legacy single-chunk path).
+
+    Kept for backwards compatibility. New code should use
+    replace_thesis_embeddings() so a thesis can hold many chunks.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -1175,6 +1179,65 @@ def upsert_thesis_embedding(thesis_id, chunk_text, embedding_vector, model_name)
                     (thesis_id, chunk_text, embedding_vector, model_name),
                 )
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def replace_thesis_embeddings(thesis_id, chunks, model_name):
+    """Replace ALL embedding chunks for a thesis (full-PDF chunking).
+
+    chunks: list of (chunk_text, embedding_vector) tuples.
+    Delete-then-insert keeps re-uploads/re-embeds idempotent — without
+    this, every re-run would duplicate all chunk rows and inflate ranks.
+    """
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM thesis_embeddings WHERE thesis_id = %s", (thesis_id,))
+            for chunk_text, vector in chunks:
+                cur.execute(
+                    "INSERT INTO thesis_embeddings (thesis_id, chunk_text, embedding, model_name) "
+                    "VALUES (%s, %s, %s::vector, %s)",
+                    (thesis_id, chunk_text, vector, model_name),
+                )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def count_thesis_embedding_chunks(thesis_id):
+    """Return the number of stored embedding chunks for a thesis."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM thesis_embeddings WHERE thesis_id = %s",
+                (thesis_id,),
+            )
+            return cur.fetchone()[0]
+    finally:
+        put_conn(conn)
+
+
+def create_thesis_file(thesis_id, filename, file_path, file_size=None, mime_type=None, uploaded_by=None):
+    """Persist upload metadata (thesis_files stores metadata only)."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO thesis_files (thesis_id, filename, file_path, file_size, mime_type, uploaded_by) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                (thesis_id, filename, file_path, file_size, mime_type, uploaded_by),
+            )
+            file_id = cur.fetchone()[0]
+        conn.commit()
+        return file_id
     except Exception:
         conn.rollback()
         raise
@@ -1261,17 +1324,31 @@ def recent_activity(limit=10):
 
 
 def semantic_search(query_vector, limit=10):
-    """Find theses by embedding cosine similarity."""
+    """Find theses by embedding cosine similarity.
+
+    One row per thesis: with full-PDF chunking a thesis owns many chunk
+    rows, so the inner query picks each thesis's NEAREST chunk
+    (DISTINCT ON + ORDER BY distance) and the outer query ranks theses by
+    that best-chunk similarity. Without this a 40-page thesis would occupy
+    many slots in its own result list.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            try:
+                cur.execute("SET LOCAL hnsw.ef_search = 100")
+            except Exception:
+                pass
             cur.execute(
-                "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, t.status, "
+                "SELECT * FROM ("
+                "SELECT DISTINCT ON (t.id) t.id, t.title, t.abstract, t.research_type, "
+                "       t.program_id, t.status, "
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
                 "WHERE t.status IN ('published', 'approved') "
-                "ORDER BY e.embedding <=> %s::vector "
+                "ORDER BY t.id, e.embedding <=> %s::vector"
+                ") s ORDER BY similarity DESC "
                 "LIMIT %s",
                 (query_vector, query_vector, limit),
             )
@@ -1471,13 +1548,20 @@ def get_faculty_analytics(email):
 
 
 def recommend_for_thesis(thesis_id, limit=5):
-    """Find similar theses to a given thesis using its embedding."""
+    """Find similar theses to a given thesis using its embedding chunks.
+
+    The source thesis may own many chunks; we use its FIRST chunk's
+    embedding (the title+abstract lead chunk written first by
+    replace_thesis_embeddings) as the query, then dedupe candidates to
+    one row per thesis via the nearest-chunk subquery (same pattern as
+    semantic_search).
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            # Get the embedding of the source thesis
+            # Get the embedding of the source thesis (lead chunk = lowest id)
             cur.execute(
-                "SELECT embedding FROM thesis_embeddings WHERE thesis_id = %s",
+                "SELECT embedding FROM thesis_embeddings WHERE thesis_id = %s ORDER BY id LIMIT 1",
                 (thesis_id,),
             )
             row = cur.fetchone()
@@ -1485,14 +1569,22 @@ def recommend_for_thesis(thesis_id, limit=5):
                 return []
             source_embedding = row[0]
 
+            try:
+                cur.execute("SET LOCAL hnsw.ef_search = 100")
+            except Exception:
+                pass
+
             # Find similar theses (excluding the source itself)
             cur.execute(
-                "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, t.status, "
+                "SELECT * FROM ("
+                "SELECT DISTINCT ON (t.id) t.id, t.title, t.abstract, t.research_type, "
+                "       t.program_id, t.status, "
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
                 "WHERE t.status IN ('published', 'approved') AND t.id != %s "
-                "ORDER BY e.embedding <=> %s::vector "
+                "ORDER BY t.id, e.embedding <=> %s::vector"
+                ") s ORDER BY similarity DESC "
                 "LIMIT %s",
                 (source_embedding, thesis_id, source_embedding, limit),
             )

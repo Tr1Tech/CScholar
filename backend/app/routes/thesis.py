@@ -281,19 +281,22 @@ def create_thesis():
         pdf_url=data.get("pdf_url") if role == "admin" else faculty_pdf_url,
     )
 
-    # Auto-generate embedding if service is available (best-effort)
+    # Auto-generate chunked embeddings if service is available (best-effort).
+    # At creation time there is no PDF yet, so this covers title+abstract;
+    # the upload route re-embeds with the full PDF body when it arrives.
     try:
+        from ..services.chunking import build_thesis_chunks
         from ..services.embeddings import embedding_service
         if embedding_service.available:
-            text = f"{data['title']}. {data['abstract']}"
-            vector = embedding_service.embed(text)
-            if vector is not None:
-                db.upsert_thesis_embedding(
-                    thesis_id=thesis_id,
-                    chunk_text=text[:1000],
-                    embedding_vector=vector,
-                    model_name=embedding_service.model_name,
-                )
+            chunks = build_thesis_chunks(data["title"], data["abstract"])
+            if chunks:
+                vectors = embedding_service.embed_batch(chunks)
+                if vectors and len(vectors) == len(chunks):
+                    db.replace_thesis_embeddings(
+                        thesis_id,
+                        list(zip(chunks, vectors)),
+                        embedding_service.model_name,
+                    )
     except Exception:
         pass  # Never block thesis creation on embedding failure
 
@@ -346,6 +349,25 @@ def update_thesis(id):
     except Exception as e:
         return jsonify({"error": f"Update failed: {str(e)}"}), 400
     thesis = db.get_thesis_by_id(id)
+
+    # Keep embeddings fresh when title/abstract change — but only for theses
+    # WITHOUT a local PDF, so we never wipe full-PDF chunks with a
+    # title+abstract-only re-embed. Theses with PDFs refresh via upload or
+    # the admin generate endpoint (which includes the PDF body).
+    if "title" in data or "abstract" in data:
+        try:
+            from ..services.chunking import build_thesis_chunks
+            from ..services.embeddings import embedding_service
+            if (embedding_service.available and not (thesis.get("pdf_url") or "")):
+                chunks = build_thesis_chunks(thesis["title"], thesis["abstract"])
+                if chunks:
+                    vectors = embedding_service.embed_batch(chunks)
+                    if vectors and len(vectors) == len(chunks):
+                        db.replace_thesis_embeddings(
+                            id, list(zip(chunks, vectors)),
+                            embedding_service.model_name)
+        except Exception:
+            pass
     return jsonify(thesis), 200
 
 
