@@ -10,7 +10,7 @@ from ..services.embeddings import embedding_service
 from ..services.chunking import build_thesis_chunks
 from ..config import UPLOAD_DIR
 
-router = APIRouter()
+router = APIRouter(tags=["Embeddings"])
 
 _bulk_lock = threading.Lock()
 _bulk_state = {
@@ -164,7 +164,7 @@ def bulk_status():
         return dict(_bulk_state)
 
 
-@router.post("/api/embeddings/search", dependencies=[Depends(login_required)])
+@router.post("/api/embeddings/search", dependencies=[Depends(login_required)], tags=["Search"])
 def search(data: dict = Body(default=None)):
     if not data or "query" not in data:
         raise HTTPException(status_code=400, detail="Query is required")

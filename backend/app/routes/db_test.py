@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from ..extensions import db_test as run_db_test
 
-router = APIRouter()
+router = APIRouter(tags=["System"])
 
 
 @router.get("/api/db-test")

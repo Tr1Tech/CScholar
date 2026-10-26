@@ -12,7 +12,19 @@ from .config import Config
 
 load_dotenv()
 
-app = FastAPI(title="CScholar API")
+tags_metadata = [
+    {"name": "System", "description": "Health check and database status"},
+    {"name": "Auth", "description": "User authentication and registration"},
+    {"name": "Users", "description": "User management (admin only)"},
+    {"name": "Theses", "description": "Thesis CRUD operations"},
+    {"name": "Metadata", "description": "Programs, years, categories, keywords, authors, advisers"},
+    {"name": "Search", "description": "Semantic search and recommendations"},
+    {"name": "Upload", "description": "PDF upload and OCR"},
+    {"name": "Embeddings", "description": "AI embedding generation"},
+    {"name": "Dashboard", "description": "Admin and faculty dashboard data"},
+]
+
+app = FastAPI(title="CScholar API", openapi_tags=tags_metadata)
 
 # -- Config ----------------------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")

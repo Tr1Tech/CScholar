@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 import pymupdf
 from ..auth import admin_required
 
-router = APIRouter()
+router = APIRouter(tags=["Upload"])
 
 ALLOWED_EXTENSIONS = {"pdf"}
 MAX_FILE_SIZE = 50 * 1024 * 1024

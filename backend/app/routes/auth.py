@@ -11,7 +11,7 @@ from ..config import UPLOAD_DIR
 router = APIRouter()
 
 
-@router.post("/api/auth/register", status_code=201)
+@router.post("/api/auth/register", status_code=201, tags=["Auth"])
 def register(data: dict = Body(default=None)):
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -41,7 +41,7 @@ def register(data: dict = Body(default=None)):
     }
 
 
-@router.post("/api/auth/login")
+@router.post("/api/auth/login", tags=["Auth"])
 def login(data: dict = Body(default=None)):
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -66,13 +66,13 @@ def login(data: dict = Body(default=None)):
     }
 
 
-@router.get("/api/users", dependencies=[Depends(admin_required)])
+@router.get("/api/users", dependencies=[Depends(admin_required)], tags=["Users"])
 def get_users():
     users = db.get_all_users()
     return {"users": users, "total": len(users)}
 
 
-@router.post("/api/users", status_code=201, dependencies=[Depends(admin_required)])
+@router.post("/api/users", status_code=201, dependencies=[Depends(admin_required)], tags=["Users"])
 def admin_create_user(data: dict = Body(default=None)):
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -105,7 +105,7 @@ def admin_create_user(data: dict = Body(default=None)):
     }
 
 
-@router.put("/api/users/{user_id}", dependencies=[Depends(admin_required)])
+@router.put("/api/users/{user_id}", dependencies=[Depends(admin_required)], tags=["Users"])
 def update_user(user_id: int, data: dict = Body(default=None), request: Request = None):
     # Need request for current_user; FastAPI injects if param named request
     user = db.get_user_by_id(user_id)
@@ -151,7 +151,7 @@ def update_user(user_id: int, data: dict = Body(default=None), request: Request 
     }
 
 
-@router.put("/api/users/{user_id}/active", dependencies=[Depends(admin_required)])
+@router.put("/api/users/{user_id}/active", dependencies=[Depends(admin_required)], tags=["Users"])
 def update_user_active(user_id: int, data: dict = Body(default=None), request: Request = None):
     if not data or "is_active" not in data:
         raise HTTPException(status_code=400, detail="is_active is required")
@@ -170,7 +170,7 @@ def update_user_active(user_id: int, data: dict = Body(default=None), request: R
     return {"message": "User status updated", "user_id": user_id, "is_active": is_active}
 
 
-@router.get("/api/auth/me", dependencies=[Depends(login_required)])
+@router.get("/api/auth/me", dependencies=[Depends(login_required)], tags=["Auth"])
 def me(request: Request):
     user = request.state.current_user
     return {
@@ -184,7 +184,7 @@ def me(request: Request):
     }
 
 
-@router.get("/api/theses/{thesis_id}/pdf")
+@router.get("/api/theses/{thesis_id}/pdf", tags=["Theses"])
 def get_thesis_pdf(thesis_id: int, request: Request):
     user = None
     auth = request.headers.get("Authorization", "")

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from ..auth import admin_required
 from .. import models as db
 
-router = APIRouter()
+router = APIRouter(tags=["Metadata"])
 
 
 @router.get("/api/programs")

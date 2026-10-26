@@ -19,7 +19,7 @@ def _pagination_args(page, per_page):
     return page, per_page
 
 
-@router.get("/api/theses")
+@router.get("/api/theses", tags=["Theses"])
 def list_theses(
     request: Request,
     q: str = None,
@@ -66,7 +66,7 @@ def list_theses(
     return result
 
 
-@router.get("/api/theses/{id}")
+@router.get("/api/theses/{id}", tags=["Theses"])
 def get_thesis(id: int, request: Request):
     thesis = db.get_thesis_by_id(id)
     if not thesis:
@@ -85,7 +85,7 @@ def get_thesis(id: int, request: Request):
     return thesis
 
 
-@router.get("/api/theses/{id}/recommend")
+@router.get("/api/theses/{id}/recommend", tags=["Search"])
 def recommend_theses(id: int, limit: int = Query(5)):
     from ..services.embeddings import embedding_service
     thesis = db.get_thesis_by_id(id)
@@ -99,18 +99,18 @@ def recommend_theses(id: int, limit: int = Query(5)):
     return {"thesis_id": id, "theses": theses, "count": len(theses)}
 
 
-@router.get("/api/dashboard/stats", dependencies=[Depends(admin_required)])
+@router.get("/api/dashboard/stats", dependencies=[Depends(admin_required)], tags=["Dashboard"])
 def dashboard_stats():
     stats = db.get_dashboard_stats()
     return stats
 
 
-@router.get("/api/stats/summary")
+@router.get("/api/stats/summary", tags=["System"])
 def public_stats():
     return db.get_public_stats()
 
 
-@router.get("/api/dashboard/recent-activity", dependencies=[Depends(login_required)])
+@router.get("/api/dashboard/recent-activity", dependencies=[Depends(login_required)], tags=["Dashboard"])
 def dashboard_recent_activity(limit: int = Query(10)):
     if limit is None or not 1 <= limit <= 100:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
@@ -118,7 +118,7 @@ def dashboard_recent_activity(limit: int = Query(10)):
     return {"activity": activity}
 
 
-@router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)])
+@router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)], tags=["Dashboard"])
 def faculty_dashboard(request: Request):
     if request.state.current_user["role"] != "faculty":
         raise HTTPException(status_code=403, detail="Faculty access required")
@@ -126,7 +126,7 @@ def faculty_dashboard(request: Request):
     return stats
 
 
-@router.get("/api/faculty/activity", dependencies=[Depends(login_required)])
+@router.get("/api/faculty/activity", dependencies=[Depends(login_required)], tags=["Dashboard"])
 def faculty_activity(request: Request, limit: int = Query(10)):
     if request.state.current_user["role"] != "faculty":
         raise HTTPException(status_code=403, detail="Faculty access required")
@@ -154,7 +154,7 @@ def _valid_upload_url(pdf_url):
     return os.path.exists(os.path.join(upload_dir, filename))
 
 
-@router.get("/api/faculty/theses", dependencies=[Depends(login_required)])
+@router.get("/api/faculty/theses", dependencies=[Depends(login_required)], tags=["Theses"])
 def faculty_theses(request: Request, page: int = Query(1), per_page: int = Query(20)):
     user = _require_faculty(request)
     page, per_page = _pagination_args(page, per_page)
@@ -162,20 +162,20 @@ def faculty_theses(request: Request, page: int = Query(1), per_page: int = Query
     return result
 
 
-@router.get("/api/faculty/advisees", dependencies=[Depends(login_required)])
+@router.get("/api/faculty/advisees", dependencies=[Depends(login_required)], tags=["Metadata"])
 def faculty_advisees(request: Request):
     user = _require_faculty(request)
     advisees = db.get_faculty_advisees(user["email"])
     return {"advisees": advisees, "total": len(advisees)}
 
 
-@router.get("/api/faculty/analytics", dependencies=[Depends(login_required)])
+@router.get("/api/faculty/analytics", dependencies=[Depends(login_required)], tags=["Dashboard"])
 def faculty_analytics(request: Request):
     user = _require_faculty(request)
     return db.get_faculty_analytics(user["email"])
 
 
-@router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)])
+@router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)], tags=["Theses"])
 def create_thesis(request: Request, data: dict = Body(default=None)):
     role = request.state.current_user["role"]
     if role not in ("admin", "faculty"):
@@ -257,7 +257,7 @@ def create_thesis(request: Request, data: dict = Body(default=None)):
     return thesis
 
 
-@router.put("/api/theses/{id}", dependencies=[Depends(login_required)])
+@router.put("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"])
 def update_thesis(id: int, request: Request, data: dict = Body(default=None)):
     existing = db.get_thesis_by_id(id)
     if not existing:
@@ -321,7 +321,7 @@ def update_thesis(id: int, request: Request, data: dict = Body(default=None)):
     return thesis
 
 
-@router.delete("/api/theses/{id}", dependencies=[Depends(login_required)])
+@router.delete("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"])
 def delete_thesis(id: int, request: Request):
     existing = db.get_thesis_by_id(id)
     if not existing:
