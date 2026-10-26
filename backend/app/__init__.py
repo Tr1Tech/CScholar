@@ -24,7 +24,7 @@ tags_metadata = [
     {"name": "Dashboard", "description": "Admin and faculty dashboard data"},
 ]
 
-app = FastAPI(title="CScholar API", openapi_tags=tags_metadata)
+app = FastAPI(title="CScholar API", openapi_tags=tags_metadata, docs_url=None, redoc_url=None)
 
 # -- Config ----------------------------------------------------------------
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")

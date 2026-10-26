@@ -236,7 +236,7 @@ def swagger_ui():
   <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-bundle.js"></script>
   <script>
     SwaggerUIBundle({
-      url: '/swagger.json',
+      url: '/openapi.json',
       dom_id: '#swagger-ui',
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
       deepLinking: true,
