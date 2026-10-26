@@ -3,7 +3,8 @@
 import datetime
 import functools
 import os
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import bcrypt
 import jwt
 from .config import Config
@@ -39,7 +40,7 @@ def create_token(user) -> str:
 
 
 def decode_token(token: str) -> dict:
-    """Decode and verify a JWT token. Raises Unauthorized if invalid."""
+    """Decode and verify a JWT token. Raises HTTPException if invalid."""
     try:
         return jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
@@ -48,23 +49,12 @@ def decode_token(token: str) -> dict:
 
 # -- Auth dependency helpers ----------------------------------------------
 
-def _extract_user(request: Request):
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None
-    token = auth.split(" ", 1)[1]
-    try:
-        payload = decode_token(token)
-        user_id = int(payload.get("sub"))
-    except (HTTPException, KeyError, TypeError, ValueError):
-        return None
-    user = get_user_by_id(user_id)
-    if not user or not user.get("is_active"):
-        return None
-    return user
+# Declares the JWT bearer scheme in OpenAPI so Swagger UI shows "Authorize".
+bearer_scheme = HTTPBearer(auto_error=False, bearerFormat="JWT")
 
 
-def get_current_user(request: Request):
+def _resolve_user(request: Request):
+    """Read and validate the Bearer token from the request headers."""
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing Bearer token")
@@ -83,12 +73,25 @@ def get_current_user(request: Request):
     return user
 
 
-def login_required(request: Request):
-    return get_current_user(request)
+def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+):
+    return _resolve_user(request)
 
 
-def admin_required(request: Request):
-    user = get_current_user(request)
+def login_required(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+):
+    return _resolve_user(request)
+
+
+def admin_required(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+):
+    user = _resolve_user(request)
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
