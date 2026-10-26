@@ -12,7 +12,7 @@
 
 | ID | Requirement | Phase |
 |---|---|---|
-| FR-01 | The system shall allow students, faculty, and admins to log in with a username and password. | 4 |
+| FR-01 | The system shall allow students, faculty, and admins to log in with their institutional email and password. | 4 |
 | FR-02 | The system shall restrict features by user role (student, faculty, admin). | 4 |
 | FR-03 | Admins shall be able to activate or deactivate user accounts. | 4 |
 | FR-04 | The system shall manage CEIT programs (BSIT, BSCS, BSIS). | 5 |
@@ -37,7 +37,7 @@
 
 | Req | Table(s) | Key columns implementing it | Verification in schema |
 |---|---|---|---|
-| FR-01 | users | username, password_hash | UNIQUE username; bcrypt hash column (see `db/seed.sql` sample hashes) |
+| FR-01 | users | email, password_hash | UNIQUE email; bcrypt hash column (see `db/seed.sql` sample hashes) |
 | FR-02 | users | role | `CHECK (role IN ('student','faculty','admin'))` |
 | FR-03 | users | is_active | `DEFAULT TRUE`; soft-deactivate without row removal |
 | FR-04 | programs | name, code | `code UNIQUE`; seeded with BSIT/BSCS/BSIS |

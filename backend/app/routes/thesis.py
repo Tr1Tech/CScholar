@@ -119,7 +119,8 @@ def dashboard_recent_activity(limit: int = Query(10)):
     return {"activity": activity}
 
 
-@router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)], tags=["Dashboard"])
+@router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)], tags=["Dashboard"],
+            openapi_extra={"x-required-roles": ["faculty"]})
 def faculty_dashboard(request: Request):
     if request.state.current_user["role"] != "faculty":
         raise HTTPException(status_code=403, detail="Faculty access required")
@@ -127,7 +128,8 @@ def faculty_dashboard(request: Request):
     return stats
 
 
-@router.get("/api/faculty/activity", dependencies=[Depends(login_required)], tags=["Dashboard"])
+@router.get("/api/faculty/activity", dependencies=[Depends(login_required)], tags=["Dashboard"],
+            openapi_extra={"x-required-roles": ["faculty"]})
 def faculty_activity(request: Request, limit: int = Query(10)):
     if request.state.current_user["role"] != "faculty":
         raise HTTPException(status_code=403, detail="Faculty access required")
@@ -155,7 +157,8 @@ def _valid_upload_url(pdf_url):
     return os.path.exists(os.path.join(upload_dir, filename))
 
 
-@router.get("/api/faculty/theses", dependencies=[Depends(login_required)], tags=["Theses"])
+@router.get("/api/faculty/theses", dependencies=[Depends(login_required)], tags=["Theses"],
+            openapi_extra={"x-required-roles": ["faculty"]})
 def faculty_theses(request: Request, page: int = Query(1), per_page: int = Query(20)):
     user = _require_faculty(request)
     page, per_page = _pagination_args(page, per_page)
@@ -163,20 +166,23 @@ def faculty_theses(request: Request, page: int = Query(1), per_page: int = Query
     return result
 
 
-@router.get("/api/faculty/advisees", dependencies=[Depends(login_required)], tags=["Metadata"])
+@router.get("/api/faculty/advisees", dependencies=[Depends(login_required)], tags=["Metadata"],
+            openapi_extra={"x-required-roles": ["faculty"]})
 def faculty_advisees(request: Request):
     user = _require_faculty(request)
     advisees = db.get_faculty_advisees(user["email"])
     return {"advisees": advisees, "total": len(advisees)}
 
 
-@router.get("/api/faculty/analytics", dependencies=[Depends(login_required)], tags=["Dashboard"])
+@router.get("/api/faculty/analytics", dependencies=[Depends(login_required)], tags=["Dashboard"],
+            openapi_extra={"x-required-roles": ["faculty"]})
 def faculty_analytics(request: Request):
     user = _require_faculty(request)
     return db.get_faculty_analytics(user["email"])
 
 
-@router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)], tags=["Theses"])
+@router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)], tags=["Theses"],
+             openapi_extra={"x-required-roles": ["admin", "faculty"]})
 def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     role = request.state.current_user["role"]
@@ -259,7 +265,8 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
     return thesis
 
 
-@router.put("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"])
+@router.put("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"],
+            openapi_extra={"x-required-roles": ["admin", "faculty"]})
 def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_thesis_by_id(id)
@@ -324,7 +331,8 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
     return thesis
 
 
-@router.delete("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"])
+@router.delete("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"],
+               openapi_extra={"x-required-roles": ["admin", "faculty"]})
 def delete_thesis(id: int, request: Request):
     existing = db.get_thesis_by_id(id)
     if not existing:

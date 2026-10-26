@@ -51,15 +51,15 @@ R("H2", "GET", "/api/health")
 R("H3", "GET", "/api/db-test")
 
 # Auth
-st, body = req("POST", "/api/auth/login", {"username": "admin1", "password": "admin123"})
+st, body = req("POST", "/api/auth/login", {"email": "admin@csu.edu.ph", "password": "admin123"})
 admin_token = body.get("token") if isinstance(body, dict) else None
-R("A1", "POST", "/api/auth/login", data={"username": "admin1", "password": "admin123"})
+R("A1", "POST", "/api/auth/login", data={"email": "admin@csu.edu.ph", "password": "admin123"})
 R("A2", "GET", "/api/auth/me", token=admin_token)
 R("A3", "GET", "/api/users", token=admin_token)
 
 uname = "testuser_" + TS
 R("A4", "POST", "/api/auth/register", data={"username": uname, "email": uname + "@csu.edu.ph", "password": "test1234"})
-st, body = req("POST", "/api/auth/login", {"username": uname, "password": "test1234"})
+st, body = req("POST", "/api/auth/login", {"email": uname + "@csu.edu.ph", "password": "test1234"})
 test_token = body.get("token") if isinstance(body, dict) else None
 
 fname = "faculty_" + TS
@@ -75,7 +75,7 @@ if faculty_user_id:
     R("A6", "PUT", f"/api/users/{faculty_user_id}", data={"role": "faculty"}, token=admin_token)
     R("A7", "PUT", f"/api/users/{faculty_user_id}/active", data={"is_active": True}, token=admin_token)
 
-st, body = req("POST", "/api/auth/login", {"username": fname, "password": "secret123"})
+st, body = req("POST", "/api/auth/login", {"email": fname + "@csu.edu.ph", "password": "secret123"})
 faculty_token = body.get("token") if isinstance(body, dict) else None
 
 # Meta GETs

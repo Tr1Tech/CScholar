@@ -44,7 +44,8 @@ def _reembed_thesis_async(thesis_id, pdf_text):
     threading.Thread(target=_work, daemon=True).start()
 
 
-@router.post("/api/upload/pdf", dependencies=[Depends(login_required)])
+@router.post("/api/upload/pdf", dependencies=[Depends(login_required)],
+             openapi_extra={"x-required-roles": ["admin", "faculty"]})
 async def upload_pdf(
     request: Request,
     file: UploadFile = File(...),

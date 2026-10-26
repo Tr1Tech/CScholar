@@ -11,7 +11,7 @@ from ..services.chunking import build_thesis_chunks
 from ..config import UPLOAD_DIR
 from ..schemas import SemanticSearchRequest
 
-router = APIRouter(tags=["Embeddings"])
+router = APIRouter()
 
 _bulk_lock = threading.Lock()
 _bulk_state = {
@@ -118,7 +118,7 @@ def _bulk_worker(upload_dir, refresh):
             _bulk_state["running"] = False
 
 
-@router.post("/api/embeddings/generate/{thesis_id}", dependencies=[Depends(admin_required)])
+@router.post("/api/embeddings/generate/{thesis_id}", dependencies=[Depends(admin_required)], tags=["Embeddings"])
 def generate_embedding(thesis_id: int):
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
@@ -143,7 +143,7 @@ def generate_embedding(thesis_id: int):
     }
 
 
-@router.post("/api/embeddings/generate-bulk", status_code=202, dependencies=[Depends(admin_required)])
+@router.post("/api/embeddings/generate-bulk", status_code=202, dependencies=[Depends(admin_required)], tags=["Embeddings"])
 def generate_bulk_embeddings(request: Request, refresh: str = Query("false")):
     if not embedding_service.available:
         raise HTTPException(status_code=503, detail="Embedding service not available")
@@ -159,7 +159,7 @@ def generate_bulk_embeddings(request: Request, refresh: str = Query("false")):
     return {"message": "Backfill started", "refresh": refresh_bool}
 
 
-@router.get("/api/embeddings/bulk-status", dependencies=[Depends(admin_required)])
+@router.get("/api/embeddings/bulk-status", dependencies=[Depends(admin_required)], tags=["Embeddings"])
 def bulk_status():
     with _bulk_lock:
         return dict(_bulk_state)

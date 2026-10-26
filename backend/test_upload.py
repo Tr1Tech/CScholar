@@ -8,7 +8,7 @@ doc.close()
 
 req = urllib.request.Request(
     "http://localhost:5000/api/auth/login",
-    data=json.dumps({"username": "admin1", "password": "admin123"}).encode(),
+    data=json.dumps({"email": "admin@csu.edu.ph", "password": "admin123"}).encode(),
     headers={"Content-Type": "application/json"},
 )
 token = json.loads(urllib.request.urlopen(req).read())["token"]

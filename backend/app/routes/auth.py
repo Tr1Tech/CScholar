@@ -1,10 +1,11 @@
 """Authentication routes -- register, login, current user."""
 
 import os
-from fastapi import APIRouter, Request, Depends, HTTPException, Body
+from fastapi import APIRouter, Request, Depends, HTTPException, Body, Security
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
 from .. import models as db
-from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required
+from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required, bearer_scheme
 from ..models import get_user_by_id
 from ..config import UPLOAD_DIR
 from ..schemas import (
@@ -54,11 +55,11 @@ def login(data: LoginRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
-    login_id = str(data.get("username", "")).strip() or str(data.get("email", "")).strip()
+    email = str(data.get("email", "")).strip()
     password = data.get("password", "")
-    if not login_id or not password:
-        raise HTTPException(status_code=400, detail="Username/email and password are required")
-    user = db.find_user(login_id)
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required")
+    user = db.get_user_by_email(email)
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user["is_active"]:
@@ -196,7 +197,11 @@ def me(request: Request):
 
 
 @router.get("/api/theses/{thesis_id}/pdf", tags=["Theses"])
-def get_thesis_pdf(thesis_id: int, request: Request):
+def get_thesis_pdf(
+    thesis_id: int,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+):
     user = None
     auth = request.headers.get("Authorization", "")
     raw_token = None

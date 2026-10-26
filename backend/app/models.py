@@ -118,14 +118,6 @@ def get_user_by_email(email):
         put_conn(conn)
 
 
-def find_user(login_id):
-    """Find user by username or email."""
-    user = get_user_by_username(login_id)
-    if not user:
-        user = get_user_by_email(login_id)
-    return user
-
-
 def create_user(username, email, password_hash, role="student"):
     conn = get_conn()
     try:

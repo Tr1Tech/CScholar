@@ -80,7 +80,6 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
         'username': user.username,
         'email': user.email,
         'password': user.passwordHash,
-        'role': user.role,
       });
       //Registration does not log the user in (no token returned to store),
       // so reset to logged-out instead of leaving the provider stuck in loading.
