@@ -97,8 +97,12 @@ async def upload_pdf(
         raise HTTPException(status_code=400, detail="No text could be extracted from the PDF")
 
     import uuid as _uuid
-    from werkzeug.utils import secure_filename
-    filename = secure_filename(file.filename)
+    import re as _re
+    def _secure_filename(name):
+        name = name.rsplit("/", 1)[-1].rsplit(chr(92), 1)[-1]
+        name = _re.sub(r"[^A-Za-z0-9._-]", "_", name)
+        return name.strip("._") or "upload.pdf"
+    filename = _secure_filename(file.filename)
     unique_name = f"{_uuid.uuid4().hex}_{filename}"
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
