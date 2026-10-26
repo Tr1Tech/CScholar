@@ -18,7 +18,7 @@ app = FastAPI(title="CScholar API")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
 if SECRET_KEY == "dev-change-me":
     print("WARNING: using default dev SECRET_KEY - set SECRET_KEY in production!")
-FLASK_DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
+DEBUG = os.getenv("DEBUG", "0") == "1"
 
 # -- CORS ------------------------------------------------------------------
 _cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]

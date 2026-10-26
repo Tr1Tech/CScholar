@@ -25,7 +25,7 @@ def _configure_conn(conn):
 def get_pool():
     """Get or create the connection pool (thread-safe singleton)."""
     global _pool
-    # Double-checked locking: Flask's threaded dev server fires parallel
+    # Double-checked locking: threaded dev server fires parallel
     # first requests; without the lock two threads each create a pool
     # (pool-1 + pool-2) and connections get returned to the wrong one:
     # "can't return connection to pool 'pool-2', it comes from pool 'pool-1'".

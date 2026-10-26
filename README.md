@@ -27,7 +27,7 @@ using AI-powered **semantic search** and **content-based recommendations**.
 
 ```
 cscholar/
-├── backend/      # Flask API (Python)
+├── backend/      # FastAPI (Python)
 │   ├── app/routes/   # health, auth, thesis, upload, embedding, ocr, meta, swagger
 │   ├── app/services/ # embeddings and helpers
 │   └── run.py        # dev server entry point
@@ -45,7 +45,7 @@ cscholar/
 
 1. Project architecture & repository setup
 2. PostgreSQL database + pgvector
-3. Flask backend setup
+3. FastAPI backend setup
 4. Authentication & authorization
 5. CEIT program & academic-year management
 6. Thesis/capstone CRUD
