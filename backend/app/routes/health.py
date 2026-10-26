@@ -1,24 +1,15 @@
-"""Health-check endpoint.
+"""Health-check endpoint."""
 
-Used to verify the API is running. More blueprints (auth, theses,
-search, etc.) will be added in later phases.
-"""
+from fastapi import APIRouter
 
-from flask import Blueprint, jsonify
-
-health_bp = Blueprint("health", __name__)
+router = APIRouter()
 
 
-@health_bp.route("/api/health", methods=["GET"])
+@router.get("/api/health")
 def health():
-    return (
-        jsonify(
-            {
-                "status": "ok",
-                "service": "CScholar API",
-                "project": "cscholar (CEIT thesis repository)",
-                "phase": 1,
-            }
-        ),
-        200,
-    )
+    return {
+        "status": "ok",
+        "service": "CScholar API",
+        "project": "cscholar (CEIT thesis repository)",
+        "phase": 1,
+    }

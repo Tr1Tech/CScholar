@@ -14,7 +14,7 @@ using AI-powered **semantic search** and **content-based recommendations**.
 | Layer | Technology |
 |---|---|
 | Frontend | Flutter (web + mobile) |
-| Backend | Flask + Python (REST API, JSON) |
+| Backend | FastAPI + Python (REST API, JSON) |
 | Database | PostgreSQL |
 | Vector search | pgvector |
 | AI/ML | Sentence Transformers (`all-MiniLM-L6-v2`, 384-dim) |

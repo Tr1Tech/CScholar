@@ -1,15 +1,16 @@
-"""Authentication utilities — password hashing + JWT tokens."""
+"""Authentication utilities -- password hashing + JWT tokens (FastAPI)."""
 
 import datetime
 import functools
-from flask import request, jsonify, current_app
-from werkzeug.exceptions import Unauthorized
+import os
+from fastapi import Request, HTTPException
 import bcrypt
 import jwt
+from .config import Config
 from .models import get_user_by_id
 
 
-# ── Password hashing ──────────────────────────────────────────────────────
+# -- Password hashing ------------------------------------------------------
 
 def hash_password(plain: str) -> str:
     """Hash a plaintext password with bcrypt."""
@@ -21,7 +22,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-# ── JWT tokens ────────────────────────────────────────────────────────────
+# -- JWT tokens ------------------------------------------------------------
 
 def create_token(user) -> str:
     """Create a JWT access token for a user."""
@@ -34,62 +35,60 @@ def create_token(user) -> str:
         "exp": now + datetime.timedelta(hours=24),
         "iat": now,
     }
-    return jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
+    return jwt.encode(payload, Config.SECRET_KEY, algorithm="HS256")
 
 
 def decode_token(token: str) -> dict:
     """Decode and verify a JWT token. Raises Unauthorized if invalid."""
     try:
-        return jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        return jwt.decode(token, Config.SECRET_KEY, algorithms=["HS256"])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
-        raise Unauthorized("Invalid or expired token") from e
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from e
 
 
-# ── Auth decorator for protected routes ───────────────────────────────────
+# -- Auth dependency helpers ----------------------------------------------
 
-def login_required(fn):
-    """Decorator that requires a valid JWT token."""
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return jsonify({"error": "Missing Bearer token"}), 401
-        token = auth.split(" ", 1)[1]
-        try:
-            payload = decode_token(token)
-            user_id = int(payload.get("sub"))
-        except Unauthorized:
-            return jsonify({"error": "Invalid or expired token"}), 401
-        except (KeyError, TypeError, ValueError):
-            return jsonify({"error": "Invalid or expired token"}), 401
-        user = get_user_by_id(user_id)
-        if not user or not user["is_active"]:
-            return jsonify({"error": "User not found or inactive"}), 401
-        request.current_user = user
-        return fn(*args, **kwargs)
-    return wrapper
+def _extract_user(request: Request):
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth.split(" ", 1)[1]
+    try:
+        payload = decode_token(token)
+        user_id = int(payload.get("sub"))
+    except (HTTPException, KeyError, TypeError, ValueError):
+        return None
+    user = get_user_by_id(user_id)
+    if not user or not user.get("is_active"):
+        return None
+    return user
 
 
-def admin_required(fn):
-    """Decorator that requires admin role."""
-    @functools.wraps(fn)
-    def wrapper(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return jsonify({"error": "Missing Bearer token"}), 401
-        token = auth.split(" ", 1)[1]
-        try:
-            payload = decode_token(token)
-            user_id = int(payload.get("sub"))
-        except Unauthorized:
-            return jsonify({"error": "Invalid or expired token"}), 401
-        except (KeyError, TypeError, ValueError):
-            return jsonify({"error": "Invalid or expired token"}), 401
-        user = get_user_by_id(user_id)
-        if not user or not user["is_active"]:
-            return jsonify({"error": "User not found or inactive"}), 401
-        if user["role"] != "admin":
-            return jsonify({"error": "Admin access required"}), 403
-        request.current_user = user
-        return fn(*args, **kwargs)
-    return wrapper
+def get_current_user(request: Request):
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing Bearer token")
+    token = auth.split(" ", 1)[1]
+    try:
+        payload = decode_token(token)
+        user_id = int(payload.get("sub"))
+    except HTTPException:
+        raise
+    except (KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    user = get_user_by_id(user_id)
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+    request.state.current_user = user
+    return user
+
+
+def login_required(request: Request):
+    return get_current_user(request)
+
+
+def admin_required(request: Request):
+    user = get_current_user(request)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user

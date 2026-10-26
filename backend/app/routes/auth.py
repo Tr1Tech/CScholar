@@ -1,42 +1,36 @@
-"""Authentication routes — register, login, current user."""
+"""Authentication routes -- register, login, current user."""
 
 import os
-
-from flask import Blueprint, request, jsonify, send_from_directory, current_app
+from fastapi import APIRouter, Request, Depends, HTTPException, Body
+from fastapi.responses import FileResponse
 from .. import models as db
 from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required
+from ..models import get_user_by_id
+from ..config import UPLOAD_DIR
 
-auth_bp = Blueprint("auth", __name__)
+router = APIRouter()
 
 
-@auth_bp.route("/api/auth/register", methods=["POST"])
-def register():
-    """Register a new user."""
-    data = request.get_json()
+@router.post("/api/auth/register", status_code=201)
+def register(data: dict = Body(default=None)):
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
-
-    username = data.get("username", "").strip()
-    email = data.get("email", "").strip()
+        raise HTTPException(status_code=400, detail="Missing request body")
+    username = str(data.get("username", "")).strip()
+    email = str(data.get("email", "")).strip()
     password = data.get("password", "")
-    # Public registration must never be able to grant elevated access.
-    # Faculty and administrator accounts are provisioned by an administrator.
     role = "student"
 
     if not username or not email or not password:
-        return jsonify({"error": "Username, email, and password are required"}), 400
+        raise HTTPException(status_code=400, detail="Username, email, and password are required")
     if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
-    # Check duplicates — single generic message to avoid user enumeration
-    # (don't reveal whether the username or the email already exists).
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     existing = db.user_exists(username, email)
     if existing:
-        return jsonify({"error": "An account with that username or email already exists"}), 409
+        raise HTTPException(status_code=409, detail="An account with that username or email already exists")
 
     user = db.create_user(username, email, hash_password(password), role)
     token = create_token(user)
-
-    return jsonify({
+    return {
         "token": token,
         "user": {
             "id": user["id"],
@@ -44,30 +38,24 @@ def register():
             "email": user["email"],
             "role": user["role"],
         },
-    }), 201
+    }
 
 
-@auth_bp.route("/api/auth/login", methods=["POST"])
-def login():
-    """Login with username/email + password."""
-    data = request.get_json()
+@router.post("/api/auth/login")
+def login(data: dict = Body(default=None)):
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
-
-    login_id = data.get("username", "").strip() or data.get("email", "").strip()
+        raise HTTPException(status_code=400, detail="Missing request body")
+    login_id = str(data.get("username", "")).strip() or str(data.get("email", "")).strip()
     password = data.get("password", "")
-
     if not login_id or not password:
-        return jsonify({"error": "Username/email and password are required"}), 400
-
+        raise HTTPException(status_code=400, detail="Username/email and password are required")
     user = db.find_user(login_id)
     if not user or not verify_password(password, user["password_hash"]):
-        return jsonify({"error": "Invalid credentials"}), 401
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user["is_active"]:
-        return jsonify({"error": "Account is deactivated"}), 403
-
+        raise HTTPException(status_code=403, detail="Account is deactivated")
     token = create_token(user)
-    return jsonify({
+    return {
         "token": token,
         "user": {
             "id": user["id"],
@@ -75,48 +63,38 @@ def login():
             "email": user["email"],
             "role": user["role"],
         },
-    }), 200
+    }
 
 
-@auth_bp.route("/api/users", methods=["GET"])
-@admin_required
+@router.get("/api/users", dependencies=[Depends(admin_required)])
 def get_users():
-    """List all users (admin only)."""
     users = db.get_all_users()
-    return jsonify({"users": users, "total": len(users)}), 200
+    return {"users": users, "total": len(users)}
 
 
-@auth_bp.route("/api/users", methods=["POST"])
-@admin_required
-def admin_create_user():
-    """Create a user with any role (admin only). Unlike public registration,
-    the specific conflict is returned — admins can already list all users."""
-    data = request.get_json()
+@router.post("/api/users", status_code=201, dependencies=[Depends(admin_required)])
+def admin_create_user(data: dict = Body(default=None)):
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
-
+        raise HTTPException(status_code=400, detail="Missing request body")
     username = str(data.get("username", "")).strip()
     email = str(data.get("email", "")).strip()
     password = str(data.get("password", ""))
     role = str(data.get("role", "student")).strip().lower()
-
     if not username or not email or not password:
-        return jsonify({"error": "Username, email, and password are required"}), 400
+        raise HTTPException(status_code=400, detail="Username, email, and password are required")
     if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     if role not in ("student", "faculty", "admin"):
-        return jsonify({"error": "Invalid role"}), 400
-
+        raise HTTPException(status_code=400, detail="Invalid role")
     existing = db.user_exists(username, email)
     if existing:
         for row in existing:
             if row[0] == username:
-                return jsonify({"error": "Username already taken"}), 409
+                raise HTTPException(status_code=409, detail="Username already taken")
             if row[1] == email.lower():
-                return jsonify({"error": "Email already registered"}), 409
-
+                raise HTTPException(status_code=409, detail="Email already registered")
     user = db.create_user(username, email, hash_password(password), role)
-    return jsonify({
+    return {
         "message": "User created",
         "user": {
             "id": user["id"],
@@ -124,48 +102,44 @@ def admin_create_user():
             "email": user["email"],
             "role": user["role"],
         },
-    }), 201
+    }
 
 
-@auth_bp.route("/api/users/<int:user_id>", methods=["PUT"])
-@admin_required
-def update_user(user_id):
-    """Full user edit — username, email, role (any subset, admin only)."""
+@router.put("/api/users/{user_id}", dependencies=[Depends(admin_required)])
+def update_user(user_id: int, data: dict = Body(default=None), request: Request = None):
+    # Need request for current_user; FastAPI injects if param named request
     user = db.get_user_by_id(user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
-    data = request.get_json()
+        raise HTTPException(status_code=404, detail="User not found")
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
-
+        raise HTTPException(status_code=400, detail="Missing request body")
     username = data.get("username", None)
     email = data.get("email", None)
     new_role = data.get("role", None)
     if username is None and email is None and new_role is None:
-        return jsonify({"error": "Nothing editable in request body"}), 400
-
+        raise HTTPException(status_code=400, detail="Nothing editable in request body")
     if username is not None:
         username = username.strip()
         if not username:
-            return jsonify({"error": "Username cannot be empty"}), 400
+            raise HTTPException(status_code=400, detail="Username cannot be empty")
         clash = db.get_user_by_username(username)
         if clash and clash["id"] != user_id:
-            return jsonify({"error": "Username is already taken"}), 409
+            raise HTTPException(status_code=409, detail="Username is already taken")
     if email is not None:
         email = email.strip()
         if not email or "@" not in email:
-            return jsonify({"error": "Valid email is required"}), 400
+            raise HTTPException(status_code=400, detail="Valid email is required")
         clash = db.get_user_by_email(email)
         if clash and clash["id"] != user_id:
-            return jsonify({"error": "Email is already taken"}), 409
+            raise HTTPException(status_code=409, detail="Email is already taken")
     if new_role is not None:
         if new_role not in ("student", "faculty", "admin"):
-            return jsonify({"error": "Invalid role"}), 400
-        if user["id"] == request.current_user["id"] and new_role != "admin":
-            return jsonify({"error": "You cannot remove your own admin role"}), 400
-
+            raise HTTPException(status_code=400, detail="Invalid role")
+        current_user = getattr(request.state, "current_user", None) if request else None
+        if current_user and user["id"] == current_user["id"] and new_role != "admin":
+            raise HTTPException(status_code=400, detail="You cannot remove your own admin role")
     updated = db.update_user(user_id, username=username, email=email, role=new_role)
-    return jsonify({
+    return {
         "message": "User updated",
         "user": {
             "id": updated["id"],
@@ -174,16 +148,13 @@ def update_user(user_id):
             "role": updated["role"],
             "is_active": updated["is_active"],
         },
-    }), 200
+    }
 
 
-@auth_bp.route("/api/users/<int:user_id>/active", methods=["PUT"])
-@admin_required
-def update_user_active(user_id):
-    """Activate or deactivate a user (admin only)."""
-    data = request.get_json()
+@router.put("/api/users/{user_id}/active", dependencies=[Depends(admin_required)])
+def update_user_active(user_id: int, data: dict = Body(default=None), request: Request = None):
     if not data or "is_active" not in data:
-        return jsonify({"error": "is_active is required"}), 400
+        raise HTTPException(status_code=400, detail="is_active is required")
     is_active = data["is_active"]
     if isinstance(is_active, str):
         is_active = is_active.lower() in ("true", "1", "yes")
@@ -191,19 +162,18 @@ def update_user_active(user_id):
         is_active = bool(is_active)
     user = db.get_user_by_id(user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
-    if user["id"] == request.current_user["id"]:
-        return jsonify({"error": "You cannot deactivate your own account"}), 400
+        raise HTTPException(status_code=404, detail="User not found")
+    current_user = getattr(request.state, "current_user", None) if request else None
+    if current_user and user["id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
     db.set_user_active(user_id, is_active)
-    return jsonify({"message": "User status updated", "user_id": user_id, "is_active": is_active}), 200
+    return {"message": "User status updated", "user_id": user_id, "is_active": is_active}
 
 
-@auth_bp.route("/api/auth/me", methods=["GET"])
-@login_required
-def me():
-    """Get current user profile."""
-    user = request.current_user
-    return jsonify({
+@router.get("/api/auth/me", dependencies=[Depends(login_required)])
+def me(request: Request):
+    user = request.state.current_user
+    return {
         "id": user["id"],
         "username": user["username"],
         "email": user["email"],
@@ -211,66 +181,49 @@ def me():
         "is_active": user["is_active"],
         "created_at": user["created_at"].isoformat() if user["created_at"] else None,
         "updated_at": user["updated_at"].isoformat() if user["updated_at"] else None,
-    }), 200
+    }
 
 
-@auth_bp.route("/api/theses/<int:thesis_id>/pdf", methods=["GET"])
-def get_thesis_pdf(thesis_id):
-    """Return the PDF file for a thesis (login required).
-
-    Accepts the JWT via `Authorization: Bearer` header (preferred) or the
-    `?token=` query param as a fallback so the app can open the PDF in an
-    external browser tab, which can't set headers. Query-param tokens can
-    end up in server logs — the token is short-lived (24h) and gets the
-    exact same validation as the header.
-    """
+@router.get("/api/theses/{thesis_id}/pdf")
+def get_thesis_pdf(thesis_id: int, request: Request):
     user = None
     auth = request.headers.get("Authorization", "")
     raw_token = None
     if auth.startswith("Bearer "):
         raw_token = auth.split(" ", 1)[1]
     else:
-        raw_token = request.args.get("token")
+        raw_token = request.query_params.get("token")
     if not raw_token:
-        return jsonify({"error": "Missing Bearer token"}), 401
+        raise HTTPException(status_code=401, detail="Missing Bearer token")
     try:
         payload = decode_token(raw_token)
         user = db.get_user_by_id(int(payload.get("sub")))
     except Exception:
-        return jsonify({"error": "Invalid or expired token"}), 401
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     if not user or not user.get("is_active"):
-        return jsonify({"error": "User not found or inactive"}), 401
+        raise HTTPException(status_code=401, detail="User not found or inactive")
 
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
-        return jsonify({"error": "Thesis not found"}), 404
-
-    # Drafts/archived PDFs require admin/faculty; published visible to any login.
+        raise HTTPException(status_code=404, detail="Thesis not found")
     if thesis.get("status") not in ("published", "approved"):
         if user.get("role") not in ("admin", "faculty"):
-            return jsonify({"error": "Thesis not found"}), 404
+            raise HTTPException(status_code=404, detail="Thesis not found")
 
     pdf_url = thesis.get("pdf_url")
     if not pdf_url:
-        return jsonify({"error": "No PDF attached to this thesis"}), 404
-
-    # pdf_url is stored as /api/uploads/<filename>, map to uploads directory
-    # Strip the /api/uploads/ prefix to get the filename
+        raise HTTPException(status_code=404, detail="No PDF attached to this thesis")
     prefix = "/api/uploads/"
     if not pdf_url.startswith(prefix):
-        return jsonify({"error": "Invalid pdf_url format"}), 500
-
+        raise HTTPException(status_code=500, detail="Invalid pdf_url format")
     filename = pdf_url[len(prefix):]
-    upload_dir = os.path.join(current_app.root_path, "uploads")
-
-    # Security: flat filename only — no dirs, traversal, encodings, or drives.
-    if (not filename or ".." in filename or filename.startswith(("/", "\\"))
-            or "/" in filename or "\\" in filename or "%" in filename
-            or ":" in filename):
-        return jsonify({"error": "Invalid filename"}), 400
-
+    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    # Actually use config UPLOAD_DIR
+    from ..config import UPLOAD_DIR
+    upload_dir = UPLOAD_DIR
+    if (not filename or ".." in filename or filename.startswith(("/", "\\")) or "/" in filename or "\\" in filename or "%" in filename or ":" in filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
     file_path = os.path.join(upload_dir, filename)
     if not os.path.exists(file_path):
-        return jsonify({"error": "PDF file not found on server"}), 404
-
-    return send_from_directory(upload_dir, filename, mimetype="application/pdf", as_attachment=False)
+        raise HTTPException(status_code=404, detail="PDF file not found on server")
+    return FileResponse(file_path, media_type="application/pdf")

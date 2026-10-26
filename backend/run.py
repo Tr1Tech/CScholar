@@ -1,8 +1,6 @@
-"""Entry point to run the Flask development server."""
+"""Entry point to run the FastAPI development server."""
 
-from app import create_app
-
-app = create_app()
+import uvicorn
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=app.config["FLASK_DEBUG"])
+    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True)

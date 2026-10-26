@@ -1,17 +1,17 @@
-"""Embedding routes — generate and store thesis embeddings (full-PDF chunking)."""
+"""Embedding routes -- generate and store thesis embeddings (full-PDF chunking)."""
 
 import os
 import threading
 
-from flask import Blueprint, request, jsonify, current_app
+from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
 from .. import models as db
 from ..auth import login_required, admin_required
 from ..services.embeddings import embedding_service
 from ..services.chunking import build_thesis_chunks
+from ..config import UPLOAD_DIR
 
-embedding_bp = Blueprint("embedding", __name__)
+router = APIRouter()
 
-# ── Bulk backfill progress (in-memory; resets on restart) ────────────────────
 _bulk_lock = threading.Lock()
 _bulk_state = {
     "running": False,
@@ -25,11 +25,6 @@ _bulk_state = {
 
 
 def _extract_pdf_text_for_thesis(thesis, upload_dir):
-    """Best-effort PDF body text for a thesis whose pdf_url is a local upload.
-
-    Returns "" when there is no local PDF or extraction fails — callers fall
-    back to title+abstract chunks. Never raises.
-    """
     try:
         pdf_url = (thesis.get("pdf_url") or "")
         prefix = "/api/uploads/"
@@ -56,11 +51,6 @@ def _extract_pdf_text_for_thesis(thesis, upload_dir):
 
 
 def _embed_thesis_chunks(thesis_id, title, abstract, pdf_text=None):
-    """Chunk + batch-encode + replace all embedding rows for one thesis.
-
-    Returns the chunk count on success, None when the model is unavailable
-    or encoding fails. Raises on DB errors.
-    """
     chunks = build_thesis_chunks(title, abstract, pdf_text)
     if not chunks:
         return None
@@ -76,7 +66,6 @@ def _embed_thesis_chunks(thesis_id, title, abstract, pdf_text=None):
 
 
 def _iter_all_theses(statuses, page_size=100):
-    """Yield every thesis row for the given statuses (paginated)."""
     page = 1
     while True:
         result = db.list_theses(status=statuses, page=page, per_page=page_size)
@@ -91,7 +80,6 @@ def _iter_all_theses(statuses, page_size=100):
 
 
 def _bulk_worker(upload_dir, refresh):
-    """Background backfill: chunk + embed every thesis missing embeddings."""
     with _bulk_lock:
         _bulk_state.update(running=True, processed=0, embedded=0,
                            skipped=0, failed=0, error=None)
@@ -129,98 +117,70 @@ def _bulk_worker(upload_dir, refresh):
             _bulk_state["running"] = False
 
 
-@embedding_bp.route("/api/embeddings/generate/<int:thesis_id>", methods=["POST"])
-@admin_required
-def generate_embedding(thesis_id):
-    """Generate (chunked) embeddings for a thesis, including its PDF body."""
+@router.post("/api/embeddings/generate/{thesis_id}", dependencies=[Depends(admin_required)])
+def generate_embedding(thesis_id: int):
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
-        return jsonify({"error": "Thesis not found"}), 404
-
+        raise HTTPException(status_code=404, detail="Thesis not found")
     if not embedding_service.available:
-        return jsonify({"error": "Embedding service not available. Install sentence-transformers."}), 503
-
-    upload_dir = os.path.join(current_app.root_path, "uploads")
+        raise HTTPException(status_code=503, detail="Embedding service not available. Install sentence-transformers.")
+    upload_dir = UPLOAD_DIR
     pdf_text = _extract_pdf_text_for_thesis(thesis, upload_dir)
     try:
         n = _embed_thesis_chunks(
             thesis_id, thesis.get("title", ""), thesis.get("abstract", ""), pdf_text)
     except Exception as e:
-        return jsonify({"error": f"Failed to store embeddings: {str(e)[:300]}"}), 500
+        raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {str(e)[:300]}")
     if not n:
-        return jsonify({"error": "Failed to generate embedding"}), 500
-
-    return jsonify({
+        raise HTTPException(status_code=500, detail="Failed to generate embedding")
+    return {
         "message": "Embeddings generated",
         "thesis_id": thesis_id,
         "model": embedding_service.model_name,
         "chunks": n,
         "used_pdf": bool(pdf_text and pdf_text.strip()),
-    }), 200
+    }
 
 
-@embedding_bp.route("/api/embeddings/generate-bulk", methods=["POST"])
-@admin_required
-def generate_bulk_embeddings():
-    """Start a background backfill for all theses missing chunk embeddings.
-
-    Query params: ?refresh=true re-embeds everything (e.g. after a model
-    change). Returns 202 with the worker state; poll bulk-status.
-    """
+@router.post("/api/embeddings/generate-bulk", status_code=202, dependencies=[Depends(admin_required)])
+def generate_bulk_embeddings(request: Request, refresh: str = Query("false")):
     if not embedding_service.available:
-        return jsonify({"error": "Embedding service not available"}), 503
-
+        raise HTTPException(status_code=503, detail="Embedding service not available")
     with _bulk_lock:
         if _bulk_state["running"]:
-            return jsonify({"message": "Backfill already running",
-                            "status": dict(_bulk_state)}), 202
+            return {"message": "Backfill already running", "status": dict(_bulk_state)}
         _bulk_state.update(running=True, total=0, processed=0, embedded=0,
                            skipped=0, failed=0, error=None)
-
-    refresh = request.args.get("refresh", "false").lower() == "true"
-    upload_dir = os.path.join(current_app.root_path, "uploads")
-    worker = threading.Thread(target=_bulk_worker, args=(upload_dir, refresh), daemon=True)
+    refresh_bool = refresh.lower() == "true"
+    upload_dir = UPLOAD_DIR
+    worker = threading.Thread(target=_bulk_worker, args=(upload_dir, refresh_bool), daemon=True)
     worker.start()
-    return jsonify({"message": "Backfill started", "refresh": refresh}), 202
+    return {"message": "Backfill started", "refresh": refresh_bool}
 
 
-@embedding_bp.route("/api/embeddings/bulk-status", methods=["GET"])
-@admin_required
+@router.get("/api/embeddings/bulk-status", dependencies=[Depends(admin_required)])
 def bulk_status():
-    """Poll the background backfill progress."""
     with _bulk_lock:
-        return jsonify(dict(_bulk_state)), 200
+        return dict(_bulk_state)
 
 
-@embedding_bp.route("/api/embeddings/search", methods=["POST"])
-@login_required
-def search():
-    """Semantic search using embeddings."""
-    data = request.get_json()
+@router.post("/api/embeddings/search", dependencies=[Depends(login_required)])
+def search(data: dict = Body(default=None)):
     if not data or "query" not in data:
-        return jsonify({"error": "Query is required"}), 400
-
+        raise HTTPException(status_code=400, detail="Query is required")
     if not embedding_service.available:
-        return jsonify({"error": "Embedding service not available"}), 503
-
+        raise HTTPException(status_code=503, detail="Embedding service not available")
     query = data["query"]
     if not isinstance(query, str) or not query.strip():
-        return jsonify({"error": "Query must be a non-empty string"}), 400
+        raise HTTPException(status_code=400, detail="Query must be a non-empty string")
     try:
         limit = int(data.get("limit", 10))
     except (TypeError, ValueError):
-        return jsonify({"error": "limit must be between 1 and 20"}), 400
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
     if not 1 <= limit <= 20:
-        return jsonify({"error": "limit must be between 1 and 20"}), 400
-
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
     query_vector = embedding_service.embed(query)
     if query_vector is None:
-        return jsonify({"error": "Failed to generate query embedding"}), 500
-
+        raise HTTPException(status_code=500, detail="Failed to generate query embedding")
     theses = db.semantic_search(query_vector, limit=limit)
-
-    return jsonify({
-        "query": query,
-        "results": theses,
-        "count": len(theses),
-    }), 200
+    return {"query": query, "results": theses, "count": len(theses)}

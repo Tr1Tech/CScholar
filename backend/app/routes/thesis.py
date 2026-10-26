@@ -1,58 +1,56 @@
-"""Thesis routes — list, detail, create, update, delete."""
+"""Thesis routes -- list, detail, create, update, delete."""
 
 import os
-from flask import Blueprint, request, jsonify, current_app
+from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
+from fastapi import status as http_status
 from .. import models as db
 from ..auth import login_required, admin_required, decode_token
-from ..models import get_user_by_id
+from ..models import get_user_by_id, ThesisStatusConflict
+from ..config import UPLOAD_DIR
 
-thesis_bp = Blueprint("thesis", __name__)
+router = APIRouter()
 
 
-def _pagination_args():
-    """Return validated pagination parameters or an error response."""
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+def _pagination_args(page, per_page):
     if page is None or page < 1:
-        return None, jsonify({"error": "page must be a positive integer"}), 400
+        raise HTTPException(status_code=400, detail="page must be a positive integer")
     if per_page is None or not 1 <= per_page <= 100:
-        return None, jsonify({"error": "per_page must be between 1 and 100"}), 400
-    return (page, per_page), None, None
+        raise HTTPException(status_code=400, detail="per_page must be between 1 and 100")
+    return page, per_page
 
 
-@thesis_bp.route("/api/theses", methods=["GET"])
-def list_theses():
-    """List theses with optional filters."""
-    q = request.args.get("q")
-    program_id = request.args.get("program_id", type=int)
-    year_id = request.args.get("year_id", type=int)
-    category_id = request.args.get("category_id", type=int)
-    keyword = request.args.get("keyword")
-    sort_by = request.args.get("sort_by")
-    research_type = request.args.get("research_type")
-    status = request.args.get("status")
-    show_all = request.args.get("show_all", "false").lower() == "true"
-    if show_all:
-        # show_all exposes drafts/archived — require an admin token.
+@router.get("/api/theses")
+def list_theses(
+    request: Request,
+    q: str = None,
+    program_id: int = None,
+    year_id: int = None,
+    category_id: int = None,
+    keyword: str = None,
+    sort_by: str = None,
+    research_type: str = None,
+    status: str = None,
+    show_all: str = "false",
+    page: int = Query(1),
+    per_page: int = Query(20),
+):
+    show_all_bool = show_all.lower() == "true"
+    if show_all_bool:
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
-            return jsonify({"error": "Admin access required"}), 403
+            raise HTTPException(status_code=403, detail="Admin access required")
         try:
             payload = decode_token(auth.split(" ", 1)[1])
             user = get_user_by_id(int(payload.get("sub")))
         except Exception:
-            return jsonify({"error": "Admin access required"}), 403
+            raise HTTPException(status_code=403, detail="Admin access required")
         if not user or not user.get("is_active") or user.get("role") != "admin":
-            return jsonify({"error": "Admin access required"}), 403
-        status = None  # show all statuses (admin only)
+            raise HTTPException(status_code=403, detail="Admin access required")
+        status = None
     elif not status:
-        status = ['published', 'approved']
-    
-    pagination, error, status_code = _pagination_args()
-    if error:
-        return error, status_code
-    page, per_page = pagination
+        status = ["published", "approved"]
 
+    page, per_page = _pagination_args(page, per_page)
     result = db.list_theses(
         q=q,
         program_id=program_id,
@@ -65,220 +63,162 @@ def list_theses():
         page=page,
         per_page=per_page,
     )
-    return jsonify(result), 200
+    return result
 
 
-@thesis_bp.route("/api/theses/<int:id>", methods=["GET"])
-def get_thesis(id):
-    """Get a single thesis by ID (drafts/archived require admin/faculty)."""
+@router.get("/api/theses/{id}")
+def get_thesis(id: int, request: Request):
     thesis = db.get_thesis_by_id(id)
     if not thesis:
-        return jsonify({"error": "Thesis not found"}), 404
+        raise HTTPException(status_code=404, detail="Thesis not found")
     if thesis.get("status") not in ("published", "approved"):
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
-            return jsonify({"error": "Thesis not found"}), 404
+            raise HTTPException(status_code=404, detail="Thesis not found")
         try:
             payload = decode_token(auth.split(" ", 1)[1])
             user = get_user_by_id(int(payload.get("sub")))
         except Exception:
-            return jsonify({"error": "Thesis not found"}), 404
+            raise HTTPException(status_code=404, detail="Thesis not found")
         if not user or not user.get("is_active") or user.get("role") not in ("admin", "faculty"):
-            return jsonify({"error": "Thesis not found"}), 404
-    return jsonify(thesis), 200
+            raise HTTPException(status_code=404, detail="Thesis not found")
+    return thesis
 
 
-@thesis_bp.route("/api/theses/<int:id>/recommend", methods=["GET"])
-def recommend_theses(id):
-    """Get recommended theses similar to the given thesis."""
+@router.get("/api/theses/{id}/recommend")
+def recommend_theses(id: int, limit: int = Query(5)):
     from ..services.embeddings import embedding_service
-    
     thesis = db.get_thesis_by_id(id)
     if not thesis:
-        return jsonify({"error": "Thesis not found"}), 404
-
+        raise HTTPException(status_code=404, detail="Thesis not found")
     if not embedding_service.available:
-        return jsonify({"error": "Embedding service not available"}), 503
-
-    limit = request.args.get("limit", 5, type=int)
+        raise HTTPException(status_code=503, detail="Embedding service not available")
     if limit is None or not 1 <= limit <= 20:
-        return jsonify({"error": "limit must be between 1 and 20"}), 400
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
     theses = db.recommend_for_thesis(id, limit=limit)
-
-    return jsonify({
-        "thesis_id": id,
-        "theses": theses,
-        "count": len(theses),
-    }), 200
+    return {"thesis_id": id, "theses": theses, "count": len(theses)}
 
 
-@thesis_bp.route("/api/dashboard/stats", methods=["GET"])
-@admin_required
+@router.get("/api/dashboard/stats", dependencies=[Depends(admin_required)])
 def dashboard_stats():
-    """Get admin dashboard statistics."""
     stats = db.get_dashboard_stats()
-    return jsonify(stats), 200
+    return stats
 
 
-@thesis_bp.route("/api/stats/summary", methods=["GET"])
+@router.get("/api/stats/summary")
 def public_stats():
-    """Public repository summary for student/landing dashboards (no auth)."""
-    return jsonify(db.get_public_stats()), 200
+    return db.get_public_stats()
 
 
-@thesis_bp.route("/api/dashboard/recent-activity", methods=["GET"])
-@login_required
-def dashboard_recent_activity():
-    """Get recent activity for dashboards."""
-    limit = request.args.get("limit", 10, type=int)
+@router.get("/api/dashboard/recent-activity", dependencies=[Depends(login_required)])
+def dashboard_recent_activity(limit: int = Query(10)):
     if limit is None or not 1 <= limit <= 100:
-        return jsonify({"error": "limit must be between 1 and 100"}), 400
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
     activity = db.recent_activity(limit=limit)
-    return jsonify({"activity": activity}), 200
+    return {"activity": activity}
 
 
-@thesis_bp.route("/api/faculty/dashboard", methods=["GET"])
-@login_required
-def faculty_dashboard():
-    """Get faculty-specific dashboard data."""
-    if request.current_user["role"] != "faculty":
-        return jsonify({"error": "Faculty access required"}), 403
-    stats = db.get_faculty_stats(request.current_user["email"])
-    return jsonify(stats), 200
+@router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)])
+def faculty_dashboard(request: Request):
+    if request.state.current_user["role"] != "faculty":
+        raise HTTPException(status_code=403, detail="Faculty access required")
+    stats = db.get_faculty_stats(request.state.current_user["email"])
+    return stats
 
 
-@thesis_bp.route("/api/faculty/activity", methods=["GET"])
-@login_required
-def faculty_activity():
-    """Get activity for the current faculty's advisees."""
-    limit = request.args.get("limit", 10, type=int)
-    if request.current_user["role"] != "faculty":
-        return jsonify({"error": "Faculty access required"}), 403
+@router.get("/api/faculty/activity", dependencies=[Depends(login_required)])
+def faculty_activity(request: Request, limit: int = Query(10)):
+    if request.state.current_user["role"] != "faculty":
+        raise HTTPException(status_code=403, detail="Faculty access required")
     if limit is None or not 1 <= limit <= 100:
-        return jsonify({"error": "limit must be between 1 and 100"}), 400
-    activity = db.get_faculty_activity(request.current_user["email"], limit=limit)
-    return jsonify({"activity": activity}), 200
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
+    activity = db.get_faculty_activity(request.state.current_user["email"], limit=limit)
+    return {"activity": activity}
 
 
-def _require_faculty():
-    """Return (user, error_response, status_code) for faculty-only routes."""
-    user = request.current_user
+def _require_faculty(request):
+    user = request.state.current_user
     if user["role"] != "faculty":
-        return None, jsonify({"error": "Faculty access required"}), 403
-    return user, None, None
+        raise HTTPException(status_code=403, detail="Faculty access required")
+    return user
 
 
 def _valid_upload_url(pdf_url):
-    """Check a client-supplied pdf_url points at a real file in uploads/.
-
-    Lets faculty attach the PDF they just uploaded (server-generated name)
-    without letting them write arbitrary paths into the column.
-    """
     prefix = "/api/uploads/"
     if not pdf_url or not pdf_url.startswith(prefix):
         return False
     filename = pdf_url[len(prefix):]
-    if (not filename or ".." in filename or filename.startswith(("/", "\\"))
-            or "/" in filename or "\\" in filename or "%" in filename
-            or ":" in filename):
+    if (not filename or ".." in filename or filename.startswith(("/", "\\")) or "/" in filename or "\\" in filename or "%" in filename or ":" in filename):
         return False
-    upload_dir = os.path.join(current_app.root_path, "uploads")
+    upload_dir = UPLOAD_DIR
     return os.path.exists(os.path.join(upload_dir, filename))
 
 
-@thesis_bp.route("/api/faculty/theses", methods=["GET"])
-@login_required
-def faculty_theses():
-    """Full thesis records advised by the current faculty member."""
-    user, error, code = _require_faculty()
-    if error:
-        return error, code
-    pagination, error, code = _pagination_args()
-    if error:
-        return error, code
-    page, per_page = pagination
+@router.get("/api/faculty/theses", dependencies=[Depends(login_required)])
+def faculty_theses(request: Request, page: int = Query(1), per_page: int = Query(20)):
+    user = _require_faculty(request)
+    page, per_page = _pagination_args(page, per_page)
     result = db.get_faculty_theses(user["email"], user_id=user["id"], page=page, per_page=per_page)
-    return jsonify(result), 200
+    return result
 
 
-@thesis_bp.route("/api/faculty/advisees", methods=["GET"])
-@login_required
-def faculty_advisees():
-    """Authors linked to theses advised by the current faculty member."""
-    user, error, code = _require_faculty()
-    if error:
-        return error, code
+@router.get("/api/faculty/advisees", dependencies=[Depends(login_required)])
+def faculty_advisees(request: Request):
+    user = _require_faculty(request)
     advisees = db.get_faculty_advisees(user["email"])
-    return jsonify({"advisees": advisees, "total": len(advisees)}), 200
+    return {"advisees": advisees, "total": len(advisees)}
 
 
-@thesis_bp.route("/api/faculty/analytics", methods=["GET"])
-@login_required
-def faculty_analytics():
-    """Status/program/year breakdown of the faculty member's advised theses."""
-    user, error, code = _require_faculty()
-    if error:
-        return error, code
-    return jsonify(db.get_faculty_analytics(user["email"])), 200
+@router.get("/api/faculty/analytics", dependencies=[Depends(login_required)])
+def faculty_analytics(request: Request):
+    user = _require_faculty(request)
+    return db.get_faculty_analytics(user["email"])
 
 
-@thesis_bp.route("/api/theses", methods=["POST"])
-@login_required
-def create_thesis():
-    """Create a new thesis. Admins may set any status; faculty submissions
-    are always forced to draft for admin review."""
-    role = request.current_user["role"]
+@router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)])
+def create_thesis(request: Request, data: dict = Body(default=None)):
+    role = request.state.current_user["role"]
     if role not in ("admin", "faculty"):
-        return jsonify({"error": "Admin or faculty access required"}), 403
-    data = request.get_json()
+        raise HTTPException(status_code=403, detail="Admin or faculty access required")
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
-
+        raise HTTPException(status_code=400, detail="Missing request body")
     required = ["title", "abstract", "research_type", "program_id", "academic_year_id"]
     for field in required:
         if not data.get(field):
-            return jsonify({"error": f"{field} is required"}), 400
+            raise HTTPException(status_code=400, detail=f"{field} is required")
 
     status = data.get("status", "draft")
     if role == "faculty":
-        status = "draft"  # faculty cannot self-publish/archive
-        # The submitter is always the single adviser (auto-provisioned).
-        me = request.current_user
+        status = "draft"
+        me = request.state.current_user
         data_adviser_id = db.ensure_adviser_for_email(me["email"], me["username"])
     else:
         if status not in ("draft", "approved", "published", "archived"):
-            return jsonify({"error": "Invalid status"}), 400
+            raise HTTPException(status_code=400, detail="Invalid status")
         data_adviser_id = data.get("adviser_id")
         if data_adviser_id is not None:
             try:
                 data_adviser_id = int(data_adviser_id)
             except (TypeError, ValueError):
-                return jsonify({"error": "adviser_id must be an integer"}), 400
+                raise HTTPException(status_code=400, detail="adviser_id must be an integer")
             if not db.get_adviser_by_id(data_adviser_id):
-                return jsonify({"error": "Adviser not found"}), 404
+                raise HTTPException(status_code=404, detail="Adviser not found")
 
-    # Faculty pdf_url: only a just-uploaded file that really exists in
-    # uploads/ is accepted — validated BEFORE the insert so a bad URL
-    # can't leave an orphan draft behind.
     faculty_pdf_url = None
     if role == "faculty" and data.get("pdf_url"):
         if not _valid_upload_url(data["pdf_url"]):
-            return jsonify({"error": "Invalid pdf_url — upload the PDF first"}), 400
+            raise HTTPException(status_code=400, detail="Invalid pdf_url - upload the PDF first")
         faculty_pdf_url = data["pdf_url"]
 
-    # Soft duplicate guard (no UNIQUE constraint on purpose — same title
-    # with a different study/scope is legitimate in real life). An exact
-    # normalized title match returns 409 with candidates; the client may
-    # resubmit with confirm_duplicate:true to save anyway as draft.
     try:
         dupes = db.find_possible_duplicates(data.get("title", ""), data.get("abstract", ""))
     except Exception:
         dupes = []
     if dupes and not data.get("confirm_duplicate"):
-        return jsonify({
+        raise HTTPException(status_code=409, detail={
             "error": "Possible duplicate thesis found. Resubmit with confirm_duplicate:true to proceed anyway.",
             "possible_duplicates": dupes,
-        }), 409
+        })
 
     thesis_id = db.create_thesis(
         title=data["title"],
@@ -286,7 +226,7 @@ def create_thesis():
         research_type=data["research_type"],
         program_id=data["program_id"],
         academic_year_id=data["academic_year_id"],
-        creator_id=request.current_user["id"],
+        creator_id=request.state.current_user["id"],
         status=status,
         author_ids=data.get("author_ids"),
         adviser_id=data_adviser_id,
@@ -295,9 +235,6 @@ def create_thesis():
         pdf_url=data.get("pdf_url") if role == "admin" else faculty_pdf_url,
     )
 
-    # Auto-generate chunked embeddings if service is available (best-effort).
-    # At creation time there is no PDF yet, so this covers title+abstract;
-    # the upload route re-embeds with the full PDF body when it arrives.
     try:
         from ..services.chunking import build_thesis_chunks
         from ..services.embeddings import embedding_service
@@ -312,42 +249,34 @@ def create_thesis():
                         embedding_service.model_name,
                     )
     except Exception:
-        pass  # Never block thesis creation on embedding failure
+        pass
 
     thesis = db.get_thesis_by_id(thesis_id)
     if dupes:
-        # Confirmed duplicate — saved anyway, but flag it so the UI and
-        # admin review queue can surface it.
         thesis["duplicate_warning"] = dupes
-    return jsonify(thesis), 201
+    return thesis
 
 
-@thesis_bp.route("/api/theses/<int:id>", methods=["PUT"])
-@login_required
-def update_thesis(id):
-    """Update a thesis. Admins: anything. Faculty: own drafts only, and
-    never status/pdf_url (status changes go through admin review)."""
+@router.put("/api/theses/{id}", dependencies=[Depends(login_required)])
+def update_thesis(id: int, request: Request, data: dict = Body(default=None)):
     existing = db.get_thesis_by_id(id)
     if not existing:
-        return jsonify({"error": "Thesis not found"}), 404
-
-    data = request.get_json()
+        raise HTTPException(status_code=404, detail="Thesis not found")
     if not data:
-        return jsonify({"error": "Missing request body"}), 400
+        raise HTTPException(status_code=400, detail="Missing request body")
 
-    role = request.current_user["role"]
+    role = request.state.current_user["role"]
     if role == "faculty":
-        if existing.get("creator_id") != request.current_user["id"]:
-            return jsonify({"error": "You can only edit theses you submitted"}), 403
+        if existing.get("creator_id") != request.state.current_user["id"]:
+            raise HTTPException(status_code=403, detail="You can only edit theses you submitted")
         if existing.get("status") != "draft":
-            return jsonify({"error": "Only drafts can be edited"}), 403
+            raise HTTPException(status_code=403, detail="Only drafts can be edited")
         data = {k: v for k, v in data.items() if k not in ("status", "pdf_url", "adviser_id", "co_adviser_id")}
         if not data:
-            return jsonify({"error": "Nothing editable in request body"}), 400
+            raise HTTPException(status_code=400, detail="Nothing editable in request body")
     elif role != "admin":
-        return jsonify({"error": "Admin or faculty access required"}), 403
+        raise HTTPException(status_code=403, detail="Admin or faculty access required")
     else:
-        # Single adviser only: an explicit adviser_id replaces the link.
         data.pop("co_adviser_id", None)
         if "adviser_id" in data:
             primary = data.pop("adviser_id")
@@ -357,21 +286,24 @@ def update_thesis(id):
                 try:
                     primary = int(primary)
                 except (TypeError, ValueError):
-                    return jsonify({"error": "adviser_id must be an integer"}), 400
+                    raise HTTPException(status_code=400, detail="adviser_id must be an integer")
                 if not db.get_adviser_by_id(primary):
-                    return jsonify({"error": "Adviser not found"}), 404
+                    raise HTTPException(status_code=404, detail="Adviser not found")
                 data["adviser_id"] = primary
 
     try:
         db.update_thesis(id, **data)
+    except ThesisStatusConflict as e:
+        raise HTTPException(status_code=409, detail={
+            "error": "Thesis is no longer pending review.",
+            "thesis_id": e.thesis_id,
+            "required_statuses": e.required_statuses,
+            "current_status": e.current_status,
+        })
     except Exception as e:
-        return jsonify({"error": f"Update failed: {str(e)}"}), 400
+        raise HTTPException(status_code=400, detail=f"Update failed: {str(e)}")
     thesis = db.get_thesis_by_id(id)
 
-    # Keep embeddings fresh when title/abstract change — but only for theses
-    # WITHOUT a local PDF, so we never wipe full-PDF chunks with a
-    # title+abstract-only re-embed. Theses with PDFs refresh via upload or
-    # the admin generate endpoint (which includes the PDF body).
     if "title" in data or "abstract" in data:
         try:
             from ..services.chunking import build_thesis_chunks
@@ -386,25 +318,21 @@ def update_thesis(id):
                             embedding_service.model_name)
         except Exception:
             pass
-    return jsonify(thesis), 200
+    return thesis
 
 
-@thesis_bp.route("/api/theses/<int:id>", methods=["DELETE"])
-@login_required
-def delete_thesis(id):
-    """Delete a thesis. Admins: anything. Faculty: own drafts only."""
+@router.delete("/api/theses/{id}", dependencies=[Depends(login_required)])
+def delete_thesis(id: int, request: Request):
     existing = db.get_thesis_by_id(id)
     if not existing:
-        return jsonify({"error": "Thesis not found"}), 404
-
-    role = request.current_user["role"]
+        raise HTTPException(status_code=404, detail="Thesis not found")
+    role = request.state.current_user["role"]
     if role == "faculty":
-        if existing.get("creator_id") != request.current_user["id"]:
-            return jsonify({"error": "You can only delete theses you submitted"}), 403
+        if existing.get("creator_id") != request.state.current_user["id"]:
+            raise HTTPException(status_code=403, detail="You can only delete theses you submitted")
         if existing.get("status") != "draft":
-            return jsonify({"error": "Only drafts can be deleted"}), 403
+            raise HTTPException(status_code=403, detail="Only drafts can be deleted")
     elif role != "admin":
-        return jsonify({"error": "Admin or faculty access required"}), 403
-
+        raise HTTPException(status_code=403, detail="Admin or faculty access required")
     db.delete_thesis(id)
-    return jsonify({"message": "Thesis deleted"}), 200
+    return {"message": "Thesis deleted"}

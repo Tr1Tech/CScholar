@@ -7,6 +7,37 @@ from .extensions import get_conn, put_conn
 import re
 
 
+class ThesisStatusConflict(Exception):
+    """Raised when a guarded status UPDATE matched no row.
+
+    Means another reviewer changed the thesis first (for example, two
+    admins approving the same draft at the same time). The caller should
+    treat this as a business conflict, not a successful update.
+    """
+
+    def __init__(self, thesis_id, required_statuses, current_status=None):
+        self.thesis_id = thesis_id
+        self.required_statuses = list(required_statuses)
+        self.current_status = current_status
+        super().__init__(
+            f"Thesis {thesis_id} cannot move to the requested status "
+            f"(required current status: {self.required_statuses}, "
+            f"actual: {current_status})"
+        )
+
+
+# Valid lifecycle transitions (FR-08), keyed by target status. Mirrors
+# ceit_repo.fn_can_transition_status in db/logic/cscholar_lab5_logic.sql.
+# The source status is part of the UPDATE guard, so an approval can only
+# ever succeed once — from 'draft'.
+THESIS_STATUS_SOURCES = {
+    "draft": ("approved",),
+    "approved": ("draft",),
+    "published": ("approved",),
+    "archived": ("draft", "published"),
+}
+
+
 # ── Users ───────────────────────────────────────────────────────────────────
 
 def get_user_by_id(user_id):
@@ -623,6 +654,7 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
 def update_thesis(thesis_id, **kwargs):
     allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status", "pdf_url"}
     fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    target_status = fields.get("status")
 
     author_ids = kwargs.get("author_ids") if isinstance(kwargs.get("author_ids"), list) else None
     adviser_id = kwargs.get("adviser_id")
@@ -635,7 +667,31 @@ def update_thesis(thesis_id, **kwargs):
             if fields:
                 set_clause = ", ".join(f"{k} = %s" for k in fields)
                 params = list(fields.values()) + [thesis_id]
-                cur.execute(f"UPDATE theses SET {set_clause} WHERE id = %s", params)
+                where_clause = "id = %s"
+
+                if target_status is not None:
+                    required_statuses = THESIS_STATUS_SOURCES.get(target_status)
+                    if required_statuses is None:
+                        raise ValueError(f"Invalid status: {target_status}")
+                    # Guarded UPDATE: the source status is part of the WHERE.
+                    # A second admin approving the same draft waits on the row
+                    # lock, then matches 0 rows after the first COMMIT.
+                    where_clause += " AND status = ANY(%s)"
+                    params.append(list(required_statuses))
+
+                cur.execute(
+                    f"UPDATE theses SET {set_clause} WHERE {where_clause}",
+                    params,
+                )
+
+                if target_status is not None and cur.rowcount == 0:
+                    cur.execute("SELECT status FROM theses WHERE id = %s", (thesis_id,))
+                    row = cur.fetchone()
+                    raise ThesisStatusConflict(
+                        thesis_id,
+                        required_statuses,
+                        row[0] if row else None,
+                    )
 
             _persist_thesis_relations(
                 cur, thesis_id,

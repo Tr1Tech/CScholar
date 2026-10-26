@@ -1,18 +1,18 @@
-"""PDF upload routes — extract text with PyMuPDF, associate with thesis."""
+"""PDF upload routes -- extract text with PyMuPDF, associate with thesis."""
 
 import os
 import threading
 import uuid
-from flask import Blueprint, request, jsonify, current_app
-from werkzeug.utils import secure_filename
-import pymupdf
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form
+from fastapi import status as http_status
 from ..auth import login_required
 from .. import models as db
+from ..config import UPLOAD_DIR
 
-upload_bp = Blueprint("upload", __name__)
+router = APIRouter()
 
 ALLOWED_EXTENSIONS = {"pdf"}
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
 def allowed_file(filename):
@@ -20,7 +20,6 @@ def allowed_file(filename):
 
 
 def _reembed_thesis_async(thesis_id, pdf_text):
-    """Chunk + re-embed a thesis in a background thread (best-effort)."""
     def _work():
         try:
             from ..services.chunking import build_thesis_chunks
@@ -41,55 +40,50 @@ def _reembed_thesis_async(thesis_id, pdf_text):
                 thesis_id, list(zip(chunks, vectors)),
                 embedding_service.model_name)
         except Exception:
-            pass  # Never break uploads on embedding failures.
+            pass
     threading.Thread(target=_work, daemon=True).start()
 
 
-@upload_bp.route("/api/upload/pdf", methods=["POST"])
-@login_required
-def upload_pdf():
-    """Upload PDF, extract text with PyMuPDF, return preview.
-
-    Admins and faculty. Accepts optional thesis_id via form data to
-    associate the uploaded PDF with a thesis record (stores relative path
-    in pdf_url column). Faculty may only attach to their own drafts.
-    """
-    role = request.current_user["role"]
+@router.post("/api/upload/pdf", dependencies=[Depends(login_required)])
+async def upload_pdf(
+    request: Request,
+    file: UploadFile = File(...),
+    thesis_id: int = Form(None),
+):
+    role = request.state.current_user["role"]
     if role not in ("admin", "faculty"):
-        return jsonify({"error": "Admin or faculty access required"}), 403
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No file selected"}), 400
-
+        raise HTTPException(status_code=403, detail="Admin or faculty access required")
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
     if not allowed_file(file.filename):
-        return jsonify({"error": "Only PDF files are allowed"}), 400
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
-    # Reject obviously oversized bodies before buffering into RAM.
-    if request.content_length and request.content_length > MAX_FILE_SIZE:
-        return jsonify({"error": "File too large (max 50MB)"}), 413
+    cl = request.headers.get("content-length")
+    if cl:
+        try:
+            if int(cl) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail="File too large (max 50MB)")
+        except ValueError:
+            pass
 
-    file_bytes = file.read(MAX_FILE_SIZE + 1)
+    file_bytes = await file.read(MAX_FILE_SIZE + 1)
     if len(file_bytes) > MAX_FILE_SIZE:
-        return jsonify({"error": "File too large (max 50MB)"}), 413
+        raise HTTPException(status_code=413, detail="File too large (max 50MB)")
     if not file_bytes.startswith(b"%PDF-"):
-        return jsonify({"error": "Invalid PDF file"}), 400
+        raise HTTPException(status_code=400, detail="Invalid PDF file")
 
-    # Parse thesis_id if provided
-    thesis_id = request.form.get("thesis_id", type=int)
     if thesis_id is not None:
         existing = db.get_thesis_by_id(thesis_id)
         if not existing:
-            return jsonify({"error": "Thesis not found"}), 404
+            raise HTTPException(status_code=404, detail="Thesis not found")
         if role == "faculty":
-            if existing.get("creator_id") != request.current_user["id"]:
-                return jsonify({"error": "You can only attach PDFs to theses you submitted"}), 403
+            if existing.get("creator_id") != request.state.current_user["id"]:
+                raise HTTPException(status_code=403, detail="You can only attach PDFs to theses you submitted")
             if existing.get("status") != "draft":
-                return jsonify({"error": "PDFs can only be attached to drafts"}), 403
+                raise HTTPException(status_code=403, detail="PDFs can only be attached to drafts")
 
     try:
+        import pymupdf
         doc = pymupdf.open(stream=file_bytes, filetype="pdf")
         text = ""
         for page in doc:
@@ -97,30 +91,28 @@ def upload_pdf():
         page_count = len(doc)
         doc.close()
     except Exception as e:
-        return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 400
+        raise HTTPException(status_code=400, detail=f"Failed to parse PDF: {str(e)}")
 
     if not text.strip():
-        return jsonify({"error": "No text could be extracted from the PDF"}), 400
+        raise HTTPException(status_code=400, detail="No text could be extracted from the PDF")
 
+    import uuid as _uuid
+    from werkzeug.utils import secure_filename
     filename = secure_filename(file.filename)
-    unique_name = f"{uuid.uuid4().hex}_{filename}"
+    unique_name = f"{_uuid.uuid4().hex}_{filename}"
 
-    upload_dir = os.path.join(current_app.root_path, "uploads")
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, unique_name)
-
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
     with open(file_path, "wb") as f:
         f.write(file_bytes)
 
-    # Build relative URL for storage
     pdf_url = f"/api/uploads/{unique_name}"
 
-    # Associate with thesis record if thesis_id was provided
     if thesis_id is not None:
         try:
             db.update_thesis(thesis_id, pdf_url=pdf_url)
         except Exception as e:
-            return jsonify({"error": f"Failed to update thesis record: {str(e)}"}), 500
+            raise HTTPException(status_code=500, detail=f"Failed to update thesis record: {str(e)}")
         try:
             db.create_thesis_file(
                 thesis_id=thesis_id,
@@ -128,18 +120,16 @@ def upload_pdf():
                 file_path=pdf_url,
                 file_size=len(file_bytes),
                 mime_type="application/pdf",
-                uploaded_by=request.current_user["id"],
+                uploaded_by=request.state.current_user["id"],
             )
         except Exception:
-            pass  # Metadata row is nice-to-have; never fail the upload.
-        # Re-embed in the background so recommendations/search see the full
-        # PDF body. Fire-and-forget: extraction already succeeded above.
+            pass
         try:
             _reembed_thesis_async(thesis_id, text)
         except Exception:
             pass
 
-    return jsonify({
+    return {
         "message": "PDF uploaded and parsed successfully",
         "filename": filename,
         "saved_as": unique_name,
@@ -148,4 +138,4 @@ def upload_pdf():
         "extracted_text": text[:5000],
         "text_length": len(text),
         "pdf_url": pdf_url,
-    }), 200
+    }

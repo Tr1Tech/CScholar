@@ -118,7 +118,4 @@ def db_test():
     return result
 
 
-from flask_cors import CORS
-
-cors = CORS()
 db = None  # re-exported for route modules that do `from .. import db`

@@ -23,3 +23,10 @@ class Config:
     # AI/ML
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "384"))
+
+
+# Module-level paths (FastAPI has no app.root_path equivalent).
+import os as _os
+APP_DIR = _os.path.dirname(_os.path.abspath(__file__))
+UPLOAD_DIR = _os.path.join(APP_DIR, "uploads")
+BASE_DIR = _os.path.dirname(APP_DIR)
