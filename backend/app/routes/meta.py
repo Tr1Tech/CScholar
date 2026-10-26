@@ -3,6 +3,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from ..auth import admin_required
 from .. import models as db
+from ..schemas import (
+    AuthorCreateRequest,
+    AuthorUpdateRequest,
+    AdviserCreateRequest,
+    AdviserUpdateRequest,
+    CategoryCreateRequest,
+    CategoryUpdateRequest,
+    ProgramCreateRequest,
+    ProgramUpdateRequest,
+    AcademicYearCreateRequest,
+    AcademicYearUpdateRequest,
+)
 
 router = APIRouter(tags=["Metadata"])
 
@@ -45,7 +57,8 @@ def list_research_types():
 # -- Authors CRUD --
 
 @router.post("/api/authors", status_code=201, dependencies=[Depends(admin_required)])
-def create_author(data: dict = Body(default=None)):
+def create_author(data: AuthorCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
     first_name = data.get("first_name")
@@ -62,7 +75,8 @@ def create_author(data: dict = Body(default=None)):
 
 
 @router.put("/api/authors/{author_id}", dependencies=[Depends(admin_required)])
-def update_author(author_id: int, data: dict = Body(default=None)):
+def update_author(author_id: int, data: AuthorUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_author_by_id(author_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Author not found")
@@ -86,7 +100,8 @@ def delete_author(author_id: int):
 # -- Advisers CRUD --
 
 @router.post("/api/advisers", status_code=201, dependencies=[Depends(admin_required)])
-def create_adviser(data: dict = Body(default=None)):
+def create_adviser(data: AdviserCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
     first_name = data.get("first_name")
@@ -103,7 +118,8 @@ def create_adviser(data: dict = Body(default=None)):
 
 
 @router.put("/api/advisers/{adviser_id}", dependencies=[Depends(admin_required)])
-def update_adviser(adviser_id: int, data: dict = Body(default=None)):
+def update_adviser(adviser_id: int, data: AdviserUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_adviser_by_id(adviser_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Adviser not found")
@@ -127,7 +143,8 @@ def delete_adviser(adviser_id: int):
 # -- Categories CRUD --
 
 @router.post("/api/categories", status_code=201, dependencies=[Depends(admin_required)])
-def create_category(data: dict = Body(default=None)):
+def create_category(data: CategoryCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
     name = data.get("name")
@@ -141,7 +158,8 @@ def create_category(data: dict = Body(default=None)):
 
 
 @router.put("/api/categories/{category_id}", dependencies=[Depends(admin_required)])
-def update_category(category_id: int, data: dict = Body(default=None)):
+def update_category(category_id: int, data: CategoryUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_category_by_id(category_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -165,7 +183,8 @@ def delete_category(category_id: int):
 # -- Programs CRUD --
 
 @router.post("/api/programs", status_code=201, dependencies=[Depends(admin_required)])
-def create_program(data: dict = Body(default=None)):
+def create_program(data: ProgramCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
     name = data.get("name")
@@ -180,7 +199,8 @@ def create_program(data: dict = Body(default=None)):
 
 
 @router.put("/api/programs/{program_id}", dependencies=[Depends(admin_required)])
-def update_program(program_id: int, data: dict = Body(default=None)):
+def update_program(program_id: int, data: ProgramUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_program_by_id(program_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Program not found")
@@ -204,7 +224,8 @@ def delete_program(program_id: int):
 # -- Academic Years CRUD --
 
 @router.post("/api/academic-years", status_code=201, dependencies=[Depends(admin_required)])
-def create_academic_year(data: dict = Body(default=None)):
+def create_academic_year(data: AcademicYearCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
     name = data.get("name")
@@ -223,7 +244,8 @@ def create_academic_year(data: dict = Body(default=None)):
 
 
 @router.put("/api/academic-years/{year_id}", dependencies=[Depends(admin_required)])
-def update_academic_year(year_id: int, data: dict = Body(default=None)):
+def update_academic_year(year_id: int, data: AcademicYearUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_academic_year_by_id(year_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Academic year not found")

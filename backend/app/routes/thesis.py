@@ -7,6 +7,7 @@ from .. import models as db
 from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
+from ..schemas import ThesisCreateRequest, ThesisUpdateRequest
 
 router = APIRouter()
 
@@ -176,7 +177,8 @@ def faculty_analytics(request: Request):
 
 
 @router.post("/api/theses", status_code=201, dependencies=[Depends(login_required)], tags=["Theses"])
-def create_thesis(request: Request, data: dict = Body(default=None)):
+def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     role = request.state.current_user["role"]
     if role not in ("admin", "faculty"):
         raise HTTPException(status_code=403, detail="Admin or faculty access required")
@@ -258,7 +260,8 @@ def create_thesis(request: Request, data: dict = Body(default=None)):
 
 
 @router.put("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"])
-def update_thesis(id: int, request: Request, data: dict = Body(default=None)):
+def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     existing = db.get_thesis_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail="Thesis not found")

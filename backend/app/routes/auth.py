@@ -7,12 +7,20 @@ from .. import models as db
 from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required
 from ..models import get_user_by_id
 from ..config import UPLOAD_DIR
+from ..schemas import (
+    RegisterRequest,
+    LoginRequest,
+    CreateUserRequest,
+    UpdateUserRequest,
+    UpdateUserActiveRequest,
+)
 
 router = APIRouter()
 
 
 @router.post("/api/auth/register", status_code=201, tags=["Auth"])
-def register(data: dict = Body(default=None)):
+def register(data: RegisterRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
     username = str(data.get("username", "")).strip()
@@ -42,7 +50,8 @@ def register(data: dict = Body(default=None)):
 
 
 @router.post("/api/auth/login", tags=["Auth"])
-def login(data: dict = Body(default=None)):
+def login(data: LoginRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
     login_id = str(data.get("username", "")).strip() or str(data.get("email", "")).strip()
@@ -73,7 +82,8 @@ def get_users():
 
 
 @router.post("/api/users", status_code=201, dependencies=[Depends(admin_required)], tags=["Users"])
-def admin_create_user(data: dict = Body(default=None)):
+def admin_create_user(data: CreateUserRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
     username = str(data.get("username", "")).strip()
@@ -106,8 +116,8 @@ def admin_create_user(data: dict = Body(default=None)):
 
 
 @router.put("/api/users/{user_id}", dependencies=[Depends(admin_required)], tags=["Users"])
-def update_user(user_id: int, data: dict = Body(default=None), request: Request = None):
-    # Need request for current_user; FastAPI injects if param named request
+def update_user(user_id: int, data: UpdateUserRequest = Body(default=None), request: Request = None):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     user = db.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -152,7 +162,8 @@ def update_user(user_id: int, data: dict = Body(default=None), request: Request 
 
 
 @router.put("/api/users/{user_id}/active", dependencies=[Depends(admin_required)], tags=["Users"])
-def update_user_active(user_id: int, data: dict = Body(default=None), request: Request = None):
+def update_user_active(user_id: int, data: UpdateUserActiveRequest = Body(default=None), request: Request = None):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data or "is_active" not in data:
         raise HTTPException(status_code=400, detail="is_active is required")
     is_active = data["is_active"]

@@ -9,6 +9,7 @@ from ..auth import login_required, admin_required
 from ..services.embeddings import embedding_service
 from ..services.chunking import build_thesis_chunks
 from ..config import UPLOAD_DIR
+from ..schemas import SemanticSearchRequest
 
 router = APIRouter(tags=["Embeddings"])
 
@@ -165,7 +166,8 @@ def bulk_status():
 
 
 @router.post("/api/embeddings/search", dependencies=[Depends(login_required)], tags=["Search"])
-def search(data: dict = Body(default=None)):
+def search(data: SemanticSearchRequest = Body(default=None)):
+    data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data or "query" not in data:
         raise HTTPException(status_code=400, detail="Query is required")
     if not embedding_service.available:
