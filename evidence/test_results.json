@@ -1,0 +1,212 @@
+[
+  {
+    "id": "H1",
+    "method": "GET",
+    "path": "/health",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "H2",
+    "method": "GET",
+    "path": "/api/health",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "H3",
+    "method": "GET",
+    "path": "/api/db-test",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "A1",
+    "method": "POST",
+    "path": "/api/auth/login",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "A2",
+    "method": "GET",
+    "path": "/api/auth/me",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "A3",
+    "method": "GET",
+    "path": "/api/users",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "A4",
+    "method": "POST",
+    "path": "/api/auth/register",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "A5",
+    "method": "POST",
+    "path": "/api/users",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M1",
+    "method": "GET",
+    "path": "/api/programs",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M2",
+    "method": "GET",
+    "path": "/api/academic-years",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M3",
+    "method": "GET",
+    "path": "/api/categories",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M4",
+    "method": "GET",
+    "path": "/api/keywords",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M5",
+    "method": "GET",
+    "path": "/api/authors",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M6",
+    "method": "GET",
+    "path": "/api/advisers",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M7",
+    "method": "GET",
+    "path": "/api/research-types",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M8",
+    "method": "POST",
+    "path": "/api/authors",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M11",
+    "method": "POST",
+    "path": "/api/advisers",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M14",
+    "method": "POST",
+    "path": "/api/categories",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M17",
+    "method": "POST",
+    "path": "/api/programs",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "M20",
+    "method": "POST",
+    "path": "/api/academic-years",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "T1",
+    "method": "GET",
+    "path": "/api/theses",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "T5",
+    "method": "POST",
+    "path": "/api/theses",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "E2",
+    "method": "GET",
+    "path": "/api/embeddings/bulk-status",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "E3",
+    "method": "POST",
+    "path": "/api/embeddings/generate-bulk",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "E4",
+    "method": "POST",
+    "path": "/api/embeddings/search",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "D1",
+    "method": "GET",
+    "path": "/api/dashboard/stats",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "D2",
+    "method": "GET",
+    "path": "/api/dashboard/recent-activity",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "D3",
+    "method": "GET",
+    "path": "/api/stats/summary",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "U1",
+    "method": "POST",
+    "path": "/api/upload/pdf",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  },
+  {
+    "id": "O1",
+    "method": "POST",
+    "path": "/api/ocr/pdf",
+    "status": 0,
+    "body": "<urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+  }
+]
