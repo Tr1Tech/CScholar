@@ -13,4 +13,10 @@ pgvector==0.3.6
 pymupdf==1.28.2
 bcrypt==5.0.0
 PyJWT==2.13.0
-sentence-transformers==5.0.0
+# Pinned to the versions verified with EmbeddingService._load_model()
+# (app/services/embeddings.py). transformers is a major line and its
+# low_cpu_mem_usage default is what produced the "Cannot copy out of meta
+# tensor" failure, so it must not float. torch stays unpinned: it is
+# transitive, and CPU/CUDA wheels are platform-specific.
+sentence-transformers==6.0.1
+transformers==5.17.0
