@@ -43,12 +43,18 @@ class FacultySidebar extends ConsumerWidget {
                 child: Material(
                   type: MaterialType.transparency,
                   child: ListTile(
-                    leading: const Icon(Icons.logout,
-                        size: 20, color: CScholarColors.textSecondary),
+                    leading: const Icon(
+                      Icons.logout,
+                      size: 20,
+                      color: CScholarColors.textSecondary,
+                    ),
                     title: Text(
                       'Log Out',
-                      style: CScholarTextStyles.inter(
-                          13, FontWeight.w500, CScholarColors.textSecondary),
+                      style: CScholarTextStyles.body(
+                        13,
+                        FontWeight.w500,
+                        CScholarColors.textSecondary,
+                      ),
                     ),
                     dense: true,
                     onTap: () {
@@ -70,8 +76,9 @@ class FacultySidebar extends ConsumerWidget {
   /// is derived from [currentPath] here rather than per item; a route matching
   /// none yields -1 and the pill fades out (same contract as the admin rail).
   static const List<
-      ({String label, IconData icon, IconData selectedIcon, String path})>
-      _routes = [
+    ({String label, IconData icon, IconData selectedIcon, String path})
+  >
+  _routes = [
     (
       label: 'Dashboard',
       icon: Icons.dashboard_outlined,
@@ -108,8 +115,8 @@ class FacultySidebar extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: ClayNavList(
-        selectedIndex:
-            _routes.indexWhere((route) => route.path == currentPath),
+        rail: 'faculty',
+        selectedIndex: _routes.indexWhere((route) => route.path == currentPath),
         links: [
           for (final route in _routes)
             ClayNavLink(

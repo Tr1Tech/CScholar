@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -58,7 +59,7 @@ class ResultCard extends StatelessWidget {
                           thesis.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: CScholarTextStyles.poppins(
+                          style: CScholarTextStyles.heading(
                               15, FontWeight.w700, CScholarColors.textPrimary),
                         ),
                       ),
@@ -72,7 +73,7 @@ class ResultCard extends StatelessWidget {
                   thesis.authorsString,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(
+                  style: CScholarTextStyles.body(
                       12, FontWeight.w500, CScholarColors.textSecondary),
                 ),
                 const SizedBox(height: 2),
@@ -80,7 +81,7 @@ class ResultCard extends StatelessWidget {
                   '${thesis.program?.name ?? '—'}  •  ${thesis.academicYear?.label ?? '—'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(
+                  style: CScholarTextStyles.body(
                       11.5, FontWeight.w400, CScholarColors.textMuted),
                 ),
                 if (keywords.isNotEmpty) ...[
@@ -104,7 +105,7 @@ class ResultCard extends StatelessWidget {
                                     Border.all(color: CScholarMaterial.rim),
                               ),
                               child: Text(k.term,
-                                  style: CScholarTextStyles.inter(11,
+                                  style: CScholarTextStyles.body(11,
                                       FontWeight.w500, CScholarColors.textMuted)),
                             ))
                         .toList(),
@@ -131,7 +132,7 @@ class ResultCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text('Related Research',
-                                style: CScholarTextStyles.inter(12,
+                                style: CScholarTextStyles.body(12,
                                     FontWeight.w600, CScholarColors.primaryGreen)),
                             const SizedBox(width: 4),
                             const Icon(Icons.arrow_forward,
@@ -159,7 +160,7 @@ class ResultCard extends StatelessWidget {
           ),
           if (similarity != null) ...[
             const SizedBox(width: 12),
-            _matchBadge(similarity!),
+            _matchBadge(context, similarity!),
           ],
         ],
       ),
@@ -186,7 +187,8 @@ class ResultCard extends StatelessWidget {
         border: Border.all(color: rim),
       ),
       child: Text(_isThesis ? 'Thesis' : 'Capstone',
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg)),
+          style: CScholarTextStyles.body(
+              11, FontWeight.w700, fg)),
     );
   }
 
@@ -194,9 +196,10 @@ class ResultCard extends StatelessWidget {
   /// Circular data gauge, now gold paper + amber ink so AI rank is distinct
   /// from green status chips. Fixed 52px slot (same as before) so the
   /// repository row never reflows — the label scales down inside it.
-  Widget _matchBadge(double score) {
+  /// Pops in on a springy settle so the rank lands instead of painting.
+  Widget _matchBadge(BuildContext context, double score) {
     final pct = (score * 100).round().clamp(0, 100);
-    return Tooltip(
+    final badge = Tooltip(
       message:
           'AI semantic match $pct% — ranked by meaning. Open the study to see related work.',
       child: SizedBox(
@@ -219,7 +222,7 @@ class ResultCard extends StatelessWidget {
             ),
             child: Center(
               child: Text('$pct%',
-                  style: CScholarTextStyles.inter(
+                  style: CScholarTextStyles.body(
                       13, FontWeight.w800, CScholarColors.warningFg)),
             ),
           ),
@@ -233,7 +236,7 @@ class ResultCard extends StatelessWidget {
                     size: 10, color: CScholarColors.warningFg),
                 const SizedBox(width: 2),
                 Text('AI Match',
-                    style: CScholarTextStyles.inter(
+                    style: CScholarTextStyles.body(
                         10, FontWeight.w700, CScholarColors.warningFg)),
               ],
             ),
@@ -242,5 +245,6 @@ class ResultCard extends StatelessWidget {
         ),
       ),
     );
+    return badge.scalePop(context);
   }
 }

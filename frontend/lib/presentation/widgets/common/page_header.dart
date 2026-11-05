@@ -15,29 +15,44 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EntranceReveal(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: CScholarTextStyles.pageTitle),
-                if (subtitle != null && subtitle!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(subtitle!, style: CScholarTextStyles.pageSubtitle),
-                ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // The action is a plain, non-flex child: `Flexible` alongside an
+          // `Expanded` both default to flex 1, so the row handed the trailing
+          // slot half the header and the button sat dead centre of the page.
+          // Non-flex pins it to the trailing edge, but then its intrinsic width
+          // is uncapped — and a labelled clay button at 200% text can be wider
+          // than the row. Cap it at two thirds so the title keeps a readable
+          // column and the button ellipsizes its own label instead of
+          // overflowing the header.
+          final maxActionWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth * 2 / 3
+              : double.infinity;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: CScholarTextStyles.pageTitle),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(subtitle!, style: CScholarTextStyles.pageSubtitle),
+                    ],
+                  ],
+                ),
+              ),
+              if (action != null) ...[
+                const SizedBox(width: 16),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxActionWidth),
+                  child: action!,
+                ),
               ],
-            ),
-          ),
-          if (action != null) ...[
-            const SizedBox(width: 16),
-            // The action is often a labelled clay button, and at 200% text its
-            // intrinsic width can exceed the row. Let it shrink (the button
-            // ellipsizes its own label) instead of overflowing the header.
-            Flexible(child: action!),
-          ],
-        ],
+            ],
+          );
+        },
       ),
     );
   }

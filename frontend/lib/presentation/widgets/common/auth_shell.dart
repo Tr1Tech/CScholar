@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/csu_mark.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
@@ -48,15 +49,15 @@ class AuthShell extends StatelessWidget {
                 children: [
                   // PART 7: the auth card enters at 0 with a fade only — it is
                   // the screen's full surface, and a rising surface reads as
-                  // the page sliding. The form fields inside cascade tight.
+                  // the page sliding. De-blur on top reads as focus arriving.
+                  // The form fields inside cascade tight.
                   EntranceReveal(
                     rise: 0,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: maxCardWidth),
                       child: GlassPanel(
-                        radius: CScholarRadius.xxl,
+                        radius: CScholarRadius.softSheet,
                         fill: CScholarMaterial.glassOverlay,
-                        blur: CScholarMaterial.blurOverlay,
                         padding: const EdgeInsets.all(32),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -82,8 +83,8 @@ class AuthShell extends StatelessWidget {
                             Text(
                               'CScholar',
                               textAlign: TextAlign.center,
-                              style: CScholarTextStyles.poppins(
-                                24,
+                              style: CScholarTextStyles.heading(
+                                26,
                                 FontWeight.w800,
                                 CScholarColors.textPrimary,
                                 letterSpacing: -0.5,
@@ -94,7 +95,7 @@ class AuthShell extends StatelessWidget {
                             Text(
                               'CEIT THESIS REPOSITORY',
                               textAlign: TextAlign.center,
-                              style: CScholarTextStyles.inter(
+                              style: CScholarTextStyles.body(
                                 10.5,
                                 FontWeight.w700,
                                 CScholarColors.textMuted,
@@ -105,7 +106,7 @@ class AuthShell extends StatelessWidget {
                             child,
                           ],
                         ),
-                      ),
+                      ).blurIn(context),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -122,7 +123,7 @@ class AuthShell extends StatelessWidget {
                           'Caraga State University · CEIT Campus Portal',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: CScholarTextStyles.inter(
+                          style: CScholarTextStyles.body(
                             11.5,
                             FontWeight.w500,
                             CScholarColors.textMuted,
@@ -165,7 +166,7 @@ class _AmbientField extends StatelessWidget {
           alignment: const Alignment(0.9, -0.45),
           child: _AmbientOrb(
             size: 240,
-            color: CScholarColors.skyTint,
+            color: CScholarColors.violetTint,
             drift: const Offset(-14, 16),
             duration: const Duration(seconds: 9),
           ),
@@ -310,7 +311,7 @@ class AuthErrorBanner extends StatelessWidget {
                     Expanded(
                       child: Text(
                         error!,
-                        style: CScholarTextStyles.inter(
+                        style: CScholarTextStyles.body(
                             12, FontWeight.w500, CScholarColors.error),
                       ),
                     ),

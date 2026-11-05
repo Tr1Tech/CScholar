@@ -2,26 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 
-/// Clay panel — the standard content surface (cards, sections, tiles).
+/// Soft surface — the standard content surface (cards, sections, tiles).
 ///
-/// Clay reads as a physical slab from three things, none of which is an
-/// outline or an inner shadow:
-///   1. its own fill, lighter than the canvas
-///   2. a same-hue gradient (light top-left -> base) = the "inflate" shading
-///   3. ONE soft downward shadow that seats it on the canvas
-///
-/// No border and no inset by default. A drawn rim on every surface is what made
-/// the earlier neumorphic pass look boxed-in; the slab IS the boundary now. Pass
-/// [showRim] only where a small or low-contrast surface genuinely needs one.
+/// Soft UI v4: a near-white slab on the paper canvas, seated by a hairline and
+/// a two-layer diffuse green-tinted shadow. There is no gradient and no inset
+/// shadow — the flat fill is the surface.
 ///
 /// When high contrast is on it degrades to a solid fill + a strong rim — no
-/// shadows, no gradient. That is the one place a drawn boundary is the point.
+/// shadows. That is the one place a drawn boundary is the point.
 class ClaySurface extends StatelessWidget {
   const ClaySurface({
     super.key,
     required this.child,
-    this.radius = CScholarRadius.xl,
-    this.padding = const EdgeInsets.all(20),
+    this.radius = CScholarRadius.softCard,
+    this.padding = const EdgeInsets.all(22),
     this.depth = 1,
     this.color = CScholarMaterial.clay,
     this.showRim = false,
@@ -35,7 +29,7 @@ class ClaySurface extends StatelessWidget {
   final Color color;
   final bool showRim;
 
-  /// Rare override for the drop shadow. Null uses the clay shadow for [depth].
+  /// Rare override for the drop shadow. Null uses the card shadow for [depth].
   final List<BoxShadow>? shadows;
 
   @override
@@ -45,22 +39,13 @@ class ClaySurface extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        gradient: flat
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [CScholarMaterial.clayHigh, color],
-              ),
-        color: flat ? color : null,
-        border: flat || showRim
-            ? Border.all(
-                color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
-              )
-            : null,
+        color: color,
+        border: Border.all(
+          color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
+        ),
         boxShadow: flat
             ? null
-            : (shadows ?? CScholarMaterial.clayDrop(depth: depth)),
+            : (shadows ?? CScholarMaterial.cardShadow(depth: depth)),
       ),
       child: Padding(padding: padding, child: child),
     );

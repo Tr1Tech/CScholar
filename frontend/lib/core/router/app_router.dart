@@ -1,5 +1,6 @@
 // GoRouter configuration — CScholar
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +27,34 @@ import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.da
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
+/// True on native mobile builds (Android/iOS). Web — even a narrow
+/// browser window — keeps the full role-separated router; the
+/// width-based student reskin lives in the widget shell, not here.
+bool get isMobileApp => !kIsWeb;
+
+/// Student-only gate for native mobile builds.
+///
+/// Returns `/login?reason=use-web` when a signed-in faculty/admin hits
+/// any route on a native build, null otherwise. The login screen signs
+/// the session out and shows the banner; the backend 403s + draft-hidden
+/// 404s remain the safety net. Pure so it unit-tests without a router.
+String? mobileRouteGuard({
+  required bool isMobileApp,
+  required String? role,
+  required String location,
+  required String? reason,
+}) {
+  if (!isMobileApp) return null;
+  if (role != 'faculty' && role != 'admin') return null;
+  if (location == '/login' && reason == 'use-web') return null;
+  return '/login?reason=use-web';
+}
+
+/// Banner copy shared by the login screen's init (restored session) and
+/// post-login (fresh sign-in) paths.
+const String mobileOnlyNotice =
+    'This app is student-only. Faculty and admin accounts — please use the web version.';
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,6 +77,16 @@ final appRouter = Provider<GoRouter>((ref) {
       final loggingIn = loc == '/login' || loc == '/register';
       final role = authState.value?.role;
 
+      // Native mobile is student-only: bounce faculty/admin to login with
+      // a reason. The login screen signs them out and shows the banner.
+      final mobileRedirect = mobileRouteGuard(
+        isMobileApp: isMobileApp,
+        role: role,
+        location: loc,
+        reason: state.uri.queryParameters['reason'],
+      );
+      if (mobileRedirect != null) return mobileRedirect;
+
       // Not signed in: only public routes allowed
       if (authState.value == null) {
         if (loc == '/login' ||
@@ -58,8 +97,13 @@ final appRouter = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      // Signed in: don't let them sit on login/register
+      // Signed in: don't let them sit on login/register. On mobile the
+      // guard above already let non-students through to /login so the
+      // screen can sign them out — don't bounce them back to a dashboard.
       if (loggingIn) {
+        if (isMobileApp && (role == 'admin' || role == 'faculty')) {
+          return null;
+        }
         if (role == 'admin') return '/admin/dashboard';
         if (role == 'faculty') return '/faculty/dashboard';
         return '/student/dashboard';
@@ -92,7 +136,9 @@ final appRouter = Provider<GoRouter>((ref) {
       // Public routes
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => LoginScreen(
+          reason: state.uri.queryParameters['reason'],
+        ),
       ),
       GoRoute(
         path: '/register',

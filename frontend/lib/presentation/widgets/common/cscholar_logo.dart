@@ -33,7 +33,7 @@ class CScholarLogo extends StatelessWidget {
             children: [
               Text(
                 'CScholar',
-                style: CScholarTextStyles.poppins(
+                style: CScholarTextStyles.heading(
                   iconSize * 0.52,
                   FontWeight.w800,
                   isDark ? Colors.white : CScholarColors.textPrimary,
@@ -43,7 +43,7 @@ class CScholarLogo extends StatelessWidget {
               ),
               Text(
                 (subtitle ?? 'CEIT REPOSITORY').toUpperCase(),
-                style: CScholarTextStyles.inter(
+                style: CScholarTextStyles.body(
                   iconSize * 0.26,
                   FontWeight.w700,
                   isDark

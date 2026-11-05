@@ -25,7 +25,7 @@ class CScholarCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(22),
-    this.borderRadius = CScholarRadius.xl,
+    this.borderRadius = CScholarRadius.softCard,
     this.shadows,
     this.lift = false,
   });

@@ -4,12 +4,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
@@ -25,14 +27,21 @@ class AdminProgramsScreen extends ConsumerStatefulWidget {
   const AdminProgramsScreen({super.key});
 
   @override
-  ConsumerState<AdminProgramsScreen> createState() => _AdminProgramsScreenState();
+  ConsumerState<AdminProgramsScreen> createState() =>
+      _AdminProgramsScreenState();
 }
 
-class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with SingleTickerProviderStateMixin {
+class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   int _tabIndex = 0;
 
-  static const _addLabels = ['Add Program', 'Add Academic Year', 'Add Category'];
+  static const _tabs = ['Programs', 'Academic Years', 'Categories'];
+  static const _addLabels = [
+    'Add Program',
+    'Add Academic Year',
+    'Add Category',
+  ];
 
   @override
   void initState() {
@@ -54,7 +63,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 900;
+    final isWide = size.width > CScholarBreakpoints.mobile;
 
     if (!isWide) {
       return _mobileLayout(context, ref);
@@ -62,7 +71,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
 
     return CScholarShell(
       sidebar: const AdminSidebar(currentPath: '/admin/programs'),
-      topbar: const AdminTopbar(),
+      topbar: const AdminTopbar(section: AdminSearchSection.programs),
       mobileTitle: 'Programs & Categories',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
@@ -85,18 +94,20 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  // Tab bar
-                  TabBar(
-                    controller: _tabCtrl,
-                    labelColor: CScholarColors.primaryGreen,
-                    unselectedLabelColor: CScholarColors.textSecondary,
-                    indicatorColor: CScholarColors.primaryGreen,
-                    tabs: const [
-                      Tab(text: 'Programs'),
-                      Tab(text: 'Academic Years'),
-                      Tab(text: 'Categories'),
-                    ],
+                  // Same filter language as Users and Theses: one recessed
+                  // track with a raised pill. A Material TabBar drew a second
+                  // selection language (underline) inside the same card.
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: NeumorphSegmented(
+                      labels: _tabs,
+                      selectedIndex: _tabIndex,
+                      // Drives the controller so the swipe gesture and the
+                      // control can never disagree about which tab is current.
+                      onChanged: (i) => _tabCtrl.animateTo(i),
+                    ),
                   ),
+                  const Divider(height: 1),
                   // Tab content
                   SizedBox(
                     height: 520,
@@ -118,168 +129,383 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     );
   }
 
+  /// Empty panel for a tab whose search matched nothing. The clear (×) lives in
+  /// the topbar field, so the panel only has to say what was searched.
+  Widget _noMatches(IconData icon, String what, String query) => EmptyState(
+    icon: icon,
+    compact: true,
+    title: 'No matches',
+    message: 'No $what match "$query".',
+  );
+
   Widget _programsTab(BuildContext context, WidgetRef ref) {
     final programs = ref.watch(programsProvider);
-    return asyncSlot(programs,
+    final query = ref
+        .watch(adminSearchProvider(AdminSearchSection.programs))
+        .trim();
+    final needle = query.toLowerCase();
+    return asyncSlot(
+      programs,
       // The cross-fade's skeleton IS the loading branch, so the panel cannot
       // jump when the rows land.
       skeleton: const SkeletonList(count: 4, cardHeight: 64),
-      data: (list) => ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: list.length,
-        itemBuilder: (ctx, i) {
-          final p = list[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: CScholarCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              borderRadius: CScholarRadius.md,
-              child: Row(
-                children: [
-                  GelAvatar(name: p.name, size: 40),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.name,
-                            style: CScholarTextStyles.inter(13.5,
-                                FontWeight.w700, CScholarColors.textPrimary)),
-                        Text(p.college ?? p.code,
-                            style: CScholarTextStyles.inter(11.5,
-                                FontWeight.w400, CScholarColors.textMuted)),
-                      ],
+      data: (all) {
+        final list = needle.isEmpty
+            ? all
+            : all
+                  .where(
+                    (p) =>
+                        p.name.toLowerCase().contains(needle) ||
+                        p.code.toLowerCase().contains(needle) ||
+                        (p.college ?? '').toLowerCase().contains(needle),
+                  )
+                  .toList();
+        if (list.isEmpty) {
+          return _noMatches(Icons.school_outlined, 'programs', query);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (ctx, i) {
+            final p = list[i];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CScholarCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                borderRadius: CScholarRadius.xl,
+                child: Row(
+                  children: [
+                    GelAvatar(name: p.name, size: 40),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.name,
+                            style: CScholarTextStyles.body(
+                              13.5,
+                              FontWeight.w700,
+                              CScholarColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            p.college ?? p.code,
+                            style: CScholarTextStyles.body(
+                              11.5,
+                              FontWeight.w400,
+                              CScholarColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  NeumorphIconButton(
-                    icon: Icons.edit_outlined,
-                    tooltip: 'Edit program',
-                    onPressed: () =>
-                        _showProgramDialog(context, ref, existing: p),
-                  ),
-                ],
+                    NeumorphIconButton(
+                      icon: Icons.edit_outlined,
+                      tooltip: 'Edit program',
+                      color: CScholarColors.violetInk,
+                      onPressed: () =>
+                          _showProgramDialog(context, ref, existing: p),
+                    ),
+                    const SizedBox(width: 8),
+                    // Destructive last: the rightmost slot is the one a fast
+                    // hand reaches by accident.
+                    NeumorphIconButton(
+                      icon: Icons.delete_outline,
+                      tooltip: 'Delete program',
+                      color: CScholarColors.error,
+                      onPressed: () => _deleteMeta(
+                        context,
+                        ref,
+                        endpoint: '/api/programs',
+                        id: p.id,
+                        name: p.name,
+                        refresher: () => ref.invalidate(programsProvider),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
       error: (_, _) => const Center(child: Text('Could not load programs')),
     );
   }
 
   Widget _academicYearsTab(BuildContext context, WidgetRef ref) {
     final years = ref.watch(academicYearsProvider);
-    return asyncSlot(years,
+    final query = ref
+        .watch(adminSearchProvider(AdminSearchSection.programs))
+        .trim();
+    final needle = query.toLowerCase();
+    return asyncSlot(
+      years,
       skeleton: const SkeletonList(count: 4, cardHeight: 64),
-      data: (list) => ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: list.length,
-        itemBuilder: (ctx, i) {
-          final y = list[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: CScholarCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              borderRadius: CScholarRadius.md,
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today_outlined,
-                      color: CScholarColors.primaryGreen),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(y.label,
-                            style: CScholarTextStyles.inter(13.5,
-                                FontWeight.w700, CScholarColors.textPrimary)),
-                        Text('${y.startYear} - ${y.endYear}',
-                            style: CScholarTextStyles.inter(11.5,
-                                FontWeight.w400, CScholarColors.textMuted)),
-                      ],
-                    ),
-                  ),
-                  if (!y.isActive)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: CScholarColors.textSecondary
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text('INACTIVE',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: CScholarColors.textSecondary)),
-                    ),
-                  NeumorphIconButton(
-                    icon: Icons.edit_outlined,
-                    tooltip: 'Edit academic year',
-                    onPressed: () =>
-                        _showYearDialog(context, ref, existing: y),
-                  ),
-                ],
-              ),
-            ),
+      data: (all) {
+        final list = needle.isEmpty
+            ? all
+            : all
+                  .where(
+                    (y) =>
+                        y.label.toLowerCase().contains(needle) ||
+                        '${y.startYear} ${y.endYear}'.contains(needle),
+                  )
+                  .toList();
+        if (list.isEmpty) {
+          return _noMatches(
+            Icons.calendar_today_outlined,
+            'academic years',
+            query,
           );
-        },
-      ),
-      error: (_, _) => const Center(child: Text('Could not load academic years')),
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (ctx, i) {
+            final y = list[i];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CScholarCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                borderRadius: CScholarRadius.xl,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      color: CScholarColors.primaryGreen,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            y.label,
+                            style: CScholarTextStyles.body(
+                              13.5,
+                              FontWeight.w700,
+                              CScholarColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            '${y.startYear} - ${y.endYear}',
+                            style: CScholarTextStyles.body(
+                              11.5,
+                              FontWeight.w400,
+                              CScholarColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!y.isActive)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: CScholarColors.textSecondary.withValues(
+                            alpha: 0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'INACTIVE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: CScholarColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    NeumorphIconButton(
+                      icon: Icons.edit_outlined,
+                      tooltip: 'Edit academic year',
+                      color: CScholarColors.violetInk,
+                      onPressed: () =>
+                          _showYearDialog(context, ref, existing: y),
+                    ),
+                    const SizedBox(width: 8),
+                    NeumorphIconButton(
+                      icon: Icons.delete_outline,
+                      tooltip: 'Delete academic year',
+                      color: CScholarColors.error,
+                      onPressed: () => _deleteMeta(
+                        context,
+                        ref,
+                        endpoint: '/api/academic-years',
+                        id: y.id,
+                        name: y.label,
+                        refresher: () => ref.invalidate(academicYearsProvider),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      error: (_, _) =>
+          const Center(child: Text('Could not load academic years')),
     );
   }
 
   Widget _categoriesTab(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider);
-    return asyncSlot(categories,
+    final query = ref
+        .watch(adminSearchProvider(AdminSearchSection.programs))
+        .trim();
+    final needle = query.toLowerCase();
+    return asyncSlot(
+      categories,
       skeleton: const SkeletonList(count: 4, cardHeight: 64),
-      data: (list) => ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: list.length,
-        itemBuilder: (ctx, i) {
-          final c = list[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: CScholarCard(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              borderRadius: CScholarRadius.md,
-              child: Row(
-                children: [
-                  const Icon(Icons.category_outlined,
-                      color: CScholarColors.primaryGreen),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.name,
-                            style: CScholarTextStyles.inter(13.5,
-                                FontWeight.w700, CScholarColors.textPrimary)),
-                        Text(c.description ?? '',
-                            style: CScholarTextStyles.inter(11.5,
-                                FontWeight.w400, CScholarColors.textMuted)),
-                      ],
+      data: (all) {
+        final list = needle.isEmpty
+            ? all
+            : all
+                  .where(
+                    (c) =>
+                        c.name.toLowerCase().contains(needle) ||
+                        (c.description ?? '').toLowerCase().contains(needle),
+                  )
+                  .toList();
+        if (list.isEmpty) {
+          return _noMatches(Icons.category_outlined, 'categories', query);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: list.length,
+          itemBuilder: (ctx, i) {
+            final c = list[i];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CScholarCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                borderRadius: CScholarRadius.xl,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.category_outlined,
+                      color: CScholarColors.primaryGreen,
                     ),
-                  ),
-                  NeumorphIconButton(
-                    icon: Icons.edit_outlined,
-                    tooltip: 'Edit category',
-                    onPressed: () =>
-                        _showCategoryDialog(context, ref, existing: c),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            c.name,
+                            style: CScholarTextStyles.body(
+                              13.5,
+                              FontWeight.w700,
+                              CScholarColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            c.description ?? '',
+                            style: CScholarTextStyles.body(
+                              11.5,
+                              FontWeight.w400,
+                              CScholarColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    NeumorphIconButton(
+                      icon: Icons.edit_outlined,
+                      tooltip: 'Edit category',
+                      color: CScholarColors.violetInk,
+                      onPressed: () =>
+                          _showCategoryDialog(context, ref, existing: c),
+                    ),
+                    const SizedBox(width: 8),
+                    NeumorphIconButton(
+                      icon: Icons.delete_outline,
+                      tooltip: 'Delete category',
+                      color: CScholarColors.error,
+                      onPressed: () => _deleteMeta(
+                        context,
+                        ref,
+                        endpoint: '/api/categories',
+                        id: c.id,
+                        name: c.name,
+                        refresher: () => ref.invalidate(categoriesProvider),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        );
+      },
       error: (_, _) => const Center(child: Text('Could not load categories')),
     );
+  }
+
+  /// Destructive twin of [_saveMeta]: confirm first, then refresh the list the
+  /// row came from. A record still referenced by theses is rejected by the
+  /// server's foreign key, and that message is what the snackbar shows.
+  Future<void> _deleteMeta(
+    BuildContext context,
+    WidgetRef ref, {
+    required String endpoint,
+    required int id,
+    required String name,
+    required void Function() refresher,
+  }) async {
+    final confirmed = await showClayDialog<bool>(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: const Text('Delete'),
+        content: Text('Delete "$name"? This cannot be undone.'),
+        actions: [
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            label: 'Cancel',
+            gel: false,
+          ),
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            label: 'Delete',
+            danger: true,
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(apiServiceProvider).delete('$endpoint/$id');
+      refresher();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$name deleted'),
+            backgroundColor: CScholarColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
   }
 
   void _addForTab(BuildContext context) {
@@ -310,17 +536,25 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
       refresher();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage), backgroundColor: CScholarColors.success),
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: CScholarColors.success,
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
 
-  void _showProgramDialog(BuildContext context, WidgetRef ref, {Program? existing}) {
+  void _showProgramDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    Program? existing,
+  }) {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final codeCtrl = TextEditingController(text: existing?.code ?? '');
     final descCtrl = TextEditingController(text: existing?.college ?? '');
@@ -330,13 +564,16 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         title: Text(existing == null ? 'Add Program' : 'Edit Program'),
         content: SizedBox(
           width: 360,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            NeumorphField(controller: nameCtrl, label: 'Name *'),
-            const SizedBox(height: 12),
-            NeumorphField(controller: codeCtrl, label: 'Code (e.g. BSIT)'),
-            const SizedBox(height: 12),
-            NeumorphField(controller: descCtrl, label: 'Description'),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              NeumorphField(controller: nameCtrl, label: 'Name *'),
+              const SizedBox(height: 12),
+              NeumorphField(controller: codeCtrl, label: 'Code (e.g. BSIT)'),
+              const SizedBox(height: 12),
+              NeumorphField(controller: descCtrl, label: 'Description'),
+            ],
+          ),
         ),
         actions: [
           NeumorphButton(
@@ -355,16 +592,21 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
               }
               Navigator.pop(ctx);
               _saveMeta(
-                context, ref,
+                context,
+                ref,
                 endpoint: '/api/programs',
                 id: existing?.id,
                 body: {
                   'name': name,
-                  if (codeCtrl.text.trim().isNotEmpty) 'code': codeCtrl.text.trim(),
-                  if (descCtrl.text.trim().isNotEmpty) 'description': descCtrl.text.trim(),
+                  if (codeCtrl.text.trim().isNotEmpty)
+                    'code': codeCtrl.text.trim(),
+                  if (descCtrl.text.trim().isNotEmpty)
+                    'description': descCtrl.text.trim(),
                 },
                 refresher: () => ref.invalidate(programsProvider),
-                successMessage: existing == null ? 'Program added' : 'Program updated',
+                successMessage: existing == null
+                    ? 'Program added'
+                    : 'Program updated',
               );
             },
             label: 'Save',
@@ -374,35 +616,61 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     );
   }
 
-  void _showYearDialog(BuildContext context, WidgetRef ref, {AcademicYear? existing}) {
+  void _showYearDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    AcademicYear? existing,
+  }) {
     final labelCtrl = TextEditingController(text: existing?.label ?? '');
-    final startCtrl = TextEditingController(text: existing != null ? '${existing.startYear}' : '');
-    final endCtrl = TextEditingController(text: existing != null ? '${existing.endYear}' : '');
+    final startCtrl = TextEditingController(
+      text: existing != null ? '${existing.startYear}' : '',
+    );
+    final endCtrl = TextEditingController(
+      text: existing != null ? '${existing.endYear}' : '',
+    );
     bool isActive = existing?.isActive ?? true;
     showClayDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => GlassDialog(
-          title: Text(existing == null ? 'Add Academic Year' : 'Edit Academic Year'),
+          title: Text(
+            existing == null ? 'Add Academic Year' : 'Edit Academic Year',
+          ),
           content: SizedBox(
             width: 360,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              NeumorphField(controller: labelCtrl, label: 'Label * (e.g. 2025-2026)'),
-              const SizedBox(height: 12),
-              NeumorphField(controller: startCtrl, label: 'Start year *', keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              NeumorphField(controller: endCtrl, label: 'End year *', keyboardType: TextInputType.number),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Expanded(child: Text('Active', style: TextStyle(fontSize: 13))),
-                  NeumorphToggle(
-                    value: isActive,
-                    onChanged: (v) => setDialog(() => isActive = v),
-                  ),
-                ],
-              ),
-            ]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NeumorphField(
+                  controller: labelCtrl,
+                  label: 'Label * (e.g. 2025-2026)',
+                ),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: startCtrl,
+                  label: 'Start year *',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: endCtrl,
+                  label: 'End year *',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('Active', style: TextStyle(fontSize: 13)),
+                    ),
+                    NeumorphToggle(
+                      value: isActive,
+                      onChanged: (v) => setDialog(() => isActive = v),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           actions: [
             NeumorphButton(
@@ -417,18 +685,30 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
                 final end = int.tryParse(endCtrl.text.trim());
                 if (label.isEmpty || start == null || end == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Label, start year, and end year are required')),
+                    const SnackBar(
+                      content: Text(
+                        'Label, start year, and end year are required',
+                      ),
+                    ),
                   );
                   return;
                 }
                 Navigator.pop(ctx);
                 _saveMeta(
-                  context, ref,
+                  context,
+                  ref,
                   endpoint: '/api/academic-years',
                   id: existing?.id,
-                  body: {'name': label, 'start_year': start, 'end_year': end, 'is_active': isActive},
+                  body: {
+                    'name': label,
+                    'start_year': start,
+                    'end_year': end,
+                    'is_active': isActive,
+                  },
                   refresher: () => ref.invalidate(academicYearsProvider),
-                  successMessage: existing == null ? 'Academic year added' : 'Academic year updated',
+                  successMessage: existing == null
+                      ? 'Academic year added'
+                      : 'Academic year updated',
                 );
               },
               label: 'Save',
@@ -439,7 +719,11 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
     );
   }
 
-  void _showCategoryDialog(BuildContext context, WidgetRef ref, {Category? existing}) {
+  void _showCategoryDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    Category? existing,
+  }) {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final descCtrl = TextEditingController(text: existing?.description ?? '');
     showClayDialog(
@@ -448,11 +732,14 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
         title: Text(existing == null ? 'Add Category' : 'Edit Category'),
         content: SizedBox(
           width: 360,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            NeumorphField(controller: nameCtrl, label: 'Name *'),
-            const SizedBox(height: 12),
-            NeumorphField(controller: descCtrl, label: 'Description'),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              NeumorphField(controller: nameCtrl, label: 'Name *'),
+              const SizedBox(height: 12),
+              NeumorphField(controller: descCtrl, label: 'Description'),
+            ],
+          ),
         ),
         actions: [
           NeumorphButton(
@@ -471,15 +758,19 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
               }
               Navigator.pop(ctx);
               _saveMeta(
-                context, ref,
+                context,
+                ref,
                 endpoint: '/api/categories',
                 id: existing?.id,
                 body: {
                   'name': name,
-                  if (descCtrl.text.trim().isNotEmpty) 'description': descCtrl.text.trim(),
+                  if (descCtrl.text.trim().isNotEmpty)
+                    'description': descCtrl.text.trim(),
                 },
                 refresher: () => ref.invalidate(categoriesProvider),
-                successMessage: existing == null ? 'Category added' : 'Category updated',
+                successMessage: existing == null
+                    ? 'Category added'
+                    : 'Category updated',
               );
             },
             label: 'Save',
@@ -502,7 +793,14 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen> with 
           icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),
-        title: const Text('Programs & Categories', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Programs & Categories',
+          style: TextStyle(
+            color: CScholarColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabCtrl,
           labelColor: CScholarColors.primaryGreen,

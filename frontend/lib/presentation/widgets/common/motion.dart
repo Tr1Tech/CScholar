@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
@@ -13,6 +14,17 @@ import 'package:frontend/core/material/material_tokens.dart';
 /// True unless the OS asked for reduced motion.
 bool motionEnabled(BuildContext context) =>
     !MediaQuery.disableAnimationsOf(context);
+
+/// True when a flutter_animate one-shot may run.
+///
+/// One-shots terminate, but flutter_animate arms them from a scheduled Timer
+/// that only flushes on an elapsed pump — a test that pumps once and asserts
+/// structure would otherwise end with a pending timer. So one-shots share the
+/// global kill switch with the loops: tests (and low-power mode) set
+/// [CScholarMotion.ambientEnabled] false and every Animate wrapper returns its
+/// child bare — no ticker, no timer, no compositing layer.
+bool animateEnabled(BuildContext context) =>
+    CScholarMotion.ambientEnabled && motionEnabled(context);
 
 /// True when a LOOPING animation may run.
 ///
@@ -40,7 +52,10 @@ void selectionHaptic() {
     return;
   }
   if (WidgetsBinding
-      .instance.platformDispatcher.accessibilityFeatures.disableAnimations) {
+      .instance
+      .platformDispatcher
+      .accessibilityFeatures
+      .disableAnimations) {
     return;
   }
   HapticFeedback.selectionClick();
@@ -63,11 +78,17 @@ Widget cscholarTransition(
   Widget child,
 ) {
   if (!motionEnabled(context)) return child;
-  final curved = CurvedAnimation(parent: animation, curve: CScholarCurves.entrance);
+  final curved = CurvedAnimation(
+    parent: animation,
+    curve: CScholarCurves.entrance,
+  );
   // The covered page's retreat. Driven by [secondaryAnimation], which runs
   // 0->1 while a cover pushes on top and back to 0 when it pops off, so the
   // page underneath returns to full strength exactly as the cover leaves.
-  final covered = CurvedAnimation(parent: secondaryAnimation, curve: CScholarCurves.settle);
+  final covered = CurvedAnimation(
+    parent: secondaryAnimation,
+    curve: CScholarCurves.settle,
+  );
   return FadeTransition(
     opacity: Tween<double>(begin: 1, end: 0.9).animate(covered),
     child: ScaleTransition(
@@ -75,7 +96,10 @@ Widget cscholarTransition(
       child: FadeTransition(
         opacity: curved,
         child: SlideTransition(
-          position: Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(curved),
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.03),
+            end: Offset.zero,
+          ).animate(curved),
           child: child,
         ),
       ),
@@ -123,15 +147,18 @@ Future<T?> showClayDialog<T>({
     barrierDismissible: barrierDismissible,
     barrierColor: barrierColor ?? CScholarMaterial.scrim,
     barrierLabel:
-        barrierLabel ?? MaterialLocalizations.of(context).modalBarrierDismissLabel,
+        barrierLabel ??
+        MaterialLocalizations.of(context).modalBarrierDismissLabel,
     routeSettings: routeSettings,
     anchorPoint: anchorPoint,
     transitionDuration: CScholarMotion.page,
     pageBuilder: (context, animation, secondaryAnimation) => builder(context),
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       if (!motionEnabled(context)) return child;
-      final curved =
-          CurvedAnimation(parent: animation, curve: CScholarCurves.settle);
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: CScholarCurves.settle,
+      );
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
@@ -187,17 +214,25 @@ Duration motionDuration(BuildContext context, Duration duration) =>
 double motionScale(BuildContext context, double value) =>
     motionEnabled(context) ? value : 1.0;
 
-/// One-shot entrance: fade + rise. Plays once when it is first shown; a
-/// [delay] lets a parent stagger a short column. Returns the child untouched
-/// under reduced motion, so no ticker and no timer are created at all.
-class EntranceReveal extends StatefulWidget {
+/// One-shot entrance: fade + rise from below. Plays once when it is first
+/// shown; a [delay] lets a parent stagger a short column. Returns the child
+/// untouched when animation is disabled, so no ticker is created at all.
+///
+/// ONE entrance for the whole app: every block fades in and travels [rise]px
+/// upward — never sideways, never from the top. Mixed directions read as the
+/// page disagreeing with itself, so there is deliberately no direction knob.
+///
+/// Executes on flutter_animate: fade + move (+ optional scale) with the
+/// saved [delay], on [CScholarMotion.softEnter] / [CScholarCurves.softEnter].
+/// `delay + duration` equals the old controller span, so scheduling is
+/// byte-identical to the previous implementation.
+class EntranceReveal extends StatelessWidget {
   const EntranceReveal({
     super.key,
     required this.child,
     this.delay = Duration.zero,
     this.rise = 12,
-    this.duration = CScholarDurations.normal,
-    this.origin = const Offset(0, 1),
+    this.duration = CScholarMotion.softEnter,
     this.scaleFrom = 1.0,
   });
 
@@ -205,14 +240,6 @@ class EntranceReveal extends StatefulWidget {
   final Duration delay;
   final double rise;
   final Duration duration;
-
-  /// Direction the block travels *from*. The default [Offset(0, 1)] is the
-  /// legacy rise-from-below — [rise] pixels, so every existing call site is
-  /// untouched. Any OTHER origin is fractional (a fraction of the child's
-  /// size, like [FractionalTranslation]): a right-hand rail enters from
-  /// `Offset(0.06, 0)` and steps 6% of its own width, where 0.06 × a 12px
-  /// rise would be less than a pixel of movement and read as nothing.
-  final Offset origin;
 
   /// Starting scale, for cards that should *settle* onto the page rather than
   /// just fade. `1.0` (the default) adds no scale transform at all; `0.97`
@@ -222,87 +249,42 @@ class EntranceReveal extends StatefulWidget {
   final double scaleFrom;
 
   @override
-  State<EntranceReveal> createState() => _EntranceRevealState();
-}
-
-class _EntranceRevealState extends State<EntranceReveal>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: widget.delay + widget.duration,
-  )..value = 1;
-  bool _started = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!motionEnabled(context)) {
-      _c.value = 1;
-      return;
-    }
-    if (!_started) {
-      _started = true;
-      _c.value = 0;
-      _c.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (!motionEnabled(context)) return widget.child;
-    final total = widget.delay + widget.duration;
-    final begin = total.inMicroseconds == 0
-        ? 0.0
-        : widget.delay.inMicroseconds / total.inMicroseconds;
-    final curve = CurvedAnimation(
-      parent: _c,
-      curve: Interval(begin, 1, curve: CScholarCurves.entrance),
+    // Gated on animateEnabled (not just reduced motion): the kill switch
+    // must leave zero timers behind for single-pump structure tests.
+    if (!animateEnabled(context)) return child;
+    var animated = child.animate().fadeIn(
+      delay: delay,
+      duration: duration,
+      curve: CScholarCurves.softEnter,
     );
-    return AnimatedBuilder(
-      animation: curve,
-      builder: (context, child) {
-        final t = curve.value.clamp(0.0, 1.0);
-        // The default origin keeps the legacy pixel translate so existing call
-        // sites render byte-identically; an explicit origin is fractional and
-        // needs the child's own size, which FractionalTranslation measures.
-        final content = widget.origin == const Offset(0, 1)
-            ? Transform.translate(
-                offset: Offset(0, (1 - t) * widget.rise),
-                child: child,
-              )
-            : FractionalTranslation(
-                translation: Offset(
-                  widget.origin.dx * (1 - t),
-                  widget.origin.dy * (1 - t),
-                ),
-                child: child,
-              );
-        // scaleFrom == 1.0 (the default) must not add a scale node at all:
-        // an extra Transform in every reveal is one more save-layer per block.
-        if (widget.scaleFrom == 1.0) {
-          return Opacity(opacity: t, child: content);
-        }
-        return Opacity(
-          opacity: t,
-          child: Transform.scale(
-            scale: widget.scaleFrom + (1 - widget.scaleFrom) * t,
-            child: content,
-          ),
-        );
-      },
-      child: widget.child,
-    );
+    if (rise > 0) {
+      animated = animated.move(
+        begin: Offset(0, rise),
+        end: Offset.zero,
+        delay: delay,
+        duration: duration,
+        curve: CScholarCurves.softEnter,
+      );
+    }
+    if (scaleFrom < 1.0) {
+      animated = animated.scale(
+        begin: Offset(scaleFrom, scaleFrom),
+        end: const Offset(1, 1),
+        delay: delay,
+        duration: duration,
+        curve: CScholarCurves.settle,
+      );
+    }
+    return animated;
   }
 }
 
 /// Capped staggering for a small column of [EntranceReveal]s. Delay is
 /// `index * step`, clamped to [max] so a long list can never crawl in.
+///
+/// Like its reveal, this only staggers fade + rise from below — see
+/// [EntranceReveal]. There is no direction knob.
 class Stagger extends StatelessWidget {
   const Stagger({
     super.key,
@@ -311,7 +293,6 @@ class Stagger extends StatelessWidget {
     this.step = const Duration(milliseconds: 40),
     this.max = const Duration(milliseconds: 240),
     this.rise = 12,
-    this.origin = const Offset(0, 1),
     this.delay,
     this.scaleFrom = 1.0,
   });
@@ -321,10 +302,6 @@ class Stagger extends StatelessWidget {
   final Duration step;
   final Duration max;
   final double rise;
-
-  /// Direction the block travels *from* — see [EntranceReveal.origin]. The
-  /// default rises from below, as every existing call site does.
-  final Offset origin;
 
   /// Explicit delay override. [StaggerColumn]'s grid cascade needs a delay
   /// that is NOT expressible as `index * step` (the row term is weighted
@@ -339,15 +316,17 @@ class Stagger extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effective = delay ??
+    final effective =
+        delay ??
         Duration(
-          microseconds:
-              (index * step.inMicroseconds).clamp(0, max.inMicroseconds),
+          microseconds: (index * step.inMicroseconds).clamp(
+            0,
+            max.inMicroseconds,
+          ),
         );
     return EntranceReveal(
       delay: effective,
       rise: rise,
-      origin: origin,
       scaleFrom: scaleFrom,
       child: child,
     );
@@ -378,7 +357,6 @@ class StaggerColumn extends StatelessWidget {
     this.step = const Duration(milliseconds: 40),
     this.max = const Duration(milliseconds: 240),
     this.rise = 12,
-    this.origin = const Offset(0, 1),
     this.pitch,
     this.columns = 1,
   });
@@ -390,7 +368,6 @@ class StaggerColumn extends StatelessWidget {
   final Duration step;
   final Duration max;
   final double rise;
-  final Offset origin;
   final MotionPitch? pitch;
   final int columns;
 
@@ -402,9 +379,10 @@ class StaggerColumn extends StatelessWidget {
     Duration step,
     Duration max,
   ) {
-    final us = ((i % columns) * step.inMicroseconds +
-            (i ~/ columns) * step.inMicroseconds * 1.6)
-        .round();
+    final us =
+        ((i % columns) * step.inMicroseconds +
+                (i ~/ columns) * step.inMicroseconds * 1.6)
+            .round();
     return Duration(microseconds: us.clamp(0, max.inMicroseconds));
   }
 
@@ -420,8 +398,7 @@ class StaggerColumn extends StatelessWidget {
     required int index,
     required int columns,
     required MotionPitch pitch,
-  }) =>
-      _diagonalDelay(index, columns, pitch.step, pitch.max);
+  }) => _diagonalDelay(index, columns, pitch.step, pitch.max);
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +415,6 @@ class StaggerColumn extends StatelessWidget {
             step: effStep,
             max: effMax,
             rise: effRise,
-            origin: origin,
             delay: columns > 1
                 ? _diagonalDelay(startIndex + i, columns, effStep, effMax)
                 : null,
@@ -459,7 +435,7 @@ class PressableSurface extends StatefulWidget {
     this.onTap,
     this.radius = CScholarRadius.xl,
     this.sink = 1.5,
-    this.scale = 0.98,
+    this.scale = 0.96,
     this.semanticLabel,
   });
 
@@ -486,8 +462,12 @@ class _PressableSurfaceState extends State<PressableSurface> {
       curve: CScholarCurves.standard,
       transform: Matrix4.identity()
         ..translateByDouble(0.0, widget.sink * t, 0.0, 1.0)
-        ..scaleByDouble(1 - (1 - widget.scale) * t,
-            1 - (1 - widget.scale) * t, 1.0, 1.0),
+        ..scaleByDouble(
+          1 - (1 - widget.scale) * t,
+          1 - (1 - widget.scale) * t,
+          1.0,
+          1.0,
+        ),
       transformAlignment: Alignment.center,
       child: widget.child,
     );
@@ -495,16 +475,16 @@ class _PressableSurfaceState extends State<PressableSurface> {
     return Semantics(
       button: true,
       label: widget.semanticLabel,
+      // A labeled surface drops the child's own text so the row is announced
+      // once, not as "Users Users".
+      excludeSemantics: widget.semanticLabel != null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => setState(() => _down = true),
         onTapUp: (_) => setState(() => _down = false),
         onTapCancel: () => setState(() => _down = false),
         onTap: widget.onTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: content,
-        ),
+        child: MouseRegion(cursor: SystemMouseCursors.click, child: content),
       ),
     );
   }
@@ -513,6 +493,10 @@ class _PressableSurfaceState extends State<PressableSurface> {
 /// Async slot swap: keeps the layout height while the loading and loaded
 /// states cross-fade (plus an 8px rise), so the page never jumps. The
 /// skeleton is shown as-is; no spinner is introduced here.
+///
+/// The skeleton widgets themselves hold the placeholder back for
+/// [CScholarMotion.skeletonDelay] (see `DeferredSkeleton`), so a load that
+/// finishes quickly swaps in content without ever flashing a loader.
 class AsyncCrossFade extends StatelessWidget {
   const AsyncCrossFade({
     super.key,
@@ -669,10 +653,8 @@ class AnimatedSwap extends StatelessWidget {
       switchOutCurve: CScholarCurves.exit,
       // Same stack as the default layout builder, aligned to [alignment] so a
       // top-anchored swap cannot recentre the column it sits in.
-      layoutBuilder: (current, previous) => Stack(
-        alignment: alignment,
-        children: [...previous, ?current],
-      ),
+      layoutBuilder: (current, previous) =>
+          Stack(alignment: alignment, children: [...previous, ?current]),
       transitionBuilder: (child, animation) =>
           _swapTransition(child, animation, style),
       child: child,
@@ -719,8 +701,9 @@ class AnimatedSwap extends StatelessWidget {
               opacity: animation,
               child: SlideTransition(
                 position: Tween<Offset>(
-                  begin:
-                      entering ? const Offset(0, 0.06) : const Offset(0, -0.04),
+                  begin: entering
+                      ? const Offset(0, 0.06)
+                      : const Offset(0, -0.04),
                   end: Offset.zero,
                 ).animate(animation),
                 child: child,
@@ -735,7 +718,9 @@ class AnimatedSwap extends StatelessWidget {
                   ? ScaleTransition(
                       scale: Tween<double>(begin: 0.6, end: 1.0).animate(
                         CurvedAnimation(
-                            parent: animation, curve: CScholarCurves.overshoot),
+                          parent: animation,
+                          curve: CScholarCurves.overshoot,
+                        ),
                       ),
                       child: child,
                     )
@@ -746,8 +731,9 @@ class AnimatedSwap extends StatelessWidget {
               opacity: animation,
               child: SlideTransition(
                 position: Tween<Offset>(
-                  begin:
-                      entering ? const Offset(-0.12, 0) : const Offset(0.12, 0),
+                  begin: entering
+                      ? const Offset(-0.12, 0)
+                      : const Offset(0.12, 0),
                   end: Offset.zero,
                 ).animate(animation),
                 child: child,
@@ -759,12 +745,12 @@ class AnimatedSwap extends StatelessWidget {
   }
 }
 
-/// Outline ↔ filled glyph morph with a springy settle.
+/// Outline ↔ filled glyph morph with a springy settle, on flutter_animate.
 ///
 /// A hard swap is the most common place a Flutter app feels cheap: the eye
-/// reads it as a repaint, not a response. The two glyphs cross-fade and scale
-/// through [CScholarCurves.overshoot] (via [AnimatedSwap]'s pop style) so the
-/// icon *lands*.
+/// reads it as a repaint, not a response. The two glyphs cross-fade and
+/// scale through [CScholarCurves.overshoot] (via [AnimatedSwap]'s pop
+/// style) so the icon *lands*.
 ///
 /// Both glyphs occupy a fixed [size] box, so the swap can never nudge a
 /// sibling in the row.
@@ -788,15 +774,23 @@ class MorphIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwap(
-      style: SwapStyle.pop,
-      child: Icon(
-        selected ? selectedIcon : icon,
-        key: ValueKey(selected),
-        size: size,
-        color: selected ? selectedColor : color,
-      ),
+    final glyph = Icon(
+      selected ? selectedIcon : icon,
+      size: size,
+      color: selected ? selectedColor : color,
     );
+    if (!animateEnabled(context)) return glyph;
+    // Keyed wrapper: a changed glyph replays the pop cascade instead of
+    // hard-swapping, so the eye reads it as a landing.
+    return glyph
+        .animate(key: ValueKey(selected))
+        .fadeIn(duration: CScholarMotion.swap, curve: CScholarCurves.settle)
+        .scale(
+          begin: const Offset(0.6, 0.6),
+          end: const Offset(1, 1),
+          duration: CScholarMotion.swap,
+          curve: CScholarCurves.overshoot,
+        );
   }
 }
 
@@ -863,8 +857,10 @@ class _TactileToggleState extends State<TactileToggle>
     with SingleTickerProviderStateMixin {
   /// One-shot burst, and it STOPS. A repeating ring here would make
   /// `pumpAndSettle()` hang and read as a live indicator — a save is not live.
-  late final AnimationController _burst =
-      AnimationController(vsync: this, duration: CScholarMotion.swap);
+  late final AnimationController _burst = AnimationController(
+    vsync: this,
+    duration: CScholarMotion.swap,
+  );
 
   bool _down = false;
 
@@ -930,7 +926,8 @@ class _TactileToggleState extends State<TactileToggle>
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: CScholarMaterial.goldTop.withValues(
-                                  alpha: (1 - t).clamp(0.0, 1.0)),
+                                alpha: (1 - t).clamp(0.0, 1.0),
+                              ),
                             ),
                           ),
                         ),
@@ -1007,7 +1004,8 @@ class ScoreMeter extends StatelessWidget {
             tween: Tween(begin: 0, end: clamped),
             duration: motionDuration(context, CScholarMotion.page),
             curve: CScholarCurves.settle,
-            builder: (context, v, _) => CustomPaint(painter: _MeterPainter(v, tint)),
+            builder: (context, v, _) =>
+                CustomPaint(painter: _MeterPainter(v, tint)),
           ),
         ),
       ),
@@ -1020,7 +1018,7 @@ class ScoreMeter extends StatelessWidget {
         CountUpText(
           value: (clamped * 100).round(),
           duration: CScholarMotion.page,
-          style: CScholarTextStyles.inter(11.5, FontWeight.w700, tint),
+          style: CScholarTextStyles.body(11.5, FontWeight.w700, tint),
         ),
       ],
     );
@@ -1079,7 +1077,7 @@ class ScrollVeil extends StatefulWidget {
   /// [seated] crosses [trigger] — never per scroll event, so a seated flip
   /// costs one chrome rebuild, not a frame per scroll tick.
   final Widget Function(BuildContext context, Widget child, bool seated)
-      builder;
+  builder;
 
   /// Scroll depth, in px, past which the chrome is seated.
   final double trigger;

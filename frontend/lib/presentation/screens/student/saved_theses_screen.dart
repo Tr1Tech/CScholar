@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -12,6 +14,8 @@ import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
+import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
+import 'package:frontend/presentation/widgets/mobile/mobile_widgets.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class SavedThesesScreen extends ConsumerStatefulWidget {
@@ -27,6 +31,13 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
   @override
   Widget build(BuildContext context) {
     final savedTheses = ref.watch(savedThesesProvider);
+
+    if (MobileStudentScaffold.useMobileShell(context)) {
+      return StudentLayout(
+        currentIndex: 2,
+        child: _mobileBody(context, savedTheses),
+      );
+    }
 
     return StudentLayout(
       currentIndex: 2,
@@ -54,17 +65,12 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
 
                 const SizedBox(height: 24),
 
-                // Filter Tabs (All / Thesis / Capstone) — Wrap, not Row: at
-                // 200% text the three labels no longer fit one phone line, and
-                // wrapping keeps every tab reachable instead of clipping one.
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _tabButton('All'),
-                    _tabButton('Thesis'),
-                    _tabButton('Capstone'),
-                  ],
+                NeumorphSegmented(
+                  labels: const ['All', 'Thesis', 'Capstone'],
+                  selectedIndex: ['All', 'Thesis', 'Capstone']
+                      .indexOf(_selectedTab),
+                  onChanged: (i) => setState(() =>
+                      _selectedTab = ['All', 'Thesis', 'Capstone'][i]),
                 ),
 
                 const SizedBox(height: 24),
@@ -144,7 +150,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                         onTap: () => context.go('/thesis/${thesis.id}'),
                                         child: Text(
                                           thesis.title,
-                                          style: CScholarTextStyles.poppins(
+                                          style: CScholarTextStyles.heading(
                                             15,
                                             FontWeight.w700,
                                             CScholarColors.textPrimary,
@@ -164,7 +170,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                               ),
                                               child: Text(
                                                 thesis.program!.name,
-                                                style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.textSecondary),
+                                                style: CScholarTextStyles.body(11, FontWeight.w700, CScholarColors.textSecondary),
                                               ),
                                             ),
                                           if ((thesis.program?.name ?? '').isNotEmpty &&
@@ -173,7 +179,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                           if ((thesis.academicYear?.label ?? '').isNotEmpty)
                                             Text(
                                               thesis.academicYear!.label,
-                                              style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                                              style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted),
                                             ),
                                         ],
                                       ),
@@ -198,12 +204,14 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                                       ),
                                       child: Text(
                                         'View',
-                                        style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.primaryGreen),
+                                        style: CScholarTextStyles.body(12.5, FontWeight.w600, CScholarColors.primaryGreen),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     Tooltip(
                                       message: 'Saved — tap to remove',
+                                      // The toggle already announces this.
+                                      excludeFromSemantics: true,
                                       child: TactileToggle(
                                         selected: true,
                                         onChanged: () {
@@ -244,31 +252,102 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
     );
   }
 
-  Widget _tabButton(String tab) {
-    final isSelected = _selectedTab == tab;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(CScholarRadius.full),
-      onTap: () => setState(() => _selectedTab = tab),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
-        decoration: BoxDecoration(
-          color: isSelected ? CScholarColors.primaryGreen : CScholarColors.white,
-          borderRadius: BorderRadius.circular(CScholarRadius.full),
-          border: Border.all(
-            color: isSelected ? CScholarColors.primaryGreen : CScholarColors.borderLight,
+  /// Mobile Saved (`cscholar-mobile-ui/src/App.tsx:839-878`): page intro
+  /// + card stack or tall empty state. Same `savedThesesProvider` and tab
+  /// filter — only the layout is prototype-skinned.
+  Widget _mobileBody(
+      BuildContext context, AsyncValue<List<dynamic>> savedTheses) {
+    final t = CScholarMobileTheme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 106),
+      child: StaggerColumn(
+        pitch: MotionPitch.page,
+        children: [
+          Text('Your library',
+              style: t.eyebrow),
+          const SizedBox(height: 7),
+          Text('Saved research.',
+              style: t.pageTitle),
+          const SizedBox(height: 7),
+          Text('Keep important work close at hand.',
+              style: t.bodyMuted),
+          const SizedBox(height: 22),
+          asyncSlot<List<dynamic>>(
+            savedTheses,
+            skeleton:
+                const SkeletonList(count: 3, cardHeight: 96),
+            data: (saved) {
+              var filtered = saved;
+              if (_selectedTab != 'All') {
+                filtered = filtered
+                    .where((t) =>
+                        t.researchType.toLowerCase() ==
+                        _selectedTab.toLowerCase())
+                    .toList();
+              }
+              if (filtered.isEmpty) {
+                // Same panel, copy and action as the web Saved page — the
+                // mobile skin only swaps the material.
+                return EmptyState(
+                  mobile: true,
+                  icon: Icons.bookmark_border,
+                  title: 'No saved studies',
+                  message:
+                      'Browse the repository to save research papers and capstone projects for later reference.',
+                  actionLabel: 'Browse Repository',
+                  onAction: () => context.go('/repository'),
+                );
+              }
+              return Column(
+                key: ValueKey(
+                    filtered.map((t) => t.id).join(',')),
+                children: [
+                  for (var i = 0;
+                      i < filtered.length;
+                      i++)
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(bottom: 11),
+                      child: Stagger(
+                        index: i,
+                        step: MotionPitch.result.step,
+                        max: MotionPitch.result.max,
+                        rise: MotionPitch.result.rise,
+                        child: Builder(
+                            builder: (context) {
+                          final thesis = filtered[i];
+                          return MobileThesisCard(
+                            thesis: thesis,
+                            saved: true,
+                            onOpen: () => context.go(
+                                '/thesis/${thesis.id}'),
+                            onSave: () {
+                              ref
+                                  .read(savedThesisIdsProvider
+                                      .notifier)
+                                  .toggle(thesis.id);
+                              MobileToast.show(context,
+                                  'Removed "${thesis.title}" from saved');
+                            },
+                          );
+                        }),
+                      ),
+                    ),
+                ],
+              );
+            },
+            error: (err, _) => EmptyState(
+              mobile: true,
+              icon: Icons.error_outline,
+              title: 'Unable to load saved studies',
+              message: err.toString(),
+              actionLabel: 'Retry',
+              onAction: () => ref.invalidate(savedThesesProvider),
+            ),
           ),
-          boxShadow: isSelected ? CScholarShadows.subtle : null,
-        ),
-        child: Text(
-          tab,
-          style: CScholarTextStyles.inter(
-            12.5,
-            isSelected ? FontWeight.w700 : FontWeight.w500,
-            isSelected ? CScholarColors.white : CScholarColors.textSecondary,
-          ),
-        ),
+        ],
       ),
     );
   }
+
 }

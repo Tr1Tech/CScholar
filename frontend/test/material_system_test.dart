@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
@@ -51,19 +52,26 @@ BoxDecoration _decorationOf(WidgetTester tester, Finder descendant) {
 }
 
 void main() {
-  testWidgets('clay surface casts one tinted shadow', (tester) async {
+  // Static-structure suite: no Animate wrapper may arm here. The global kill
+  // switch returns every one-shot bare (no Timer), same as screens_render.
+  setUp(() => CScholarMotion.ambientEnabled = false);
+  tearDown(() => CScholarMotion.ambientEnabled = true);
+
+  testWidgets('surface card casts two diffuse tinted shadows', (tester) async {
     await tester.pumpWidget(_host(const ClaySurface(child: Text('clay'))));
     final decoration = _decorationOf(tester, find.text('clay'));
     expect(decoration.boxShadow, isNotNull);
-    expect(decoration.boxShadow, hasLength(1),
-        reason: 'clay is seated by ONE soft shadow — a second (light) shadow '
-            'means the neumorphic pair is back');
-    // The slab IS the boundary at rest; only high contrast draws a rim.
-    expect(decoration.border, isNull);
+    expect(decoration.boxShadow, hasLength(2),
+        reason: 'Soft UI seats a card with two diffuse green-tinted layers — '
+            'never a light/dark neumorphic pair');
+    // The hairline + fill define the card edge at rest.
+    final border = decoration.border;
+    expect(border, isNotNull);
+    expect((border as Border).top.color, CScholarMaterial.rim);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('clay surface drops shadows under high contrast',
+  testWidgets('surface card drops shadows under high contrast',
       (tester) async {
     await tester.pumpWidget(
       _host(const ClaySurface(child: Text('clay')), highContrast: true),
@@ -74,7 +82,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('glass blurs when enabled, inside one shared group',
+  testWidgets('panels are flat surfaces with no backdrop blur',
       (tester) async {
     CScholarMaterial.glassEnabled = true;
     await tester.pumpWidget(
@@ -89,8 +97,9 @@ void main() {
         ),
       ),
     );
-    expect(find.byType(BackdropFilter), findsNWidgets(2));
-    expect(find.byType(BackdropGroup), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.text('chrome'), findsOneWidget);
+    expect(find.text('overlay'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -235,8 +244,8 @@ void main() {
     final decoration =
         _decorationOf(tester, find.byIcon(Icons.workspace_premium_outlined));
     expect(decoration.boxShadow, isNotNull);
-    expect(decoration.boxShadow!.length, 3,
-        reason: 'the halo needs a hot core + bloom + wide falloff');
+    expect(decoration.boxShadow!.length, 2,
+        reason: 'the coral halo is a bloom plus a wide falloff');
     expect(decoration.gradient, isA<LinearGradient>());
 
     // Dark glyph on gold: measured 12.98:1 (top stop) to 6.08:1 (bottom stop).

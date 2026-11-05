@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
@@ -15,6 +16,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -25,16 +27,18 @@ class AdminUserManagementScreen extends ConsumerStatefulWidget {
   const AdminUserManagementScreen({super.key});
 
   @override
-  ConsumerState<AdminUserManagementScreen> createState() => _AdminUserManagementScreenState();
+  ConsumerState<AdminUserManagementScreen> createState() =>
+      _AdminUserManagementScreenState();
 }
 
-class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementScreen> {
+class _AdminUserManagementScreenState
+    extends ConsumerState<AdminUserManagementScreen> {
   String _selectedRole = 'All';
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 900;
+    final isWide = size.width > CScholarBreakpoints.mobile;
 
     if (!isWide) {
       return _mobileLayout(context);
@@ -42,13 +46,13 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
 
     return CScholarShell(
       sidebar: const AdminSidebar(currentPath: '/admin/users'),
-      topbar: const AdminTopbar(),
+      topbar: const AdminTopbar(section: AdminSearchSection.users),
       mobileTitle: 'User Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
-        // Header-first on the page rhythm. The user table is a DataTable
-        // (DataRows are not widgets), so its rows enter with the card — row
-        // staggering would need a widget-row rebuild, which is relayout.
+        // Header-first on the page rhythm. Rows rebuild on every filter and
+        // search change, so they enter with the card instead of re-cascading
+        // each time a keystroke lands.
         child: StaggerColumn(
           pitch: MotionPitch.page,
           children: [
@@ -86,7 +90,12 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
 
   Widget _userTable(BuildContext context) {
     final usersAsync = ref.watch(usersProvider);
-    return asyncSlot(usersAsync,
+    final query = ref
+        .watch(adminSearchProvider(AdminSearchSection.users))
+        .trim();
+    final needle = query.toLowerCase();
+    return asyncSlot(
+      usersAsync,
       // Named arguments, so the loading branch keeps its reading order while
       // the skeleton is the same widget the switcher cross-fades from.
       skeleton: const Padding(
@@ -97,6 +106,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
         padding: const EdgeInsets.all(48),
         child: EmptyState(
           icon: Icons.error_outline,
+          compact: true,
           title: 'Failed to load users',
           message: err.toString(),
           actionLabel: 'Retry',
@@ -104,59 +114,124 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
         ),
       ),
       data: (users) {
-        final filteredUsers = _selectedRole == 'All'
-            ? users
-            : users
-                .where((u) => u.role.toLowerCase() == _selectedRole.toLowerCase())
-                .toList();
+        final filteredUsers = users
+            .where(
+              (u) =>
+                  _selectedRole == 'All' ||
+                  u.role.toLowerCase() == _selectedRole.toLowerCase(),
+            )
+            .where(
+              (u) =>
+                  needle.isEmpty ||
+                  u.username.toLowerCase().contains(needle) ||
+                  u.email.toLowerCase().contains(needle),
+            )
+            .toList();
 
         if (filteredUsers.isEmpty) {
+          final searching = query.isNotEmpty;
           return Padding(
             padding: const EdgeInsets.all(24),
             child: EmptyState(
               icon: Icons.people_outline,
-              title: 'No users found',
-              message: 'No users matching "$_selectedRole".',
+              compact: true,
+              title: searching ? 'No matches' : 'No users found',
+              message: searching
+                  ? 'No users match "$query".'
+                  : 'No users matching "$_selectedRole".',
+              actionLabel: searching ? 'Clear search' : null,
+              onAction: searching
+                  ? () => ref
+                        .read(
+                          adminSearchProvider(AdminSearchSection.users)
+                              .notifier,
+                        )
+                        .clear()
+                  : null,
             ),
           );
         }
-        return DataTable(
-          headingRowColor: WidgetStateProperty.all(CScholarColors.backgroundLight),
-          columns: const [
-            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Role', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: filteredUsers.map((u) => DataRow(
-            cells: [
-              DataCell(Text(u.username, style: const TextStyle(fontWeight: FontWeight.w500))),
-              DataCell(Text(u.email, style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary))),
-              DataCell(RoleChip(u.role)),
-              DataCell(ActiveChip(u.isActive)),
-              DataCell(Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  NeumorphButton(
-                    onPressed: () => _showEditUserDialog(context, u),
-                    label: 'Edit',
-                    gel: false,
+        // Card rows, same language as Programs: identity mark, bold name with
+        // the email beneath, role and status as chips, actions as round
+        // buttons. Rows are widgets now, so hover and press behave like the
+        // rest of the admin shell.
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              for (final u in filteredUsers)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: CScholarCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    borderRadius: CScholarRadius.xl,
+                    child: Row(
+                      children: [
+                        GelAvatar(name: u.username, size: 40),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                u.username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: CScholarTextStyles.body(
+                                  13.5,
+                                  FontWeight.w700,
+                                  CScholarColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                u.email,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: CScholarTextStyles.body(
+                                  11.5,
+                                  FontWeight.w400,
+                                  CScholarColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        RoleChip(u.role),
+                        const SizedBox(width: 8),
+                        ActiveChip(u.isActive),
+                        const SizedBox(width: 8),
+                        NeumorphIconButton(
+                          icon: Icons.edit_outlined,
+                          tooltip: 'Edit user',
+                          color: CScholarColors.violetInk,
+                          onPressed: () => _showEditUserDialog(context, u),
+                        ),
+                        const SizedBox(width: 8),
+                        // Destructive last, on every list: the rightmost slot
+                        // is the one a fast hand reaches by accident.
+                        NeumorphIconButton(
+                          onPressed: () => _toggleActive(context, ref, u),
+                          tooltip: u.isActive
+                              ? 'Deactivate user'
+                              : 'Reactivate user',
+                          // State morphs instead of hard-swapping, and the hue
+                          // travels with it: red to revoke, green to restore.
+                          icon: Icons.block,
+                          selectedIcon: Icons.check_circle_outline,
+                          color: CScholarColors.error,
+                          selectedColor: CScholarColors.primaryGreen,
+                          selected: !u.isActive,
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  NeumorphIconButton(
-                    onPressed: () => _toggleActive(context, ref, u),
-                    tooltip: u.isActive ? 'Deactivate user' : 'Reactivate user',
-                    size: 36,
-                    // State morphs instead of hard-swapping.
-                    icon: Icons.block,
-                    selectedIcon: Icons.check_circle_outline,
-                    selected: !u.isActive,
-                  ),
-                ],
-              )),
+                ),
             ],
-          )).toList(),
+          ),
         );
       },
     );
@@ -167,8 +242,7 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
   Widget _roleSegment() {
     return NeumorphSegmented(
       labels: _roles,
-      selectedIndex:
-          _roles.indexOf(_selectedRole).clamp(0, _roles.length - 1),
+      selectedIndex: _roles.indexOf(_selectedRole).clamp(0, _roles.length - 1),
       onChanged: (i) => setState(() => _selectedRole = _roles[i]),
     );
   }
@@ -185,41 +259,52 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           title: Text('Edit User — ${user.username}'),
           content: SizedBox(
             width: 360,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              NeumorphField(
-                controller: nameCtrl,
-                label: 'Username',
-              ),
-              const SizedBox(height: 12),
-              NeumorphField(
-                controller: emailCtrl,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              NeumorphSelect<String>(
-                initialValue: roles.contains(newRole) ? newRole : 'student',
-                label: 'Role',
-                items: roles
-                    .map((r) => DropdownMenuItem(
-                        value: r, child: Text(r[0].toUpperCase() + r.substring(1))))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setDialog(() => newRole = v);
-                },
-              ),
-            ]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NeumorphField(controller: nameCtrl, label: 'Username'),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: emailCtrl,
+                  label: 'Email',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 12),
+                NeumorphSelect<String>(
+                  initialValue: roles.contains(newRole) ? newRole : 'student',
+                  label: 'Role',
+                  items: roles
+                      .map(
+                        (r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(r[0].toUpperCase() + r.substring(1)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setDialog(() => newRole = v);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             NeumorphButton(
-                onPressed: () => Navigator.pop(ctx),
-                label: 'Cancel',
-                gel: false),
+              onPressed: () => Navigator.pop(ctx),
+              label: 'Cancel',
+              gel: false,
+            ),
             NeumorphButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                _saveUser(context, ref, user,
-                    nameCtrl.text.trim(), emailCtrl.text.trim(), newRole);
+                _saveUser(
+                  context,
+                  ref,
+                  user,
+                  nameCtrl.text.trim(),
+                  emailCtrl.text.trim(),
+                  newRole,
+                );
               },
               label: 'Save',
             ),
@@ -243,59 +328,70 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           title: const Text('Add User'),
           content: SizedBox(
             width: 380,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              NeumorphField(
-                controller: nameCtrl,
-                label: 'Username',
-              ),
-              const SizedBox(height: 12),
-              NeumorphField(
-                controller: emailCtrl,
-                label: 'Email',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              NeumorphField(
-                controller: passCtrl,
-                label: 'Password (min 6 characters)',
-                obscureText: obscure,
-                suffixIcon: IconButton(
-                  // Outline <-> filled morphs instead of hard-swapping.
-                  icon: MorphIcon(
-                    icon: Icons.visibility,
-                    selectedIcon: Icons.visibility_off,
-                    selected: obscure,
-                    color: CScholarColors.textMuted,
-                    selectedColor: CScholarColors.textMuted,
-                    size: 18,
-                  ),
-                  onPressed: () => setDialog(() => obscure = !obscure),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NeumorphField(controller: nameCtrl, label: 'Username'),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: emailCtrl,
+                  label: 'Email',
+                  keyboardType: TextInputType.emailAddress,
                 ),
-              ),
-              const SizedBox(height: 12),
-              NeumorphSelect<String>(
-                initialValue: newRole,
-                label: 'Role',
-                items: roles
-                    .map((r) => DropdownMenuItem(
-                        value: r, child: Text(r[0].toUpperCase() + r.substring(1))))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setDialog(() => newRole = v);
-                },
-              ),
-            ]),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: passCtrl,
+                  label: 'Password (min 6 characters)',
+                  obscureText: obscure,
+                  suffixIcon: IconButton(
+                    // Outline <-> filled morphs instead of hard-swapping.
+                    icon: MorphIcon(
+                      icon: Icons.visibility,
+                      selectedIcon: Icons.visibility_off,
+                      selected: obscure,
+                      color: CScholarColors.textMuted,
+                      selectedColor: CScholarColors.textMuted,
+                      size: 18,
+                    ),
+                    onPressed: () => setDialog(() => obscure = !obscure),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                NeumorphSelect<String>(
+                  initialValue: newRole,
+                  label: 'Role',
+                  items: roles
+                      .map(
+                        (r) => DropdownMenuItem(
+                          value: r,
+                          child: Text(r[0].toUpperCase() + r.substring(1)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setDialog(() => newRole = v);
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             NeumorphButton(
-                onPressed: () => Navigator.pop(ctx),
-                label: 'Cancel',
-                gel: false),
+              onPressed: () => Navigator.pop(ctx),
+              label: 'Cancel',
+              gel: false,
+            ),
             NeumorphButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                _createUser(context, ref, nameCtrl.text.trim(),
-                    emailCtrl.text.trim(), passCtrl.text, newRole);
+                _createUser(
+                  context,
+                  ref,
+                  nameCtrl.text.trim(),
+                  emailCtrl.text.trim(),
+                  passCtrl.text,
+                  newRole,
+                );
               },
               label: 'Add',
             ),
@@ -305,12 +401,20 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     );
   }
 
-  Future<void> _createUser(BuildContext context, WidgetRef ref, String username,
-      String email, String password, String role) async {
+  Future<void> _createUser(
+    BuildContext context,
+    WidgetRef ref,
+    String username,
+    String email,
+    String password,
+    String role,
+  ) async {
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Username, email, and password are required')),
+          const SnackBar(
+            content: Text('Username, email, and password are required'),
+          ),
         );
       }
       return;
@@ -318,7 +422,9 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     if (password.length < 6) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password must be at least 6 characters')),
+          const SnackBar(
+            content: Text('Password must be at least 6 characters'),
+          ),
         );
       }
       return;
@@ -333,24 +439,35 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
       final fresh = await ref.refresh(usersProvider.future);
       if (context.mounted) {
         final found = fresh.any(
-            (u) => u.username == username || u.email.toLowerCase() == email.toLowerCase());
+          (u) =>
+              u.username == username ||
+              u.email.toLowerCase() == email.toLowerCase(),
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(found
-                  ? '$username added as $role'
-                  : 'Saved on server, but the list did not refresh — reload the page'),
-              backgroundColor: found ? CScholarColors.success : null),
+            content: Text(
+              found ? '$username added as $role' : 'Saved on server, but the list did not refresh — reload the page',
+            ),
+            backgroundColor: found ? CScholarColors.success : null,
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
 
-  Future<void> _saveUser(BuildContext context, WidgetRef ref, User user,
-      String username, String email, String newRole) async {
+  Future<void> _saveUser(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+    String username,
+    String email,
+    String newRole,
+  ) async {
     if (username.isEmpty || email.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -363,7 +480,9 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
     if (me != null && me.id == user.id && newRole != 'admin') {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You cannot remove your own admin role')),
+          const SnackBar(
+            content: Text('You cannot remove your own admin role'),
+          ),
         );
       }
       return;
@@ -382,55 +501,77 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
             row.first.email == email &&
             row.first.role.toLowerCase() == newRole) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${user.username} updated'), backgroundColor: CScholarColors.success),
+            SnackBar(
+              content: Text('${user.username} updated'),
+              backgroundColor: CScholarColors.success,
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+            const SnackBar(
+              content: Text(
+                'Saved on server, but the list did not refresh — reload the page',
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
 
-  Future<void> _toggleActive(BuildContext context, WidgetRef ref, User user) async {
+  Future<void> _toggleActive(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+  ) async {
     final me = ref.read(currentUserProvider);
     if (me != null && me.id == user.id) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You cannot deactivate your own account')),
+          const SnackBar(
+            content: Text('You cannot deactivate your own account'),
+          ),
         );
       }
       return;
     }
     try {
-      await ref.read(apiServiceProvider).put(
-        '/api/users/${user.id}/active',
-        {'is_active': !user.isActive},
-      );
+      await ref.read(apiServiceProvider).put('/api/users/${user.id}/active', {
+        'is_active': !user.isActive,
+      });
       final fresh = await ref.refresh(usersProvider.future);
       final row = fresh.where((u) => u.id == user.id).toList();
       if (context.mounted) {
         if (row.isNotEmpty && row.first.isActive == !user.isActive) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(user.isActive ? '${user.username} deactivated' : '${user.username} reactivated'),
+              content: Text(
+                user.isActive
+                    ? '${user.username} deactivated'
+                    : '${user.username} reactivated',
+              ),
               backgroundColor: CScholarColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saved on server, but the list did not refresh — reload the page')),
+            const SnackBar(
+              content: Text(
+                'Saved on server, but the list did not refresh — reload the page',
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
     }
   }
@@ -447,7 +588,14 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),
-        title: const Text('User Management', style: TextStyle(color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'User Management',
+          style: TextStyle(
+            color: CScholarColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -460,18 +608,36 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
           ),
           const Divider(height: 1),
           Expanded(
-            child: asyncSlot(usersAsync,
+            child: asyncSlot(
+              usersAsync,
               skeleton: const SkeletonList(count: 5, cardHeight: 56),
-              error: (err, _) => Center(child: Text('Failed to load users: $err')),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.all(24),
+                child: EmptyState(
+                  icon: Icons.error_outline,
+                  title: 'Unable to load users',
+                  message: err.toString(),
+                  actionLabel: 'Retry',
+                  onAction: () => ref.invalidate(usersProvider),
+                ),
+              ),
               data: (users) {
                 final filtered = _selectedRole == 'All'
                     ? users
-                    : users.where((u) => u.role.toLowerCase() == _selectedRole.toLowerCase()).toList();
+                    : users
+                          .where(
+                            (u) =>
+                                u.role.toLowerCase() ==
+                                _selectedRole.toLowerCase(),
+                          )
+                          .toList();
                 if (filtered.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Text('No users found matching "$_selectedRole"'),
+                  return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: EmptyState(
+                      icon: Icons.group_off_outlined,
+                      title: 'No users found',
+                      message: 'No users matching "$_selectedRole".',
                     ),
                   );
                 }
@@ -484,23 +650,26 @@ class _AdminUserManagementScreenState extends ConsumerState<AdminUserManagementS
                       padding: const EdgeInsets.only(bottom: 10),
                       child: InkWell(
                         onTap: () => _showEditUserDialog(context, u),
-                        borderRadius:
-                            BorderRadius.circular(CScholarRadius.md),
+                        borderRadius: BorderRadius.circular(CScholarRadius.md),
                         child: CScholarCard(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           borderRadius: CScholarRadius.md,
                           lift: true,
                           child: Row(
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(u.username,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    Text(
+                                      u.username,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     Text(u.email),
                                   ],
                                 ),

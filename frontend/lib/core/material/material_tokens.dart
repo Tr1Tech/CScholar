@@ -1,94 +1,98 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 
-/// CScholar Material System — claymorphism + glassmorphism.
+/// CScholar Material System — Soft UI v4.
 ///
-/// THE FUSION LAW: one style per structural role, never two on one element.
-///   canvas + content panels -> clay        (a soft slab: its own fill, a
-///                                           same-hue top-left gradient, ONE
-///                                           soft downward shadow)
-///   anything pressable      -> clay + gel  (press darkens the fill and sinks
-///                                           the surface — no inset, no rim)
-///   identity objects        -> clay + gel  (avatars, tiles, covers, badges)
-///   floating chrome/overlay -> glass       (topbar, rail, search, dialogs)
+/// The mobile shell is now the single source of truth. Every value here aliases
+/// [CScholarMobileColors] / [CScholarMobileShadows], so the web and mobile can
+/// never drift: warm paper canvas, near-white floating cards, soft green-tinted
+/// diffuse shadows, extra-rounded geometry.
 ///
-/// There is no neumorphic layer. Neumorphism only reads when a surface is the
-/// SAME colour as its background with two opposing shadows, which is exactly
-/// why it always needed a drawn outline to be findable — those outlines are
-/// what this pass removed. Clay gives every surface its own fill instead, and
-/// seats it on the canvas with a single soft shadow.
+/// THE FUSION LAW stays: one style per structural role.
+///   canvas + content panels -> surface card (fill + hairline + soft shadow)
+///   anything pressable      -> green pill (press sinks to 0.96)
+///   identity objects        -> mint / coral / lilac tinted tiles
+///   floating chrome         -> surface + overlay shadow (no blur)
 ///
 /// Contrast values in [ratios] were measured (WCAG 2.1). Keep them in sync.
 class CScholarMaterial {
   CScholarMaterial._();
 
   // ---------------------------------------------------------------- canvas
-  /// Page base. Deeper than the clay surface so highlights can read.
-  static const Color canvas = Color(0xFFE8EFE7);
+  /// Page base: warm paper `#F8F6F0`.
+  static const Color canvas = CScholarMobileColors.paper;
 
-  /// Content panels: same hue as [canvas], ~4% lighter.
-  static const Color clay = Color(0xFFF1F6F0);
+  /// Content panels: `#FFFEFA` floating on the paper canvas.
+  static const Color clay = CScholarMobileColors.surface;
 
-  /// Top-left stop of the clay "inflate" gradient.
-  static const Color clayHigh = Color(0xFFFAFCF9);
+  /// Legacy alias — surfaces are flat now.
+  static const Color clayHigh = CScholarMobileColors.surface;
 
-  /// Recessed wells: input fields, tracks, table stripes.
-  static const Color clayDeep = Color(0xFFE3EBE1);
+  /// Recessed wells: input fields, tracks, skeleton bases. `#F1F3ED`.
+  static const Color clayDeep = CScholarMobileColors.surfaceSoft;
 
-  /// Shadows are TINTED, never black. A black-alpha shadow on a sage canvas
-  /// reads as dirt rather than depth.
-  static const Color shadowDark = Color(0xFFC9D6C6);
+  /// Input wells only — search bars, fields, selects.
+  ///
+  /// One full step deeper than [clayDeep], which sits ~1.04:1 against the paper
+  /// canvas: at that distance the well has no edge and an empty search bar
+  /// reads as blank space. With no rim at rest the fill IS the affordance, so
+  /// it has to clear the distance on its own — ~1.21:1 on paper, ~1.29:1 on a
+  /// card, while hint ink still measures 4.6:1 on it.
+  static const Color well = Color(0xFFDDE3D6);
 
-  /// Pure white — a FILL, not a shadow: the white thesis type pill and the
-  /// result-card badge. No shadow in this system is white.
+  /// Loading skeletons: the block tone and the shimmer highlight that travels
+  /// over it.
+  ///
+  /// Skeletons used [clayDeep], which measures 1.04:1 on the paper canvas — the
+  /// mobile shell loaded onto what looked like a blank page. This is the same
+  /// step the well takes, so a skeleton is findable on paper and inside a card,
+  /// and the sweep runs up to the card surface.
+  static const Color skeletonBase = well;
+  static const Color skeletonHighlight = CScholarMobileColors.surface;
+
+  /// The same two tones for the dark shell.
+  ///
+  /// The light pair is a step BELOW the surface; on dark paper that step turns
+  /// into a glowing white block. These sit a step ABOVE the dark canvas
+  /// instead — ~1.37:1 on `paperDark`, ~1.21:1 inside a dark card.
+  static const Color skeletonBaseDark = Color(0xFF2C3833);
+  static const Color skeletonHighlightDark = Color(0xFF3C4A43);
+
+  /// Shadows are TINTED green-black, never pure black.
+  static const Color shadowDark = CScholarMobileColors.greenDeep;
+
+  /// Pure white — a FILL, not a shadow.
   static const Color shadowLight = Color(0xFFFFFFFF);
 
-  /// Hairline for small tokens (chips, pills, tiles, avatars) and glass edges,
-  /// where a 20-40px object is too small for a shadow to define it.
-  ///
-  /// 1.46:1 on clay — deliberately soft. This is NOT a control boundary: clay
-  /// carries an edge through its own fill + soft shadow, and a drawn outline
-  /// on every surface is what made the first pass look boxed-in. Fields and
-  /// buttons therefore have no rim at rest; focus and error rings (which do
-  /// clear 3:1) are what mark state. High contrast swaps this for [rimStrong].
-  static const Color rim = Color(0xFFC3D0C0);
+  /// Soft UI hairline. Opaque so contrast audits measure what the eye sees
+  /// (`ink @ 9%` composited on the surface). Fields and buttons carry no rim at
+  /// rest; focus and error rings mark state. High contrast swaps this for
+  /// [rimStrong].
+  static const Color rim = Color(0xFFEAEAE6);
 
-  /// Rim used when high contrast is on: 6.92:1 on clay.
-  static const Color rimStrong = Color(0xFF475569);
+  /// Rim used when high contrast is on.
+  static const Color rimStrong = CScholarMobileColors.green;
 
   // ------------------------------------------------------- status-chip rims
-  /// Hairlines that seat the status / role chips on their tinted fills. These
-  /// are decoration (a 20px badge is too small for a shadow to define it), so
-  /// they stay well under 2:1 — the same contract as [rim]. Measured against
-  /// each chip fill: published 1.27:1, approved 1.16:1, draft 1.12:1,
-  /// faculty 1.15:1, neutral 1.12:1.
-  static const Color rimPublished = Color(0xFFB8E2B8);
-  static const Color rimApproved = Color(0xFFBFDBFE);
-  static const Color rimDraft = Color(0xFFFDE68A);
-  static const Color rimFaculty = Color(0xFFE9D5FF);
+  static const Color rimPublished = CScholarMobileColors.mint;
+  static const Color rimApproved = CScholarMobileColors.lilacSoft;
+  static const Color rimDraft = CScholarMobileColors.coralSoft;
+  static const Color rimFaculty = CScholarMobileColors.lilacSoft;
 
   /// Neutral chip fill used by the "other / inactive" badge.
-  static const Color chipNeutral = Color(0xFFE2EAE1);
+  static const Color chipNeutral = CScholarMobileColors.surfaceSoft;
 
   // ------------------------------------------------------------------- gel
-  /// Gel accent (clay-styled fills). White text is safe at/below [gelTop].
-  static const Color gelTop = Color(0xFF007A14);
-  static const Color gelBottom = Color(0xFF00610F);
-  static const Color gelDeep = Color(0xFF004A0B);
+  static const Color gelTop = CScholarMobileColors.green;
+  static const Color gelBottom = CScholarMobileColors.green2;
+  static const Color gelDeep = CScholarMobileColors.greenDeep;
+  static const Color gelHigh = CScholarMobileColors.green2;
 
-  /// NON-TEXT surfaces only (3.36:1 with white text).
-  static const Color gelHigh = Color(0xFF00A31B);
+  /// Attention / AI accent. Gold retired; coral carries prestige marks now.
+  static const Color goldTop = CScholarMobileColors.coral;
+  static const Color goldBottom = CScholarMobileColors.coralInk;
+  static const Color goldCore = CScholarMobileColors.coralSoft;
 
-  /// Decoration only — 1.17:1 on clay, 8.46:1+ on dark green.
-  static const Color goldTop = Color(0xFFF9DC07);
-  static const Color goldBottom = Color(0xFFCA8A04);
-
-  /// Hot centre of the gold halo — paler than [goldTop] so the glow reads as
-  /// emitted light rather than a flat gold pill.
-  static const Color goldCore = Color(0xFFFFE066);
-
-  /// Gradient for gold "gel" objects (prestige / AI marks).
-  /// Dark glyphs only: #0F172A measures 12.98:1 on [goldTop] and 6.08:1 on
-  /// [goldBottom]. White on gold is 1.38:1 — never do it.
   static const LinearGradient goldGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -96,109 +100,93 @@ class CScholarMaterial {
   );
 
   // ------------------------------------------------------------------ text
-  /// 16.31:1 on clay.
-  static const Color textPrimary = Color(0xFF0F172A);
-
-  /// 6.92:1 on clay. The lightest text token allowed on clay or glass.
-  static const Color textMuted = Color(0xFF475569);
-
-  /// 5.06:1 on clay. Use instead of #009900 whenever green carries text.
-  static const Color textGreen = Color(0xFF007A14);
-
-  /// 4.35:1 on clay — white surfaces only, never clay/glass.
-  static const Color textFaint = Color(0xFF64748B);
-
-  /// Long-form body copy on clay: 9.46:1. Sits between [textPrimary] and
-  /// [textMuted] in weight for reading blocks (e.g. a thesis abstract) where
-  /// fully-black text is too hard.
-  static const Color textBody = Color(0xFF334155);
+  static const Color textPrimary = CScholarMobileColors.ink;
+  static const Color textMuted = CScholarMobileColors.mutedInk;
+  static const Color textGreen = CScholarMobileColors.green;
+  static const Color textFaint = CScholarMobileColors.mutedInk;
+  static const Color textBody = Color(0xFF2F3B35);
 
   // ----------------------------------------------------------------- glass
-  static const Color glassChrome = Color(0x9EFFFFFF); // ~.62 white
-  static const Color glassOverlay = Color(0xB8FFFFFF); // ~.72 white
-  static const Color glassRim = Color(0x8CFFFFFF);
-  static const Color glassSpecular = Color(0x47FFFFFF);
-  static const Color scrim = Color(0x470F172A);
+  // Glass retires: the Soft UI brief is flat surfaces with diffuse shadows.
+  // The API stays so callers compile; panels render solid.
+  static const Color glassChrome = CScholarMobileColors.surface;
+  static const Color glassOverlay = CScholarMobileColors.surface;
+  static const Color glassRim = CScholarMobileColors.line;
+  static const Color glassSpecular = Color(0x00FFFFFF);
+  static const Color scrim = Color(0x59231D18);
 
-  static const double blurChrome = 18;
-  static const double blurOverlay = 28;
+  static const double blurChrome = 0;
+  static const double blurOverlay = 0;
 
-  /// Global kill switch (low-power mode, blur-heavy screens, list items).
-  /// High contrast disables blur per-panel via `MediaQuery.highContrastOf`.
-  static bool glassEnabled = true;
+  /// Kept for compatibility; the surface treatment ignores it.
+  static bool glassEnabled = false;
 
   // ------------------------------------------------------------- recipes
-  /// Clay drop shadow: ONE soft, tinted, downward shadow.
-  ///
-  /// A slab seats itself with a single light from above. The white top-left
-  /// highlight that used to sit here (and the `clayInset` "dome" it paired
-  /// with) were the neumorphic layer: two opposing lights only read when the
-  /// surface matches its background exactly, which is why that style always
-  /// needed a drawn rim to be legible. Depth now comes from fill + one shadow.
-  static List<BoxShadow> clayDrop({double depth = 1}) => [
-        BoxShadow(
-          color: shadowDark.withValues(alpha: (0.55 * depth).clamp(0.0, 1.0)),
-          blurRadius: 18 * depth,
-          offset: Offset(0, 10 * depth),
-          spreadRadius: -6 * depth,
-        ),
-      ];
+  /// The card recipe: two diffuse green-tinted layers on the paper canvas.
+  static List<BoxShadow> cardShadow({double depth = 1}) => [
+    BoxShadow(
+      color: const Color(0x1323382D)
+          .withValues(alpha: (0.075 * depth).clamp(0.0, 1.0)),
+      blurRadius: 28 * depth,
+      offset: Offset(0, 12 * depth),
+    ),
+    BoxShadow(
+      color: const Color(0x0923382D)
+          .withValues(alpha: (0.035 * depth).clamp(0.0, 1.0)),
+      blurRadius: 6 * depth,
+      offset: Offset(0, 2 * depth),
+    ),
+  ];
 
-  /// Gel shadow for identity objects.
+  /// Legacy name — same card recipe.
+  static List<BoxShadow> softShadow({double depth = 1}) =>
+      cardShadow(depth: depth);
+
+  static List<BoxShadow> clayDrop({double depth = 1}) =>
+      cardShadow(depth: depth);
+
+  /// Green shadow for identity objects.
   static List<BoxShadow> gelDrop({double depth = 1}) => [
-        BoxShadow(
-          color: gelDeep.withValues(alpha: (0.30 * depth).clamp(0.0, 1.0)),
-          blurRadius: 16 * depth,
-          offset: Offset(0, 8 * depth),
-          spreadRadius: -4,
-        ),
-      ];
+    BoxShadow(
+      color: gelDeep.withValues(alpha: (0.22 * depth).clamp(0.0, 1.0)),
+      blurRadius: 18 * depth,
+      offset: Offset(0, 8 * depth),
+    ),
+  ];
 
-  /// Gold halo — the ONLY coloured shadow in the system.
-  ///
-  /// Three layers: a tight hot core, a mid bloom, and a wide warm falloff. One
-  /// shadow alone reads as a coloured drop shadow; the layered falloff is what
-  /// makes it read as light being emitted.
-  ///
-  /// Rules: gold objects take [goldGradient] with a DARK glyph (white on gold
-  /// is 1.38:1), put it on <= 2-3 elements per screen, never behind text, and
-  /// let high contrast drop it entirely (it is decoration).
+  /// Soft coral halo — AI / attention marks only.
   static List<BoxShadow> goldGlow({double strength = 1}) => [
-        BoxShadow(
-          color: goldCore.withValues(alpha: (0.70 * strength).clamp(0.0, 1.0)),
-          blurRadius: 8,
-        ),
-        BoxShadow(
-          color: goldTop.withValues(alpha: (0.40 * strength).clamp(0.0, 1.0)),
-          blurRadius: 20,
-          spreadRadius: 2,
-        ),
-        BoxShadow(
-          color: goldBottom.withValues(alpha: (0.22 * strength).clamp(0.0, 1.0)),
-          blurRadius: 44,
-          spreadRadius: 4,
-          offset: const Offset(0, 4),
-        ),
-      ];
+    BoxShadow(
+      color: CScholarMobileColors.coral.withValues(
+        alpha: (0.28 * strength).clamp(0.0, 1.0),
+      ),
+      blurRadius: 18,
+      spreadRadius: 1,
+    ),
+    BoxShadow(
+      color: CScholarMobileColors.coral.withValues(
+        alpha: (0.14 * strength).clamp(0.0, 1.0),
+      ),
+      blurRadius: 40,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
+  /// Floating chrome / dialogs.
+  static List<BoxShadow> get overlay => CScholarMobileShadows.overlay;
 
   /// Measured WCAG 2.1 ratios — the audit trail for this system.
   static const Map<String, double> ratios = {
-    'white on gel dark stop #007A14': 5.54,
-    'text primary on clay': 16.31,
-    'text muted #475569 on clay': 6.92,
-    'green text #007A14 on clay': 5.06,
-    'glass composite (white .62 over canvas)': 16.83,
-    'white on dark forest #033F15': 12.17,
-    'brand #009900 as text on clay (graphics only)': 3.23,
-    'gold #F9DC07 on clay (decoration only)': 1.26,
-    'dark glyph #0F172A on gold top': 12.98,
-    'dark glyph #0F172A on gold bottom': 6.08,
-    'white glyph on gold (never)': 1.38,
-    'text faint #64748B on clay (avoid)': 4.35,
-    'text body #334155 on clay': 9.46,
-    'teal ink #0F766E on teal tint': 4.86,
-    'cyan ink #0E7490 on cyan tint': 4.79,
-    'note ink #7A5C00 on note bg': 5.89,
-    'cover white on #0B6B3A (lightest cover stop)': 6.61,
+    'ink on paper': 15.0,
+    'muted ink #5A665F on paper': 5.55,
+    'muted ink #5A665F on surface': 5.94,
+    'white on green #174F3D': 9.45,
+    'green2 #2D7159 on paper': 5.38,
+    'green #174F3D on mint': 7.26,
+    'coral ink #A63E25 on coral soft': 5.17,
+    'lilac ink #5B5194 on lilac soft': 5.53,
+    'white on green2 #2D7159': 5.38,
+    'hint #748079 on paper (placeholders only)': 3.81,
+    'cover white on green #174F3D': 9.45,
   };
 }

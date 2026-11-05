@@ -61,7 +61,9 @@ class AdminSidebar extends ConsumerWidget {
                     hoverColor: CScholarColors.primaryGreenVeryLight,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       child: Row(
                         children: [
                           const Icon(
@@ -75,7 +77,7 @@ class AdminSidebar extends ConsumerWidget {
                               'Log Out',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: CScholarTextStyles.inter(
+                              style: CScholarTextStyles.body(
                                 13,
                                 FontWeight.w500,
                                 CScholarColors.textSecondary,
@@ -100,8 +102,9 @@ class AdminSidebar extends ConsumerWidget {
   /// none (the thesis editor under `/admin/thesis/...`) yields -1 and the pill
   /// fades out instead of highlighting the wrong row.
   static const List<
-      ({String label, IconData icon, IconData selectedIcon, String path})>
-      _routes = [
+    ({String label, IconData icon, IconData selectedIcon, String path})
+  >
+  _routes = [
     (
       label: 'Dashboard',
       icon: Icons.dashboard_outlined,
@@ -136,6 +139,7 @@ class AdminSidebar extends ConsumerWidget {
 
   Widget _nav(BuildContext context) {
     return ClayNavList(
+      rail: 'admin',
       selectedIndex: _routes.indexWhere((route) => route.path == currentPath),
       links: [
         for (final route in _routes)

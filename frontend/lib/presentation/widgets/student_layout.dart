@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
-import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/clay_nav_list.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_logo.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
-import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
+import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
 
 /// V2 light student shell (new design): airy wash background, light
 /// sidebar card with green-pill active item, pill search topbar.
@@ -26,23 +25,41 @@ class StudentLayout extends ConsumerWidget {
   /// the shell's pill and the route body are the same subtree.
   final bool heroAvatar;
 
+  /// Depth screens (thesis detail, future sub-flows) hide the mobile bottom
+  /// nav and show a back action + focused title — prototype `isDepth`.
+  /// No effect on the desktop shell.
+  final bool isDepth;
+  final String depthTitle;
+
+  /// List route the depth back action returns to when there is no page to pop.
+  final String? depthBackRoute;
+
   const StudentLayout({
     super.key,
     required this.child,
     required this.currentIndex,
     this.heroAvatar = true,
+    this.isDepth = false,
+    this.depthTitle = 'Thesis details',
+    this.depthBackRoute,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final size = MediaQuery.of(context).size;
-    final isWide = size.width > 840;
-
-    if (!isWide) {
-      return _mobileLayout(context, ref, user);
+    if (MobileStudentScaffold.useMobileShell(
+      context,
+      widthOverride: size.width,
+    )) {
+      return MobileStudentScaffold(
+        currentIndex: currentIndex,
+        isDepth: isDepth,
+        depthTitle: depthTitle,
+        depthBackRoute: depthBackRoute,
+        child: child,
+      );
     }
-
     return Scaffold(
       backgroundColor: CScholarColors.shellWash,
       body: Row(
@@ -104,19 +121,29 @@ class StudentLayout extends ConsumerWidget {
                   context.go('/login');
                 },
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.logout,
-                          size: 20, color: CScholarColors.textSecondary),
+                      const Icon(
+                        Icons.logout,
+                        size: 20,
+                        color: CScholarColors.textSecondary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text('Log out',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: CScholarTextStyles.inter(13, FontWeight.w500,
-                                CScholarColors.textSecondary)),
+                        child: Text(
+                          'Log out',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CScholarTextStyles.body(
+                            13,
+                            FontWeight.w500,
+                            CScholarColors.textSecondary,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -133,8 +160,9 @@ class StudentLayout extends ConsumerWidget {
   /// mobile [NavigationBar] below). The active row is a NUMBER, not a bool, so
   /// the gel pill can slide to it.
   static const List<
-      ({String label, IconData icon, IconData selectedIcon, String path})>
-      _routes = [
+    ({String label, IconData icon, IconData selectedIcon, String path})
+  >
+  _routes = [
     (
       label: 'Home',
       icon: Icons.home_outlined,
@@ -163,6 +191,7 @@ class StudentLayout extends ConsumerWidget {
 
   Widget _nav(BuildContext context) {
     return ClayNavList(
+      rail: 'student',
       selectedIndex: currentIndex,
       links: [
         for (final route in _routes)
@@ -191,81 +220,6 @@ class StudentLayout extends ConsumerWidget {
           // plain avatar (the profile card's target then simply appears).
           heroAvatar: heroAvatar && motionEnabled(context),
         ),
-      ),
-    );
-  }
-
-  /// App-bar avatar. Same hero tag as the desktop pill avatar, and the same
-  /// opt-out: on the profile route the card's avatar is the one that flies.
-  /// A flight is motion, so reduced motion skips the source entirely.
-  Widget _avatarAction(BuildContext context, User? user) {
-    final avatar = GestureDetector(
-      onTap: () => context.go('/profile'),
-      child: GelAvatar(name: user?.username ?? '', size: 34),
-    );
-    if (!heroAvatar || !motionEnabled(context)) return avatar;
-    return Hero(tag: userAvatarHeroTag, child: avatar);
-  }
-
-
-  Widget _mobileLayout(BuildContext context, WidgetRef ref, User? user) {
-    return Scaffold(
-      backgroundColor: CScholarColors.shellWash,
-      appBar: AppBar(
-        backgroundColor: CScholarMaterial.clay,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        elevation: 0,
-        toolbarHeight: 64,
-        title: const CScholarLogo(iconSize: 28, subtitle: 'CEIT REPOSITORY'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _avatarAction(context, user),
-          ),
-        ],
-      ),
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: CScholarMaterial.clay,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        // 4 tabs (0-3); desktop and mobile indices match.
-        selectedIndex: currentIndex.clamp(0, 3),
-        onDestinationSelected: (idx) {
-          switch (idx) {
-            case 0:
-              context.go('/student/dashboard');
-              break;
-            case 1:
-              context.go('/repository');
-              break;
-            case 2:
-              context.go('/saved');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home'),
-          NavigationDestination(
-              icon: Icon(Icons.search_outlined),
-              selectedIcon: Icon(Icons.search),
-              label: 'Search'),
-          NavigationDestination(
-              icon: Icon(Icons.bookmark_outline),
-              selectedIcon: Icon(Icons.bookmark),
-              label: 'Saved'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile'),
-        ],
       ),
     );
   }

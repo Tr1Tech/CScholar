@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 
-/// Deterministic generative cover art per thesis (v2 design).
-/// No image assets, no backend: the thesis id picks a dark gradient +
-/// icon, so every study has a stable, recognizable cover.
+/// Thesis cover tile (v2 design).
+///
+/// A thesis is a document, so every cover carries the same mark: the Material
+/// `article` glyph — a white page with text lines — on the green gel identity
+/// tile, with the rounded-square corners, fill and drop shadow of the
+/// dashboard's stat tile. Copy, not variation: at the 52–92px list sizes a
+/// seeded glyph rotation read as random clutter.
+///
+/// [seed] stays in the signature so call sites keep a stable per-thesis handle
+/// if the art ever gains variation again, but it deliberately does not change
+/// the mark.
 class ThesisCover extends StatelessWidget {
   final int seed;
   final double width;
@@ -17,64 +24,38 @@ class ThesisCover extends StatelessWidget {
     required this.seed,
     this.width = 92,
     this.height = 112,
-    this.borderRadius = 12,
-    this.iconSize = 44,
+    this.borderRadius = 16,
+    this.iconSize = 40,
   });
 
-  static const _gradients = CScholarColors.coverGradients;
+  /// The gel fill of [ClayIconTile]: a flat green reads as a painted swatch
+  /// next to the dashboard's stat tile, whose top-to-bottom lightening is what
+  /// makes it look moulded. Same two stops, same axis.
+  static const LinearGradient fill = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [CScholarMaterial.gelTop, CScholarMaterial.gelBottom],
+  );
 
-  static const _icons = [
-    Icons.article_outlined,
-    Icons.science_outlined,
-    Icons.computer_outlined,
-    Icons.psychology_outlined,
-    Icons.engineering_outlined,
-    Icons.analytics_outlined,
-    Icons.school_outlined,
-    Icons.lightbulb_outline,
-  ];
+  /// Also the dashboard's metric glyph for published studies.
+  static const IconData glyph = Icons.article;
 
   @override
   Widget build(BuildContext context) {
-    final colors = _gradients[seed % _gradients.length];
-    final icon = _icons[(seed ~/ _gradients.length) % _icons.length];
+    // The stat tile drops at 0.7; the list cover matches it at its 92px
+    // reference size and scales down for the rail so the 52px tile does not
+    // wear a card-sized shadow.
+    final depth = (width / 92 * 0.7).clamp(0.3, 0.7).toDouble();
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
+        gradient: fill,
         borderRadius: BorderRadius.circular(borderRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
+        boxShadow: CScholarMaterial.gelDrop(depth: depth),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -14,
-            bottom: -14,
-            child: Icon(icon,
-                size: iconSize + 28,
-                color: Colors.white.withValues(alpha: 0.16)),
-          ),
-          Center(
-            child: Icon(icon,
-                size: iconSize, color: Colors.white.withValues(alpha: 0.9)),
-          ),
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: CScholarMaterial.goldTop,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        ],
+      child: Center(
+        child: Icon(glyph, size: iconSize, color: Colors.white),
       ),
     );
   }

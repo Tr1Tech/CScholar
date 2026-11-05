@@ -12,10 +12,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 
-Widget _host(
-  Widget child, {
-  bool highContrast = false,
-}) {
+Widget _host(Widget child, {bool highContrast = false}) {
   return MaterialApp(
     home: Builder(
       builder: (context) => MediaQuery(
@@ -35,52 +32,55 @@ Widget _host(
 }
 
 List<DropdownMenuItem<String>> _typeItems() => const [
-      DropdownMenuItem(value: null, child: Text('All')),
-      DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
-      DropdownMenuItem(value: 'Capstone', child: Text('Capstone')),
-    ];
+  DropdownMenuItem(value: null, child: Text('All')),
+  DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
+  DropdownMenuItem(value: 'Capstone', child: Text('Capstone')),
+];
 
 BoxDecoration _wellDecoration(WidgetTester tester) {
   return tester
-      .widgetList<DecoratedBox>(
-        find.ancestor(
-          of: find.byType(DropdownButton<String>),
-          matching: find.byType(DecoratedBox),
-        ),
-      )
-      .first
-      .decoration as BoxDecoration;
+          .widgetList<DecoratedBox>(
+            find.ancestor(
+              of: find.byType(DropdownButton<String>),
+              matching: find.byType(DecoratedBox),
+            ),
+          )
+          .first
+          .decoration
+      as BoxDecoration;
 }
 
 void main() {
   group('NeumorphSelect is a Form field', () {
-    testWidgets('Form.validate() runs the validator and blocks submit',
-        (tester) async {
+    testWidgets('Form.validate() runs the validator and blocks submit', (
+      tester,
+    ) async {
       final formKey = GlobalKey<FormState>();
       var submitted = 0;
 
       await tester.pumpWidget(
-        _host(Form(
-          key: formKey,
-          child: Column(
-            children: [
-              NeumorphSelect<String>(
-                initialValue: null,
-                hintText: 'Select research type',
-                items: _typeItems(),
-                onChanged: (_) {},
-                validator: (v) =>
-                    v == null ? 'Select a research type' : null,
-              ),
-              TextButton(
-                onPressed: () {
-                  if (formKey.currentState!.validate()) submitted++;
-                },
-                child: const Text('Submit'),
-              ),
-            ],
+        _host(
+          Form(
+            key: formKey,
+            child: Column(
+              children: [
+                NeumorphSelect<String>(
+                  initialValue: null,
+                  hintText: 'Select research type',
+                  items: _typeItems(),
+                  onChanged: (_) {},
+                  validator: (v) => v == null ? 'Select a research type' : null,
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) submitted++;
+                  },
+                  child: const Text('Submit'),
+                ),
+              ],
+            ),
           ),
-        )),
+        ),
       );
 
       await tester.tap(find.text('Submit'));
@@ -100,16 +100,17 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('an explicit errorText outranks the validator',
-        (tester) async {
+    testWidgets('an explicit errorText outranks the validator', (tester) async {
       await tester.pumpWidget(
-        _host(NeumorphSelect<String>(
-          initialValue: 'Thesis',
-          items: _typeItems(),
-          onChanged: (_) {},
-          errorText: 'Submission failed',
-          validator: (_) => 'Bad format',
-        )),
+        _host(
+          NeumorphSelect<String>(
+            initialValue: 'Thesis',
+            items: _typeItems(),
+            onChanged: (_) {},
+            errorText: 'Submission failed',
+            validator: (_) => 'Bad format',
+          ),
+        ),
       );
       await tester.pump();
 
@@ -120,56 +121,67 @@ void main() {
 
     testWidgets('a disabled select cannot be opened', (tester) async {
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: 'Thesis',
-          items: _typeItems(),
-          onChanged: null,
-          enabled: false,
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: 'Thesis',
+            items: _typeItems(),
+            onChanged: null,
+            enabled: false,
+          ),
+        ),
       );
 
       expect(
-          tester
-              .widget<DropdownButton<String>>(
-                  find.byType(DropdownButton<String>))
-              .onChanged,
-          isNull);
+        tester
+            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
+            .onChanged,
+        isNull,
+      );
       expect(tester.takeException(), isNull);
     });
   });
 
   group('NeumorphSelect well invariants', () {
-    testWidgets('rest state is a tonal clay well with no outline',
-        (tester) async {
+    testWidgets('rest state is a tonal clay well with no outline', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: 'Thesis',
-          items: _typeItems(),
-          onChanged: (_) {},
-          hintText: 'Select research type',
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: 'Thesis',
+            items: _typeItems(),
+            onChanged: (_) {},
+            hintText: 'Select research type',
+          ),
+        ),
       );
 
       final well = _wellDecoration(tester);
-      expect(well.color, CScholarMaterial.clayDeep);
-      expect(well.border, isNull,
-          reason: 'the well grew an outline back — see NeumorphField');
+      expect(well.color, CScholarMaterial.well);
+      expect(
+        well.border,
+        isNull,
+        reason: 'the well grew an outline back — see NeumorphField',
+      );
       expect(find.text('Thesis'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('focus thickens the rim to the gel brand colour',
-        (tester) async {
+    testWidgets('focus thickens the rim to the gel brand colour', (
+      tester,
+    ) async {
       final focus = FocusNode();
       addTearDown(focus.dispose);
 
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: 'Thesis',
-          items: _typeItems(),
-          onChanged: (_) {},
-          focusNode: focus,
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: 'Thesis',
+            items: _typeItems(),
+            onChanged: (_) {},
+            focusNode: focus,
+          ),
+        ),
       );
 
       focus.requestFocus();
@@ -183,12 +195,14 @@ void main() {
 
     testWidgets('an error tints the rim', (tester) async {
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: null,
-          items: _typeItems(),
-          onChanged: (_) {},
-          errorText: 'Select a research type',
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: null,
+            items: _typeItems(),
+            onChanged: (_) {},
+            errorText: 'Select a research type',
+          ),
+        ),
       );
 
       final border = _wellDecoration(tester).border as Border;
@@ -197,35 +211,39 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('high contrast draws the boundary the rest of the system omits',
-        (tester) async {
-      await tester.pumpWidget(
-        _host(
-          NeumorphSelectField<String>(
-            value: 'Thesis',
-            items: _typeItems(),
-            onChanged: (_) {},
+    testWidgets(
+      'high contrast draws the boundary the rest of the system omits',
+      (tester) async {
+        await tester.pumpWidget(
+          _host(
+            NeumorphSelectField<String>(
+              value: 'Thesis',
+              items: _typeItems(),
+              onChanged: (_) {},
+            ),
+            highContrast: true,
           ),
-          highContrast: true,
-        ),
-      );
+        );
 
-      final border = _wellDecoration(tester).border as Border;
-      expect(border.top.color, CScholarMaterial.rimStrong);
-      expect(border.top.width, 1.5);
-      expect(tester.takeException(), isNull);
-    });
+        final border = _wellDecoration(tester).border as Border;
+        expect(border.top.color, CScholarMaterial.rimStrong);
+        expect(border.top.width, 1.5);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('a hint shows when nothing is selected', (tester) async {
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: null,
-          items: const [
-            DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
-          ],
-          onChanged: (_) {},
-          hintText: 'Select research type',
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: null,
+            items: const [
+              DropdownMenuItem(value: 'Thesis', child: Text('Thesis')),
+            ],
+            onChanged: (_) {},
+            hintText: 'Select research type',
+          ),
+        ),
       );
 
       expect(find.text('Select research type'), findsOneWidget);
@@ -234,24 +252,27 @@ void main() {
   });
 
   group('NeumorphSelectField follows external resets', () {
-    testWidgets('resetting the value to null updates the displayed label',
-        (tester) async {
+    testWidgets('resetting the value to null updates the displayed label', (
+      tester,
+    ) async {
       // The repository's _clearFilters() shape: the screen owns the value and
       // sets it back to null; the well must follow.
       String? value = 'Thesis';
       late StateSetter setOuter;
 
       await tester.pumpWidget(
-        _host(StatefulBuilder(
-          builder: (context, setState) {
-            setOuter = setState;
-            return NeumorphSelectField<String>(
-              value: value,
-              items: _typeItems(),
-              onChanged: (v) => setState(() => value = v),
-            );
-          },
-        )),
+        _host(
+          StatefulBuilder(
+            builder: (context, setState) {
+              setOuter = setState;
+              return NeumorphSelectField<String>(
+                value: value,
+                items: _typeItems(),
+                onChanged: (v) => setState(() => value = v),
+              );
+            },
+          ),
+        ),
       );
 
       expect(find.text('Thesis'), findsOneWidget);
@@ -268,11 +289,13 @@ void main() {
       String? picked;
 
       await tester.pumpWidget(
-        _host(NeumorphSelectField<String>(
-          value: null,
-          items: _typeItems(),
-          onChanged: (v) => picked = v,
-        )),
+        _host(
+          NeumorphSelectField<String>(
+            value: null,
+            items: _typeItems(),
+            onChanged: (v) => picked = v,
+          ),
+        ),
       );
 
       await tester.tap(find.byType(DropdownButton<String>));

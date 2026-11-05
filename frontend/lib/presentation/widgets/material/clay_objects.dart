@@ -63,27 +63,18 @@ class _ClayChipState extends State<ClayChip> {
         decoration: widget.selected
             ? BoxDecoration(
                 borderRadius: radius,
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [CScholarMaterial.gelTop, CScholarMaterial.gelBottom],
+                color: CScholarMaterial.gelTop.withValues(alpha: 0.12),
+                border: Border.all(
+                  color: CScholarMaterial.gelTop.withValues(alpha: 0.35),
+                  width: 1,
                 ),
-                // Invisible 1px rim: the unselected face draws a real 1px rim,
-                // so without this the toggle jumps 2px. Transparent paints
-                // nothing — it only keeps the outer size identical, which is
-                // why selecting never moves the Wrap.
-                border: Border.all(color: Colors.transparent, width: 1),
-                boxShadow: CScholarMaterial.gelDrop(depth: 0.6),
+                boxShadow: CScholarMaterial.softShadow(depth: 0.35),
               )
             : BoxDecoration(
                 borderRadius: radius,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [CScholarMaterial.clayHigh, CScholarMaterial.clay],
-                ),
+                color: CScholarMaterial.clay,
                 border: Border.all(color: CScholarMaterial.rim),
-                boxShadow: CScholarMaterial.clayDrop(depth: 0.5),
+                boxShadow: CScholarMaterial.softShadow(depth: 0.4),
               ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -96,10 +87,10 @@ class _ClayChipState extends State<ClayChip> {
                 child: AnimatedSwap(
                   style: SwapStyle.pop,
                   child: widget.selected
-                      ? const Icon(Icons.check_rounded,
-                          key: ValueKey('check'),
+                      ? Icon(Icons.check_rounded,
+                          key: const ValueKey('check'),
                           size: 14,
-                          color: Colors.white)
+                          color: CScholarMaterial.gelTop)
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
               ),
@@ -109,16 +100,18 @@ class _ClayChipState extends State<ClayChip> {
               Icon(widget.icon,
                   size: 14,
                   color: widget.selected
-                      ? Colors.white
+                      ? CScholarMaterial.gelTop
                       : CScholarMaterial.textMuted),
               const SizedBox(width: 6),
             ],
             Text(
               widget.label,
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                 12,
                 FontWeight.w600,
-                widget.selected ? Colors.white : CScholarMaterial.textPrimary,
+                widget.selected
+                    ? CScholarMaterial.gelTop
+                    : CScholarMaterial.textPrimary,
               ),
             ),
           ],
@@ -173,7 +166,7 @@ class ClayIconTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final flat = MediaQuery.highContrastOf(context);
-    final radius = BorderRadius.circular(size * 0.3);
+    final radius = BorderRadius.circular(14);
     final glyph = gold
         ? CScholarMaterial.textPrimary // 12.98:1 on gold top, 6.08:1 on bottom
         : (gel ? Colors.white : tint);
@@ -211,7 +204,7 @@ class ClayIconTile extends StatelessWidget {
                 ? CScholarMaterial.goldGlow(strength: glowStrength)
                 : gel
                     ? CScholarMaterial.gelDrop(depth: 0.7)
-                    : CScholarMaterial.clayDrop(depth: 0.5),
+                    : CScholarMaterial.softShadow(depth: 0.5),
       ),
       child: Center(
         child: Icon(icon, size: size * 0.46, color: glyph),
@@ -251,8 +244,8 @@ class GelAvatar extends StatelessWidget {
       child: Center(
         child: Text(
           _initials,
-          style: CScholarTextStyles.inter(
-              size * 0.32, FontWeight.w700, Colors.white),
+          style: CScholarTextStyles.body(
+              size * 0.34, FontWeight.w800, Colors.white),
         ),
       ),
     );

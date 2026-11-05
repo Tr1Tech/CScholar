@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 
@@ -44,10 +45,10 @@ class ThesisCard extends StatefulWidget {
   /// #1D4ED8 6.70, #0F766E 5.47, #7E22CE 6.98, #B45309 5.02.
   static const List<Color> bannerPalette = [
     CScholarColors.primaryGreen,
-    Color(0xFF1D4ED8),
-    Color(0xFF0F766E),
-    Color(0xFF7E22CE),
-    Color(0xFFB45309),
+    CScholarColors.primaryGreenHover,
+    CScholarColors.facultyColor,
+    CScholarColors.adminColor,
+    CScholarColors.textPrimary,
   ];
 
   /// Generative cover gradient for a thesis id — same source as [ThesisCover]
@@ -141,7 +142,7 @@ class _ThesisCardState extends State<ThesisCard> {
               padding: EdgeInsets.zero,
               lift: true,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(CScholarRadius.xl),
+                borderRadius: BorderRadius.circular(CScholarRadius.softCard),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -152,7 +153,7 @@ class _ThesisCardState extends State<ThesisCard> {
                     // for one transform.
                     ClipRRect(
                       borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(CScholarRadius.xl),
+                        top: Radius.circular(CScholarRadius.softCard),
                       ),
                       child: AnimatedScale(
                         scale: animate && _hover ? 1.03 : 1.0,
@@ -182,7 +183,7 @@ class _ThesisCardState extends State<ThesisCard> {
                           : Duration.zero,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(
-                            CScholarRadius.xl),
+                            CScholarRadius.softCard),
                         border: Border.all(
                           color: CScholarMaterial.gelTop.withValues(
                               alpha: _focused ? 0.55 : 0),
@@ -307,11 +308,11 @@ class _ThesisCardState extends State<ThesisCard> {
                   decoration: BoxDecoration(
                     color: CScholarMaterial.shadowLight,
                     borderRadius: BorderRadius.circular(CScholarRadius.sm),
-                    boxShadow: CScholarMaterial.clayDrop(depth: 0.3),
+                    boxShadow: CScholarMaterial.softShadow(depth: 0.3),
                   ),
                   child: Text(
                     widget.thesis.researchType.toUpperCase(),
-                    style: CScholarTextStyles.inter(
+                    style: CScholarTextStyles.body(
                       10,
                       FontWeight.w700,
                       CScholarMaterial.textPrimary,
@@ -355,7 +356,7 @@ class _ThesisCardState extends State<ThesisCard> {
       widget.thesis.title,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
-      style: CScholarTextStyles.poppins(
+      style: CScholarTextStyles.heading(
         14,
         FontWeight.w700,
         CScholarColors.textPrimary,
@@ -379,7 +380,7 @@ class _ThesisCardState extends State<ThesisCard> {
                         widget.thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.inter(
+                        style: CScholarTextStyles.body(
                           11.5,
                           FontWeight.w400,
                           CScholarColors.textSecondary,
@@ -398,7 +399,7 @@ class _ThesisCardState extends State<ThesisCard> {
                         if ((widget.thesis.academicYear?.label ?? '').isNotEmpty)
                           Text(
                             widget.thesis.academicYear!.label,
-                            style: CScholarTextStyles.inter(
+                            style: CScholarTextStyles.body(
                               11,
                               FontWeight.w500,
                               CScholarColors.textHint,
@@ -410,12 +411,12 @@ class _ThesisCardState extends State<ThesisCard> {
     );
   }
 
-  /// Match badge — gold AI identity. Gold paper fill + amber ink (5.42:1 on
-  /// goldSoft) so AI matches read as prestige, not as another green status.
-  /// Max 1 per card, never behind body text.
+  /// Match badge — gold AI identity. One-shot shimmer sweep on arrival so
+  /// the eye catches it once, then it rests. Max 1 per card, never behind
+  /// body text. Static under reduced motion.
   Widget _semanticBadge(double score) {
     final pct = (score * 100).round();
-    return Tooltip(
+    final badge = Tooltip(
       message:
           'AI semantic match — ranked by meaning, not keywords. Tap to see why.',
       child: Container(
@@ -434,7 +435,7 @@ class _ThesisCardState extends State<ThesisCard> {
             const SizedBox(width: 4),
             Text(
               '$pct% match',
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                 10.5,
                 FontWeight.w700,
                 CScholarColors.warningFg,
@@ -444,6 +445,7 @@ class _ThesisCardState extends State<ThesisCard> {
         ),
       ),
     );
+    return badge.shimmerOnce(context);
   }
 
   /// Program-code tag. Was `#F1F5F9` — a cool slate that belonged to no hue
@@ -460,7 +462,7 @@ class _ThesisCardState extends State<ThesisCard> {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: CScholarTextStyles.inter(
+        style: CScholarTextStyles.body(
           10.5,
           FontWeight.w700,
           CScholarColors.textSecondary,

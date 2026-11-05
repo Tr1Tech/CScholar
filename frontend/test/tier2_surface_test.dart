@@ -17,12 +17,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/topbar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
-import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 import 'package:frontend/presentation/widgets/result_card.dart';
 import 'package:frontend/presentation/widgets/thesis_card.dart';
@@ -41,16 +42,16 @@ double _contrast(Color a, Color b) {
 const double _aaBody = 4.5;
 
 Thesis _thesis({int id = 7, String type = 'Thesis'}) => Thesis(
-      id: id,
-      title: 'A Semantic Search Model for the CEIT Thesis Repository',
-      abstract: 'Abstract.',
-      researchType: type,
-      status: 'published',
-      programId: 1,
-      academicYearId: 1,
-      createdAt: DateTime(2024),
-      updatedAt: DateTime(2024),
-    );
+  id: id,
+  title: 'A Semantic Search Model for the CEIT Thesis Repository',
+  abstract: 'Abstract.',
+  researchType: type,
+  status: 'published',
+  programId: 1,
+  academicYearId: 1,
+  createdAt: DateTime(2024),
+  updatedAt: DateTime(2024),
+);
 
 Widget _host(Widget child, {bool highContrast = false, double width = 1200}) {
   return MaterialApp(
@@ -76,17 +77,22 @@ Widget _host(Widget child, {bool highContrast = false, double width = 1200}) {
 
 BoxDecoration _decorationOf(WidgetTester tester, Finder finder) {
   return tester
-      .widgetList<DecoratedBox>(
-        find.ancestor(of: finder, matching: find.byType(DecoratedBox)),
-      )
-      .first
-      .decoration as BoxDecoration;
+          .widgetList<DecoratedBox>(
+            find.ancestor(of: finder, matching: find.byType(DecoratedBox)),
+          )
+          .first
+          .decoration
+      as BoxDecoration;
 }
 
 void main() {
+  // Static-structure suite: no Animate wrapper may arm here. The global kill
+  // switch returns every one-shot bare (no Timer), same as screens_render.
+  setUp(() => CScholarMotion.ambientEnabled = false);
+  tearDown(() => CScholarMotion.ambientEnabled = true);
+
   group('tier 2 — shared topbar chrome', () {
-    testWidgets('search is a tonal clay well, not a white box',
-        (tester) async {
+    testWidgets('search is a tonal clay well, not a white box', (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
@@ -95,16 +101,24 @@ void main() {
       );
 
       final well = _decorationOf(tester, find.byType(TextField));
-      expect(well.color, CScholarMaterial.clayDeep,
-          reason: 'the search well lost its tonal clay fill');
-      expect(well.border, isNull,
-          reason: 'the search well grew an outline back — clay draws none at '
-              'rest');
+      expect(
+        well.color,
+        CScholarMaterial.well,
+        reason: 'the search well lost its recessed input fill',
+      );
+      expect(
+        well.border,
+        isNull,
+        reason:
+            'the search well grew an outline back — clay draws none at '
+            'rest',
+      );
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the clear affordance is opt-in and reports taps',
-        (tester) async {
+    testWidgets('the clear affordance is opt-in and reports taps', (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       var clears = 0;
@@ -115,20 +129,23 @@ void main() {
       expect(find.byTooltip('Clear search'), findsNothing);
 
       await tester.pumpWidget(
-        _host(Topbar(
-          leading: TopbarSearchField(
-            controller: controller,
-            onClear: () => clears++,
+        _host(
+          Topbar(
+            leading: TopbarSearchField(
+              controller: controller,
+              onClear: () => clears++,
+            ),
           ),
-        )),
+        ),
       );
       await tester.tap(find.byTooltip('Clear search'));
       await tester.pump();
       expect(clears, 1);
     });
 
-    testWidgets('the search well draws a border only under high contrast',
-        (tester) async {
+    testWidgets('the search well draws a border only under high contrast', (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
@@ -144,47 +161,61 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the identity pill is a gel avatar on a raised clay pill',
-        (tester) async {
+    testWidgets('the identity pill is a gel avatar on a raised clay pill', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _host(const Topbar(
-          trailing: TopbarUserPill(name: 'Juan Dela Cruz', role: 'Faculty'),
-        )),
+        _host(
+          const Topbar(
+            trailing: TopbarUserPill(name: 'Juan Dela Cruz', role: 'Faculty'),
+          ),
+        ),
       );
 
-      expect(find.byType(GelAvatar), findsOneWidget);
+      expect(find.byType(CScholarHeaderAvatar), findsOneWidget);
       expect(find.text('JC'), findsOneWidget);
       expect(find.text('Faculty'), findsOneWidget);
 
       final pill = _decorationOf(tester, find.text('Juan Dela Cruz'));
-      expect(pill.border, isNotNull,
-          reason: 'a 40px pill is too small for a shadow alone to define it');
-      expect(pill.boxShadow, hasLength(1),
-          reason: 'a raised pill is seated by ONE soft clay shadow');
-      // The shadow must be the tinted clay token, never a black alpha.
-      expect(pill.boxShadow!.single.color.toARGB32(),
-          isNot(const Color(0xFF000000).toARGB32()));
+      expect(
+        pill.border,
+        isNotNull,
+        reason: 'a 40px pill is too small for a shadow alone to define it',
+      );
+      expect(
+        pill.boxShadow,
+        hasLength(2),
+        reason: 'a raised pill uses the two-layer card shadow',
+      );
+      // The shadow must be the tinted green token, never a black alpha.
+      expect(
+        pill.boxShadow!.first.color.toARGB32(),
+        isNot(const Color(0xFF000000).toARGB32()),
+      );
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a blank username still renders a labelled pill',
-        (tester) async {
+    testWidgets('a blank username still renders a labelled pill', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _host(const Topbar(trailing: TopbarUserPill(name: '   ', role: 'Admin'))),
+        _host(
+          const Topbar(
+            trailing: TopbarUserPill(name: '   ', role: 'Admin'),
+          ),
+        ),
       );
       expect(find.text('User'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
     testWidgets('admin and faculty bars share the same kit', (tester) async {
-      await tester.pumpWidget(
-        _host(const FacultyTopbar()),
-      );
+      await tester.pumpWidget(_host(const FacultyTopbar()));
       expect(find.byType(TopbarUserPill), findsOneWidget);
 
       await tester.pumpWidget(
         ProviderScope(
-          child: _host(const AdminTopbar()),
+          child: _host(const AdminTopbar(section: AdminSearchSection.theses)),
         ),
       );
       await tester.pump();
@@ -201,16 +232,98 @@ void main() {
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
-        _host(Topbar(
-          leading: TopbarSearchField(controller: controller, width: 320),
-        )),
+        _host(
+          Topbar(
+            leading: TopbarSearchField(controller: controller, width: 320),
+          ),
+        ),
       );
 
       // 320 wide, edge to edge: the well draws no rim at rest, and the field's
       // own 14px content padding is what keeps the text off the curve.
-      expect(tester.getSize(find.byType(TextField)).width,
-          closeTo(320, 1.5));
+      expect(tester.getSize(find.byType(TextField)).width, closeTo(320, 1.5));
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('no role topbar paints a plate over scrolling content', (
+      tester,
+    ) async {
+      // Seating the bar stretched a clay plate across the page width: an empty
+      // white band on the pill-only bars and a strip of nothing between the
+      // controls on the admin bar. The bar now carries no surface at all, so
+      // nothing inside it may span its width.
+      Widget host(Widget bar) => MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.noScaling),
+          child: Scaffold(
+            backgroundColor: CScholarMaterial.canvas,
+            body: SizedBox(
+              width: 1200,
+              child: ScrollVeil(
+                child: Column(
+                  children: [
+                    bar,
+                    Expanded(
+                      child: ListView(children: const [SizedBox(height: 2000)]),
+                    ),
+                  ],
+                ),
+                builder: (context, pane, seated) => pane,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      void expectNoPlate(String role) {
+        final bar = tester.getRect(find.byType(Topbar));
+        for (final element
+            in find
+                .descendant(
+                  of: find.byType(Topbar),
+                  matching: find.byType(DecoratedBox),
+                )
+                .evaluate()) {
+          final rect = tester.getRect(
+            find.byElementPredicate((candidate) => candidate == element),
+          );
+          if (rect.width < bar.width - 1) continue;
+          final decoration =
+              (element.widget as DecoratedBox).decoration as BoxDecoration;
+          expect(
+            decoration.color,
+            Colors.transparent,
+            reason: '$role topbar paints a full-width fill',
+          );
+          expect(
+            decoration.boxShadow,
+            isNull,
+            reason: '$role topbar paints a full-width shadow',
+          );
+        }
+      }
+
+      final bars = <(String, Widget)>[
+        (
+          'student',
+          const Topbar(
+            trailing: TopbarUserPill(name: 'Radj', role: 'Student'),
+          ),
+        ),
+        ('faculty', const FacultyTopbar()),
+        ('admin', const AdminTopbar(section: AdminSearchSection.theses)),
+      ];
+
+      for (final (role, bar) in bars) {
+        await tester.pumpWidget(host(ProviderScope(child: bar)));
+        await tester.pump();
+        expectNoPlate('resting $role');
+
+        await tester.drag(find.byType(ListView), const Offset(0, -200));
+        await tester.pumpAndSettle();
+        expectNoPlate('scrolled $role');
+        expect(tester.takeException(), isNull);
+      }
     });
   });
 
@@ -218,28 +331,40 @@ void main() {
     test('every thesis banner carries white text at WCAG AA', () {
       for (final stop in ThesisCard.bannerPalette) {
         final ratio = _contrast(const Color(0xFFFFFFFF), stop);
-        expect(ratio, greaterThanOrEqualTo(_aaBody),
-            reason: 'banner ${stop.toARGB32().toRadixString(16)} is '
-                '${ratio.toStringAsFixed(2)}:1 — the 10px white label fails');
+        expect(
+          ratio,
+          greaterThanOrEqualTo(_aaBody),
+          reason:
+              'banner ${stop.toARGB32().toRadixString(16)} is '
+              '${ratio.toStringAsFixed(2)}:1 — the 10px white label fails',
+        );
       }
     });
 
     test('the retired low-contrast banners stay retired', () {
       // #FF9900 was 2.14:1 and #0D9488 was 3.74:1 with white.
-      expect(ThesisCard.bannerPalette,
-          isNot(contains(const Color(0xFFFF9900))));
-      expect(ThesisCard.bannerPalette,
-          isNot(contains(const Color(0xFF0D9488))));
+      expect(
+        ThesisCard.bannerPalette,
+        isNot(contains(const Color(0xFFFF9900))),
+      );
+      expect(
+        ThesisCard.bannerPalette,
+        isNot(contains(const Color(0xFF0D9488))),
+      );
     });
 
-    testWidgets('thesis card is clay with a solid white type pill',
-        (tester) async {
+    testWidgets('thesis card is clay with a solid white type pill', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host(SizedBox(height: 260, child: ThesisCard(thesis: _thesis()))),
       );
 
-      expect(find.byType(ClaySurface), findsOneWidget,
-          reason: 'thesis card went back to a hand-rolled white Container');
+      expect(
+        find.byType(ClaySurface),
+        findsOneWidget,
+        reason: 'thesis card went back to a hand-rolled white Container',
+      );
       expect(find.text('THESIS'), findsOneWidget);
 
       // The pill is white with dark ink (17.85:1) — the old 25%-white pill
@@ -253,24 +378,24 @@ void main() {
 
     testWidgets('the match badge is legible on every banner', (tester) async {
       await tester.pumpWidget(
-        _host(SizedBox(
-          height: 260,
-          child: ThesisCard(thesis: _thesis(), similarityScore: 0.87),
-        )),
+        _host(
+          SizedBox(
+            height: 260,
+            child: ThesisCard(thesis: _thesis(), similarityScore: 0.87),
+          ),
+        ),
       );
       expect(find.text('87% match'), findsOneWidget);
       final badge = _decorationOf(tester, find.text('87% match'));
       // Gold AI identity: goldSoft paper + amber ink (5.42:1), distinct from
       // green status chips.
       expect(badge.color, CScholarColors.goldSoft);
-      final label =
-          tester.widget<Text>(find.text('87% match'));
+      final label = tester.widget<Text>(find.text('87% match'));
       expect(label.style!.color, CScholarColors.warningFg);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('result card keyword tokens are tonal wells',
-        (tester) async {
+    testWidgets('result card keyword tokens are tonal wells', (tester) async {
       final thesis = Thesis(
         id: 3,
         title: 'An IoT Irrigation Controller for Upland Farms',
@@ -288,17 +413,16 @@ void main() {
       );
 
       await tester.pumpWidget(
-        _host(ResultCard(
-          thesis: thesis,
-          isSaved: false,
-          onToggleSave: () {},
-        )),
+        _host(ResultCard(thesis: thesis, isSaved: false, onToggleSave: () {})),
       );
 
       expect(find.text('IoT'), findsOneWidget);
       final well = _decorationOf(tester, find.text('IoT'));
-      expect(well.color, CScholarMaterial.clayDeep,
-          reason: 'keyword chips fell back to the canvas fill (a hole)');
+      expect(
+        well.color,
+        CScholarMaterial.clayDeep,
+        reason: 'keyword chips fell back to the canvas fill (a hole)',
+      );
       expect(well.border, isNotNull);
       // The type token carries a rim now, like every other chip.
       expect(_decorationOf(tester, find.text('Capstone')).border, isNotNull);
@@ -325,30 +449,39 @@ void main() {
       final appBar = tester.widget<AppBar>(find.byType(AppBar));
       expect(appBar.backgroundColor, CScholarMaterial.clay);
       expect(appBar.elevation, 0);
-      expect(appBar.scrolledUnderElevation, 0,
-          reason: 'M3 tints the bar on scroll unless this is zeroed');
+      expect(
+        appBar.scrolledUnderElevation,
+        0,
+        reason: 'M3 tints the bar on scroll unless this is zeroed',
+      );
       expect(tester.takeException(), isNull);
     });
   });
 
   group('tier 2 — palette law', () {
-    test('clay casts ONE tinted shadow — no second light source', () {
-      // clayDrop used to pair its tinted dark shadow with a white top-left
-      // highlight. Two opposing lights only read as depth when the surface
-      // matches its background exactly, which is why that style always needed a
-      // drawn rim to be findable — and why the rim / inset / highlight trio went
-      // out together. Clay seats a slab with a single light from above.
+    test('cards cast two diffuse green-tinted shadows', () {
+      // Soft UI v4 seats every card with two diffuse layers tinted green-black.
+      // There is no white highlight: two opposing lights are neumorphism, and
+      // that layer is gone.
       final drop = CScholarMaterial.clayDrop();
-      expect(drop, hasLength(1),
-          reason: 'clay is ONE soft shadow; a second (light) shadow means the '
-              'neumorphic layer is coming back');
+      expect(
+        drop,
+        hasLength(2),
+        reason: 'the card recipe is two diffuse layers',
+      );
 
-      final shade = drop.single;
-      // Tinted, never black-alpha: black on sage reads as dirt, not depth.
-      expect(shade.color.r, greaterThan(0.5),
-          reason: 'the shadow must be the tinted clay token');
-      expect(shade.color, isNot(CScholarMaterial.shadowLight),
-          reason: 'white is not a shadow');
+      final shade = drop.first;
+      // Tinted, never black-alpha: green must dominate red in the shadow hue.
+      expect(
+        shade.color.g,
+        greaterThan(shade.color.r),
+        reason: 'the shadow must carry the green tint',
+      );
+      expect(
+        shade.color,
+        isNot(CScholarMaterial.shadowLight),
+        reason: 'white is not a shadow',
+      );
       // It falls DOWNWARD. A shadow that creeps sideways or upward is a second
       // light source wearing a shadow's clothes.
       expect(shade.offset.dy, greaterThan(0));
@@ -362,7 +495,8 @@ void main() {
       const banned = <String, String>{
         'Colors.black': 'black-alpha shadow — use the tinted clay/scrim tokens',
         '0xFFF9FAFB': 'off-palette cool white — use CScholarMaterial.clayHigh',
-        '0xFFF1F5F9': 'off-palette slate — use clayDeep / dividerLight, or '
+        '0xFFF1F5F9':
+            'off-palette slate — use clayDeep / dividerLight, or '
             'CScholarMaterial.rim for a hairline',
         '0xFFF3F4F6': 'off-palette grey canvas — use CScholarMaterial.canvas',
         '0xFFE2E8F0': 'off-palette slate — use CScholarMaterial.rim',
@@ -378,9 +512,13 @@ void main() {
 
       // A source scan that scans nothing always passes. Pin the corpus size so
       // a moved lib/ or a broken glob fails loudly instead.
-      expect(files.length, greaterThan(40),
-          reason: 'the palette scan found almost no sources — is lib/ still at '
-              'the package root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason:
+            'the palette scan found almost no sources — is lib/ still at '
+            'the package root?',
+      );
 
       for (final file in files) {
         final lines = file.readAsLinesSync();
@@ -393,8 +531,11 @@ void main() {
         }
       }
 
-      expect(offences, isEmpty,
-          reason: 'palette law broken:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason: 'palette law broken:\n${offences.join('\n')}',
+      );
     });
   });
 }

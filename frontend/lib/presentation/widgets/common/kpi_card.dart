@@ -109,8 +109,8 @@ class _KpiCardState extends State<KpiCard>
   Widget build(BuildContext context) {
     // Tabular figures: the count-up must not widen the row as it runs, and a
     // changed value must not reflow its neighbours either.
-    final valueStyle = CScholarTextStyles.poppins(
-            24, FontWeight.w800, CScholarColors.textPrimary)
+    final valueStyle = CScholarTextStyles.heading(
+            26, FontWeight.w800, CScholarColors.textPrimary)
         .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
     final value = widget._countable != null
         ? CountUpText(value: widget._countable!, style: valueStyle)
@@ -154,7 +154,7 @@ class _KpiCardState extends State<KpiCard>
               Expanded(
                 child: Text(
                   widget.label,
-                  style: CScholarTextStyles.inter(
+                  style: CScholarTextStyles.body(
                       11, FontWeight.w700, CScholarColors.textMuted,
                       letterSpacing: 0.5),
                   maxLines: 1,
@@ -178,7 +178,8 @@ class _KpiCardState extends State<KpiCard>
           valued,
           const SizedBox(height: 4),
           Text(widget.trend,
-              style: CScholarTextStyles.inter(11.5, FontWeight.w500, CScholarColors.textMuted),
+              style: CScholarTextStyles.body(
+                  11.5, FontWeight.w500, CScholarColors.textMuted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),
         ],

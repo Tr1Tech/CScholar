@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -11,7 +12,12 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  /// Set when the router bounces a non-student off the mobile gate
+  /// (`/login?reason=use-web`): the screen signs the session out and
+  /// shows the student-only notice.
+  final String? reason;
+
+  const LoginScreen({super.key, this.reason});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -25,6 +31,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _error;
   bool _obscure = true;
   bool _rememberMe = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.reason == 'use-web') {
+      final user = ref.read(currentUserProvider);
+      if (user?.role == 'admin' || user?.role == 'faculty') {
+        ref.read(authProvider.notifier).logout();
+        _error = mobileOnlyNotice;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -54,6 +72,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         await Future.delayed(const Duration(milliseconds: 100));
         if (!mounted) return;
         final user = ref.read(currentUserProvider);
+        // Native mobile is student-only: sign a fresh non-student sign-in
+        // straight back out instead of routing to a dashboard that the
+        // guard would only bounce. (Restored sessions take the init path.)
+        if (isMobileApp && user != null && user.role != 'student') {
+          await auth.logout();
+          if (!mounted) return;
+          setState(() => _error = mobileOnlyNotice);
+          return;
+        }
         if (user?.role == 'admin') {
           context.go('/admin/dashboard');
         } else if (user?.role == 'faculty') {
@@ -89,14 +116,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Text(
               'Welcome back',
               textAlign: TextAlign.center,
-              style: CScholarTextStyles.poppins(
+              style: CScholarTextStyles.heading(
                   26, FontWeight.w800, CScholarColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               'Sign in to access your saved studies and repository tools',
               textAlign: TextAlign.center,
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                   13.5, FontWeight.w400, CScholarColors.textMuted),
             ),
             const SizedBox(height: 20),
@@ -176,7 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               child: Text('Remember me',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: CScholarTextStyles.inter(12,
+                                  style: CScholarTextStyles.body(12,
                                       FontWeight.w500,
                                       CScholarColors.textMuted)),
                             ),
@@ -206,7 +233,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text('Forgot password?',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.inter(12, FontWeight.w600,
+                        style: CScholarTextStyles.body(12, FontWeight.w600,
                             CScholarColors.primaryGreen)),
                   ),
                 ),
@@ -231,7 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Text("Don't have an account?",
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.inter(13,
+                      style: CScholarTextStyles.body(13,
                           FontWeight.w400, CScholarColors.textMuted)),
                 ),
                 Flexible(
@@ -240,7 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Text('Register here',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.inter(13,
+                        style: CScholarTextStyles.body(13,
                             FontWeight.w700, CScholarColors.primaryGreen)),
                   ),
                 ),

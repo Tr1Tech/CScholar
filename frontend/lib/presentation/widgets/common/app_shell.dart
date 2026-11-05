@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -30,7 +31,7 @@ class CScholarShell extends StatelessWidget {
     this.mobileTitle = '',
     this.backRoute,
     this.bottomNav,
-    this.desktopBreakpoint = 920,
+    this.desktopBreakpoint = CScholarBreakpoints.mobile,
     this.maxWidth = 1200,
     this.desktopPadding = const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
   });
@@ -89,7 +90,10 @@ class CScholarShell extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: desktopPadding,
-                      child: Center(
+                      // Top-align: a short page must start where every other
+                      // page starts, not float in the middle of the viewport.
+                      child: Align(
+                        alignment: Alignment.topCenter,
                         child: ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: maxWidth),
                           child: EntranceReveal(child: child),

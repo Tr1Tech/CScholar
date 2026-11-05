@@ -77,10 +77,10 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('By Status',
-                  style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
+                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
               const SizedBox(height: 4),
               Text('$total supervised ${total == 1 ? 'study' : 'studies'}',
-                  style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+                  style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted)),
               const SizedBox(height: 16),
               // The chart draws 120ms after its card lands — never on the same
               // frame as the card entrance. Rise is 0: the delay is scheduling
@@ -92,8 +92,13 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (total == 0)
-                      Text('No data yet',
-                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                      const EmptyState(
+                        compact: true,
+                        icon: Icons.donut_small_outlined,
+                        title: 'No status data',
+                        message:
+                            'Supervised studies appear here once linked.',
+                      ),
                     for (final s in order)
                       if ((byStatus[s] as num?)?.toInt() != null && (byStatus[s] as num).toInt() > 0)
                         _barRow(s.toUpperCase(), (byStatus[s] as num).toInt(), total,
@@ -110,7 +115,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('By Program',
-                  style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
+                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
               const SizedBox(height: 16),
               // Same +120 chart beat as the status card.
               EntranceReveal(
@@ -120,8 +125,13 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (byProgram.isEmpty)
-                      Text('No data yet',
-                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                      const EmptyState(
+                        compact: true,
+                        icon: Icons.school_outlined,
+                        title: 'No program data',
+                        message:
+                            'Studies linked to a program will appear here.',
+                      ),
                     for (final p in byProgram)
                       _simpleRow((p as Map)['program']?.toString() ?? '—',
                           ((p)['count'] as num?)?.toInt() ?? 0),
@@ -136,7 +146,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('By Academic Year',
-                  style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
+                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
               const SizedBox(height: 16),
               // Same +120 chart beat as the status card.
               EntranceReveal(
@@ -146,8 +156,13 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (byYear.isEmpty)
-                      Text('No data yet',
-                          style: CScholarTextStyles.inter(13, FontWeight.w500, CScholarColors.textMuted)),
+                      const EmptyState(
+                        compact: true,
+                        icon: Icons.calendar_month_outlined,
+                        title: 'No year data',
+                        message:
+                            'Studies from an academic year will appear here.',
+                      ),
                     for (final y in byYear)
                       _simpleRow((y as Map)['year']?.toString() ?? '—',
                           ((y)['count'] as num?)?.toInt() ?? 0),
@@ -196,9 +211,9 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label,
-                  style: CScholarTextStyles.inter(12, FontWeight.w700, CScholarColors.textPrimary)),
+                  style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.textPrimary)),
               Text('$count',
-                  style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textMuted)),
+                  style: CScholarTextStyles.body(12, FontWeight.w600, CScholarColors.textMuted)),
             ],
           ),
           const SizedBox(height: 6),
@@ -216,7 +231,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(label,
-                style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary),
+                style: CScholarTextStyles.body(13, FontWeight.w600, CScholarColors.textPrimary),
                 overflow: TextOverflow.ellipsis),
           ),
           Container(
@@ -226,7 +241,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text('$count',
-                style: CScholarTextStyles.inter(12, FontWeight.w700, CScholarColors.primaryGreen)),
+                style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.primaryGreen)),
           ),
         ],
       ),

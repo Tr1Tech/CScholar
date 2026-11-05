@@ -19,7 +19,7 @@ class HoverLift extends StatefulWidget {
     required this.child,
     this.onTap,
     this.lift = -3,
-    this.radius = CScholarRadius.xl,
+    this.radius = CScholarRadius.softCard,
   });
 
   @override

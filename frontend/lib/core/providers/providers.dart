@@ -413,12 +413,12 @@ final dashboardStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
 
 /// Public stats for non-admin dashboards — the admin /api/dashboard/stats
 /// endpoint returns 403 for students, so the student dashboard uses this.
-final publicStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
-  (ref) async {
-    final data = await ref.read(apiServiceProvider).get('/api/stats/summary');
-    return Map<String, dynamic>.from(data as Map);
-  },
-);
+final publicStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
+  ref,
+) async {
+  final data = await ref.read(apiServiceProvider).get('/api/stats/summary');
+  return Map<String, dynamic>.from(data as Map);
+});
 
 final recentActivityProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -452,7 +452,8 @@ final facultyThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
   final data = await ref
       .read(apiServiceProvider)
       .get('/api/faculty/theses?per_page=50');
-  final List<dynamic> raw = (data as Map<String, dynamic>)['theses'] as List<dynamic>;
+  final List<dynamic> raw =
+      (data as Map<String, dynamic>)['theses'] as List<dynamic>;
   return raw.map((e) => Thesis.fromJson(e as Map<String, dynamic>)).toList();
 });
 
@@ -462,7 +463,8 @@ final facultyAdviseesProvider =
       final data = await ref
           .read(apiServiceProvider)
           .get('/api/faculty/advisees');
-      final List<dynamic> raw = (data as Map<String, dynamic>)['advisees'] as List<dynamic>;
+      final List<dynamic> raw =
+          (data as Map<String, dynamic>)['advisees'] as List<dynamic>;
       return raw.cast<Map<String, dynamic>>();
     });
 
@@ -509,14 +511,26 @@ class SearchQueryNotifier extends Notifier<String> {
   void setQuery(String q) => state = q;
 }
 
-/// Admin thesis-table search text, written by AdminTopbar and consumed by
-/// the thesis management list (kept separate from the student search box).
-final adminThesisSearchProvider =
-    NotifierProvider<AdminThesisSearchNotifier, String>(
-  () => AdminThesisSearchNotifier(),
-);
+/// The admin lists the topbar search can filter.
+///
+/// One query per section: the bar is shell chrome that sits OUTSIDE the page,
+/// so the two can only meet through shared state. Keeping a query per section
+/// means typing on Users never silently filters the thesis table.
+enum AdminSearchSection { theses, users, programs }
 
-class AdminThesisSearchNotifier extends Notifier<String> {
+/// Search text for one admin list, written by AdminTopbar and read by the page
+/// that owns the list (kept separate from the student search box).
+final adminSearchProvider =
+    NotifierProvider.family<AdminSearchNotifier, String, AdminSearchSection>(
+      AdminSearchNotifier.new,
+    );
+
+class AdminSearchNotifier extends Notifier<String> {
+  AdminSearchNotifier(this.section);
+
+  /// The list this instance holds the query for — the family argument.
+  final AdminSearchSection section;
+
   @override
   String build() => '';
 

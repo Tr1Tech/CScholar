@@ -132,7 +132,10 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const ClayIconTile(
-                    icon: Icons.science_outlined, size: 34, gold: true),
+                  icon: Icons.science_outlined,
+                  size: 34,
+                  gold: true,
+                ),
                 const SizedBox(width: 12),
                 Flexible(
                   child: Column(
@@ -143,15 +146,21 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                         'Design Lab',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.poppins(
-                            16, FontWeight.w700, CScholarMaterial.textPrimary),
+                        style: CScholarTextStyles.heading(
+                          16,
+                          FontWeight.w700,
+                          CScholarMaterial.textPrimary,
+                        ),
                       ),
                       Text(
-                        'clay · glass · DEV ONLY',
+                        'Soft UI v4 · MOBILE PARITY · DEV ONLY',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.inter(
-                            11.5, FontWeight.w400, CScholarMaterial.textMuted),
+                        style: CScholarTextStyles.body(
+                          11.5,
+                          FontWeight.w400,
+                          CScholarMaterial.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -179,7 +188,8 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 labels: const ['1.0', '1.3', '2.0'],
                 selectedIndex: _textScaleIndex,
                 onChanged: (i) => setState(
-                    () => _textScale = const [1.0, 1.3, 2.0][i.clamp(0, 2)]),
+                  () => _textScale = const [1.0, 1.3, 2.0][i.clamp(0, 2)],
+                ),
               ),
             ),
           ],
@@ -189,23 +199,23 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   }
 
   List<Widget> _sections() => [
-        _swatchBoard(),
-        _contrastBoard(),
-        _materialCompare(),
-        _clayLadder(),
-        _glassBoard(),
-        _stateBoard(),
-        _identityBoard(),
-        _rulesBoard(),
-        _cardBoard(),
-        _asyncBoard(),
-        _dataBoard(),
-        _cardPreview(),
-        _selectBoard(),
-        _chromeBoard(),
-        _motionBoard(),
-        _choreoBoard(),
-      ];
+    _swatchBoard(),
+    _contrastBoard(),
+    _materialCompare(),
+    _clayLadder(),
+    _glassBoard(),
+    _stateBoard(),
+    _identityBoard(),
+    _rulesBoard(),
+    _cardBoard(),
+    _asyncBoard(),
+    _dataBoard(),
+    _cardPreview(),
+    _selectBoard(),
+    _chromeBoard(),
+    _motionBoard(),
+    _choreoBoard(),
+  ];
 
   Widget _section({
     required String title,
@@ -221,14 +231,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           children: [
             Text(
               title,
-              style: CScholarTextStyles.poppins(
-                  20, FontWeight.w700, CScholarMaterial.textPrimary),
+              style: CScholarTextStyles.heading(
+                20,
+                FontWeight.w700,
+                CScholarMaterial.textPrimary,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
               note,
-              style: CScholarTextStyles.inter(
-                  13, FontWeight.w400, CScholarMaterial.textMuted),
+              style: CScholarTextStyles.body(
+                13,
+                FontWeight.w400,
+                CScholarMaterial.textMuted,
+              ),
             ),
             const SizedBox(height: 22),
             child,
@@ -239,14 +255,17 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   }
 
   Widget _eyebrow(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Text(
-          text.toUpperCase(),
-          style: CScholarTextStyles.inter(11, FontWeight.w700,
-              CScholarMaterial.textMuted,
-              letterSpacing: 1),
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Text(
+      text.toUpperCase(),
+      style: CScholarTextStyles.body(
+        11,
+        FontWeight.w700,
+        CScholarMaterial.textMuted,
+        letterSpacing: 1,
+      ),
+    ),
+  );
 
   /// Every state of one control, side by side — this is why `previewState`
   /// exists on the clay controls.
@@ -270,8 +289,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                     const SizedBox(height: 8),
                     Text(
                       state.name,
-                      style: CScholarTextStyles.inter(11, FontWeight.w500,
-                          CScholarMaterial.textFaint),
+                      style: CScholarTextStyles.body(
+                        11,
+                        FontWeight.w500,
+                        CScholarMaterial.textFaint,
+                      ),
                     ),
                   ],
                 ),
@@ -312,13 +334,19 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           Text(
             name,
             maxLines: 2,
-            style: CScholarTextStyles.inter(
-                12, FontWeight.w600, CScholarMaterial.textPrimary),
+            style: CScholarTextStyles.body(
+              12,
+              FontWeight.w600,
+              CScholarMaterial.textPrimary,
+            ),
           ),
           Text(
             hex,
-            style: CScholarTextStyles.inter(
-                11, FontWeight.w400, CScholarMaterial.textFaint),
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w400,
+              CScholarMaterial.textFaint,
+            ),
           ),
         ],
       ),
@@ -333,15 +361,21 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.check_circle_outline,
-                size: 16, color: CScholarMaterial.textGreen),
+            child: Icon(
+              Icons.check_circle_outline,
+              size: 16,
+              color: CScholarMaterial.textGreen,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: CScholarTextStyles.inter(
-                  13, FontWeight.w400, CScholarMaterial.textPrimary),
+              style: CScholarTextStyles.body(
+                13,
+                FontWeight.w400,
+                CScholarMaterial.textPrimary,
+              ),
             ),
           ),
         ],
@@ -381,28 +415,57 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _swatchBoard() {
     return _section(
       title: '1 · Tokens',
-      note: 'Canvas and clay share a hue family on purpose: a tinted shadow (#C9D6C6, never black) only reads as depth when the surface and the canvas under it come from the same family.',
+      note: 'Soft UI v4: warm paper canvas (#F8F6F0), near-white cards (#FFFEFA), soft green-tinted two-layer shadows. Mobile is the source of truth. Gold and glass are retired — coral carries the AI accent, panels are flat.',
       child: Wrap(
         spacing: 14,
         runSpacing: 16,
         children: [
-          _swatch('canvas', '#E8EFE7', CScholarMaterial.canvas),
-          _swatch('clay', '#F1F6F0', CScholarMaterial.clay),
-          _swatch('clay deep', '#E3EBE1', CScholarMaterial.clayDeep),
-          _swatch('gel top', '#007A14', CScholarMaterial.gelTop),
-          _swatch('gel bottom', '#00610F', CScholarMaterial.gelBottom),
-          _swatch('gel high · non-text', '#00A31B', CScholarMaterial.gelHigh),
-          _swatch('gold · glows', '#F9DC07', CScholarMaterial.goldTop,
-              glow: true),
-          _swatch('gold core · halo centre', '#FFE066', CScholarMaterial.goldCore,
-              glow: true, glowStrength: 1.4),
-          _swatch('gold deep', '#CA8A04', CScholarMaterial.goldBottom),
-          _swatch('rim · hairline', '#C3D0C0', CScholarMaterial.rim),
-          _swatch('rim strong · high contrast', '#475569',
-              CScholarMaterial.rimStrong),
-          _swatch('glass chrome · 62% white', 'FFFFFF 62%',
-              CScholarMaterial.glassChrome),
-          _swatch('scrim · overlays', '0F172A 28%', CScholarMaterial.scrim),
+          _swatch('paper · canvas', '#F8F6F0', CScholarMaterial.canvas),
+          _swatch('surface · card', '#FFFEFA', CScholarMaterial.clay),
+          _swatch('track · surfaceSoft', '#F1F3ED', CScholarMaterial.clayDeep),
+          _swatch('well · input fill', '#DDE3D6', CScholarMaterial.well),
+          _swatch('line · hairline', '403E32 9%', CScholarMaterial.rim),
+          _swatch('green · primary', '#174F3D', CScholarMaterial.gelTop),
+          _swatch('green2 · hover', '#2D7159', CScholarMaterial.gelBottom),
+          _swatch(
+            'mint · active tint',
+            '#DCEEE5',
+            CScholarColors.primaryGreenLight,
+          ),
+          _swatch(
+            'coral · AI accent',
+            '#F17B5B',
+            CScholarMaterial.goldTop,
+            glow: true,
+          ),
+          _swatch(
+            'coral soft',
+            '#FFE3DA',
+            CScholarMaterial.goldCore,
+            glow: true,
+            glowStrength: 1.4,
+          ),
+          _swatch(
+            'coral ink · text safe',
+            '#A63E25',
+            CScholarMaterial.goldBottom,
+          ),
+          _swatch(
+            'lilac soft · faculty',
+            '#E8E4F5',
+            CScholarColors.facultyLight,
+          ),
+          _swatch(
+            'lilac ink · faculty',
+            '#5B5194',
+            CScholarColors.facultyColor,
+          ),
+          _swatch(
+            'rim strong · high contrast',
+            '#174F3D',
+            CScholarMaterial.rimStrong,
+          ),
+          _swatch('scrim · overlays', '231D18 35%', CScholarMaterial.scrim),
         ],
       ),
     );
@@ -423,8 +486,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   Expanded(
                     child: Text(
                       entry.key,
-                      style: CScholarTextStyles.inter(12.5, FontWeight.w500,
-                          CScholarMaterial.textPrimary),
+                      style: CScholarTextStyles.body(
+                        12.5,
+                        FontWeight.w500,
+                        CScholarMaterial.textPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -450,7 +516,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
       ),
       child: Text(
         '${ratio.toStringAsFixed(2)}:1',
-        style: CScholarTextStyles.inter(
+        style: CScholarTextStyles.body(
           11.5,
           FontWeight.w700,
           pass ? CScholarColors.white : CScholarMaterial.textMuted,
@@ -469,7 +535,10 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const ClayIconTile(
-                icon: Icons.article_outlined, size: 36, gel: false),
+              icon: Icons.article_outlined,
+              size: 36,
+              gel: false,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -477,14 +546,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 children: [
                   Text(
                     title,
-                    style: CScholarTextStyles.inter(
-                        14.5, FontWeight.w700, CScholarMaterial.textPrimary),
+                    style: CScholarTextStyles.body(
+                      14.5,
+                      FontWeight.w700,
+                      CScholarMaterial.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     meta,
-                    style: CScholarTextStyles.inter(
-                        11.5, FontWeight.w400, CScholarMaterial.textMuted),
+                    style: CScholarTextStyles.body(
+                      11.5,
+                      FontWeight.w400,
+                      CScholarMaterial.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -501,15 +576,21 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 '86% relevant',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.inter(
-                    11.5, FontWeight.w700, CScholarMaterial.textGreen),
+                style: CScholarTextStyles.body(
+                  11.5,
+                  FontWeight.w700,
+                  CScholarMaterial.textGreen,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Text(
               '2024 – 2025',
-              style: CScholarTextStyles.inter(
-                  11, FontWeight.w400, CScholarMaterial.textMuted),
+              style: CScholarTextStyles.body(
+                11,
+                FontWeight.w400,
+                CScholarMaterial.textMuted,
+              ),
             ),
           ],
         ),
@@ -520,15 +601,17 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _materialCompare() {
     return _section(
       title: '3 · Same content, three materials',
-      note: 'Clay for content panels, glass for anything that floats, flat for high contrast. The right-hand column is the automatic high-contrast fallback — same layout, no shadows, no blur.',
+      note: 'Content surfaces are flat near-white cards with a 1px hairline and a two-layer green-tinted shadow. High contrast drops the shadow and keeps only the strong rim. Radius is 23 for cards, 22 for CTAs, 18 for wells.',
       child: _columns([
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _eyebrow('clay · content panel'),
             ClaySurface(
-              child: _demoCard('OCR-based Hybrid Image Text Summarizer',
-                  'BS Computer Science'),
+              child: _demoCard(
+                'OCR-based Hybrid Image Text Summarizer',
+                'BS Computer Science',
+              ),
             ),
           ],
         ),
@@ -549,7 +632,9 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 fill: CScholarMaterial.glassOverlay,
                 blur: CScholarMaterial.blurOverlay,
                 child: _demoCard(
-                    'Indoor Positioning System', 'BS Information Technology'),
+                  'Indoor Positioning System',
+                  'BS Information Technology',
+                ),
               ),
             ),
           ],
@@ -561,8 +646,10 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             MediaQuery(
               data: MediaQuery.of(context).copyWith(highContrast: true),
               child: ClaySurface(
-                child: _demoCard('Campus Navigation and Room Locator',
-                    'BS Information Technology'),
+                child: _demoCard(
+                  'Campus Navigation and Room Locator',
+                  'BS Information Technology',
+                ),
               ),
             ),
           ],
@@ -590,8 +677,12 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
     );
   }
 
-  Widget _claySample(String label, double depth, double radius,
-      {bool rim = false}) {
+  Widget _claySample(
+    String label,
+    double depth,
+    double radius, {
+    bool rim = false,
+  }) {
     return SizedBox(
       width: 168,
       child: Column(
@@ -604,15 +695,21 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             showRim: rim,
             padding: const EdgeInsets.all(18),
             child: const Center(
-              child: Icon(Icons.dashboard_outlined,
-                  size: 26, color: CScholarMaterial.textGreen),
+              child: Icon(
+                Icons.dashboard_outlined,
+                size: 26,
+                color: CScholarMaterial.textGreen,
+              ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: CScholarTextStyles.inter(
-                11, FontWeight.w500, CScholarMaterial.textFaint),
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w500,
+              CScholarMaterial.textFaint,
+            ),
           ),
         ],
       ),
@@ -622,14 +719,17 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _glassBoard() {
     return _section(
       title: '5 · Glass',
-      note: 'Glass is for layers that float. Every panel on this page shares one blur pass through BackdropGroup, so Flutter filters the backdrop once instead of once per panel. Scroll and watch the clay blur under the bar above.',
+      note: 'Soft UI v4 retired glass: the former glass panel now renders as a solid surface + overlay shadow. This board keeps the class for API compatibility — there is no backdrop blur left in the app.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _eyebrow('over the clay canvas'),
           _columns([
             GlassPanel(
-              child: _glassCopy('chrome · blur 18', 'Topbars, nav rails, sticky search'),
+              child: _glassCopy(
+                'chrome · blur 18',
+                'Topbars, nav rails, sticky search',
+              ),
             ),
             GlassPanel(
               fill: CScholarMaterial.glassOverlay,
@@ -645,17 +745,27 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF003800), Color(0xFF005A1E), Color(0xFF008000)],
+                colors: [
+                  Color(0xFF003800),
+                  Color(0xFF005A1E),
+                  Color(0xFF008000),
+                ],
               ),
             ),
             child: _columns([
               GlassPanel(
-                child: _glassCopy('repository search bar', 'Sticky, above scrolling results'),
+                child: _glassCopy(
+                  'repository search bar',
+                  'Sticky, above scrolling results',
+                ),
               ),
               GlassPanel(
                 fill: CScholarMaterial.glassOverlay,
                 blur: CScholarMaterial.blurOverlay,
-                child: _glassCopy('AI recommendations rail', 'Right-hand panel'),
+                child: _glassCopy(
+                  'AI recommendations rail',
+                  'Right-hand panel',
+                ),
               ),
             ]),
           ),
@@ -680,14 +790,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                     children: [
                       Text(
                         'Delete this study?',
-                        style: CScholarTextStyles.poppins(
-                            16, FontWeight.w700, CScholarMaterial.textPrimary),
+                        style: CScholarTextStyles.heading(
+                          16,
+                          FontWeight.w700,
+                          CScholarMaterial.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'This cannot be undone.',
-                        style: CScholarTextStyles.inter(12.5, FontWeight.w400,
-                            CScholarMaterial.textMuted),
+                        style: CScholarTextStyles.body(
+                          12.5,
+                          FontWeight.w400,
+                          CScholarMaterial.textMuted,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       Wrap(
@@ -696,11 +812,15 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                         runSpacing: 10,
                         children: [
                           NeumorphButton(
-                              label: 'Cancel', gel: false, onPressed: () {}),
+                            label: 'Cancel',
+                            gel: false,
+                            onPressed: () {},
+                          ),
                           NeumorphButton(
-                              label: 'Delete',
-                              icon: Icons.delete_outline,
-                              onPressed: () {}),
+                            label: 'Delete',
+                            icon: Icons.delete_outline,
+                            onPressed: () {},
+                          ),
                         ],
                       ),
                     ],
@@ -721,14 +841,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
       children: [
         Text(
           title,
-          style: CScholarTextStyles.inter(
-              13.5, FontWeight.w700, CScholarMaterial.textPrimary),
+          style: CScholarTextStyles.body(
+            13.5,
+            FontWeight.w700,
+            CScholarMaterial.textPrimary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           body,
-          style: CScholarTextStyles.inter(
-              12, FontWeight.w400, CScholarMaterial.textMuted),
+          style: CScholarTextStyles.body(
+            12,
+            FontWeight.w400,
+            CScholarMaterial.textMuted,
+          ),
         ),
       ],
     );
@@ -803,8 +929,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                       const SizedBox(height: 8),
                       Text(
                         state.name,
-                        style: CScholarTextStyles.inter(11, FontWeight.w500,
-                            CScholarMaterial.textFaint),
+                        style: CScholarTextStyles.body(
+                          11,
+                          FontWeight.w500,
+                          CScholarMaterial.textFaint,
+                        ),
                       ),
                     ],
                   ),
@@ -822,8 +951,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'error',
-                      style: CScholarTextStyles.inter(
-                          11, FontWeight.w500, CScholarMaterial.textFaint),
+                      style: CScholarTextStyles.body(
+                        11,
+                        FontWeight.w500,
+                        CScholarMaterial.textFaint,
+                      ),
                     ),
                   ],
                 ),
@@ -846,8 +978,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   const SizedBox(height: 10),
                   Text(
                     'Selected: ${_segmentLabels[_demoSegment.clamp(0, _segmentLabels.length - 1)]}',
-                    style: CScholarTextStyles.inter(
-                        12, FontWeight.w500, CScholarMaterial.textMuted),
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w500,
+                      CScholarMaterial.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -899,7 +1034,10 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               const ClayChip(label: 'BSIT', onTap: null),
               const ClayChip(label: 'BSCS'),
               const ClayChip(
-                  label: 'Thesis', icon: Icons.check, selected: true),
+                label: 'Thesis',
+                icon: Icons.check,
+                selected: true,
+              ),
               const ClayChip(label: 'Capstone', icon: Icons.bookmark_outline),
             ],
           ),
@@ -1046,7 +1184,10 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             title: 'Thesis Management',
             subtitle: 'Review statuses, edit records, and curate.',
             action: NeumorphButton(
-                label: 'Add Thesis', icon: Icons.add, onPressed: () {}),
+              label: 'Add Thesis',
+              icon: Icons.add,
+              onPressed: () {},
+            ),
           ),
           const SizedBox(height: 24),
           _eyebrow('kpi cards'),
@@ -1106,8 +1247,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               Flexible(
                 child: Text(
                   'studies counted up on paint',
-                  style: CScholarTextStyles.inter(12, FontWeight.w400,
-                      CScholarMaterial.textMuted),
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w400,
+                    CScholarMaterial.textMuted,
+                  ),
                 ),
               ),
             ],
@@ -1118,20 +1262,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   }
 
   Thesis _mockThesis() => Thesis(
-        id: 7,
-        title: 'OCR-based Hybrid Image Text Summarizer',
-        abstract: 'A hybrid OCR pipeline for summarizing scanned manuscripts.',
-        researchType: 'Thesis',
-        status: 'published',
-        programId: 1,
-        academicYearId: 1,
-        createdAt: DateTime(2024, 1, 1),
-        updatedAt: DateTime(2024, 6, 1),
-        program: null,
-        authors: const [],
-        advisers: const [],
-        keywords: const [],
-      );
+    id: 7,
+    title: 'OCR-based Hybrid Image Text Summarizer',
+    abstract: 'A hybrid OCR pipeline for summarizing scanned manuscripts.',
+    researchType: 'Thesis',
+    status: 'published',
+    programId: 1,
+    academicYearId: 1,
+    createdAt: DateTime(2024, 1, 1),
+    updatedAt: DateTime(2024, 6, 1),
+    program: null,
+    authors: const [],
+    advisers: const [],
+    keywords: const [],
+  );
 
   /// 12 · Result & thesis cards. Both are real screens' cards, shown with a
   /// generated cover so the identity art is reviewed here too. The row scrolls
@@ -1198,8 +1342,14 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 initialValue: 'BSCS',
                 label: 'Program',
                 items: const [
-                  DropdownMenuItem(value: 'BSCS', child: Text('BS Computer Science')),
-                  DropdownMenuItem(value: 'BSIT', child: Text('BS Information Technology')),
+                  DropdownMenuItem(
+                    value: 'BSCS',
+                    child: Text('BS Computer Science'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'BSIT',
+                    child: Text('BS Information Technology'),
+                  ),
                 ],
                 onChanged: (_) {},
               ),
@@ -1217,9 +1367,18 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   value: value,
                   label: 'Program',
                   items: const [
-                    DropdownMenuItem(value: 'BSCS', child: Text('BS Computer Science')),
-                    DropdownMenuItem(value: 'BSIT', child: Text('BS Information Technology')),
-                    DropdownMenuItem(value: 'BSECE', child: Text('BS Electronics Engineering')),
+                    DropdownMenuItem(
+                      value: 'BSCS',
+                      child: Text('BS Computer Science'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'BSIT',
+                      child: Text('BS Information Technology'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'BSECE',
+                      child: Text('BS Electronics Engineering'),
+                    ),
                   ],
                   onChanged: (v) => setLocal(() => value = v ?? value),
                 ),
@@ -1232,8 +1391,8 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   }
 
   /// 14 · Floating chrome. The dialog shell is shown in a real `showDialog`
-/// (never inside the scrolling list, per the glass rule); the topbar user pill
-/// and the AI recommendations rail are the identity / rail chrome.
+  /// (never inside the scrolling list, per the glass rule); the topbar user pill
+  /// and the AI recommendations rail are the identity / rail chrome.
   Widget _chromeBoard() {
     return _section(
       title: '14 · Floating chrome',
@@ -1251,17 +1410,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 builder: (ctx) => GlassDialog(
                   title: const Text('Delete this study?'),
                   content: const Text(
-                      'Persistent, real-dialog copy so the shell can be judged. This is a real modal, so it never sits inside the scrolling list.'),
+                    'Persistent, real-dialog copy so the shell can be judged. This is a real modal, so it never sits inside the scrolling list.',
+                  ),
                   actions: [
                     NeumorphButton(
-                        label: 'Cancel',
-                        gel: false,
-                        onPressed: () => Navigator.pop(ctx)),
+                      label: 'Cancel',
+                      gel: false,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                     NeumorphButton(
-                        label: 'Delete',
-                        danger: true,
-                        icon: Icons.delete_outline,
-                        onPressed: () => Navigator.pop(ctx)),
+                      label: 'Delete',
+                      danger: true,
+                      icon: Icons.delete_outline,
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
               ),
@@ -1327,9 +1489,14 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 delay: const Duration(milliseconds: 120),
                 child: ClaySurface(
                   padding: const EdgeInsets.all(14),
-                  child: Text('I rise in 120ms late',
-                      style: CScholarTextStyles.inter(
-                          13, FontWeight.w500, CScholarMaterial.textPrimary)),
+                  child: Text(
+                    'I rise in 120ms late',
+                    style: CScholarTextStyles.body(
+                      13,
+                      FontWeight.w500,
+                      CScholarMaterial.textPrimary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
@@ -1364,8 +1531,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               _eyebrow('count up · tween on change'),
               CountUpText(
                 value: pressed == 0 ? 100 : 100 + pressed,
-                style: CScholarTextStyles.poppins(
-                    22, FontWeight.w800, CScholarMaterial.textPrimary),
+                style: CScholarTextStyles.heading(
+                  22,
+                  FontWeight.w800,
+                  CScholarMaterial.textPrimary,
+                ),
               ),
               const SizedBox(height: 22),
               _eyebrow('nav · the active pill slides'),
@@ -1375,6 +1545,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
               SizedBox(
                 width: 248,
                 child: ClayNavList(
+                  rail: 'design-lab',
                   selectedIndex: _navIndex,
                   links: [
                     for (var i = 0; i < _navLabels.length; i++)
@@ -1409,7 +1580,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                               ? 'Enter a valid CSU email'
                               : 'Type to preview',
                           key: ValueKey(swapError),
-                          style: CScholarTextStyles.inter(
+                          style: CScholarTextStyles.body(
                             13,
                             FontWeight.w500,
                             swapError
@@ -1435,16 +1606,22 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                     child: Text(
                       '${pressed + 24}',
                       key: ValueKey(pressed),
-                      style: CScholarTextStyles.poppins(
-                          20, FontWeight.w700, CScholarMaterial.textPrimary),
+                      style: CScholarTextStyles.heading(
+                        20,
+                        FontWeight.w700,
+                        CScholarMaterial.textPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       'results — slides along the row as it changes',
-                      style: CScholarTextStyles.inter(
-                          12, FontWeight.w400, CScholarMaterial.textMuted),
+                      style: CScholarTextStyles.body(
+                        12,
+                        FontWeight.w400,
+                        CScholarMaterial.textMuted,
+                      ),
                     ),
                   ),
                 ],
@@ -1472,8 +1649,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   Flexible(
                     child: Text(
                       'tap the toggle — press sinks, release springs, the gold ring fires once on save',
-                      style: CScholarTextStyles.inter(
-                          12, FontWeight.w400, CScholarMaterial.textMuted),
+                      style: CScholarTextStyles.body(
+                        12,
+                        FontWeight.w400,
+                        CScholarMaterial.textMuted,
+                      ),
                     ),
                   ),
                 ],
@@ -1486,8 +1666,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   const SizedBox(width: 10),
                   Text(
                     'Syncing…',
-                    style: CScholarTextStyles.inter(
-                        12, FontWeight.w500, CScholarMaterial.textGreen),
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w500,
+                      CScholarMaterial.textGreen,
+                    ),
                   ),
                 ],
               ),
@@ -1517,14 +1700,20 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                       children: [
                         Text(
                           'Welcome back, Juan',
-                          style: CScholarTextStyles.poppins(16, FontWeight.w700,
-                              CScholarMaterial.textPrimary),
+                          style: CScholarTextStyles.heading(
+                            16,
+                            FontWeight.w700,
+                            CScholarMaterial.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '3 studies are waiting for review.',
-                          style: CScholarTextStyles.inter(13, FontWeight.w400,
-                              CScholarMaterial.textMuted),
+                          style: CScholarTextStyles.body(
+                            13,
+                            FontWeight.w400,
+                            CScholarMaterial.textMuted,
+                          ),
                         ),
                       ],
                     ),
@@ -1564,18 +1753,22 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                   builder: (context, pane, seated) => Container(
                     decoration: BoxDecoration(
                       color: CScholarMaterial.clay,
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
                       border: Border.all(color: CScholarMaterial.rim),
                       boxShadow: seated
-                          ? CScholarMaterial.clayDrop(depth: 1)
+                          ? CScholarMaterial.softShadow(depth: 1)
                           : null,
                     ),
                     padding: const EdgeInsets.all(12),
                     child: Text(
                       seated ? 'Seated — rim + shadow' : 'At rest — flush',
-                      style: CScholarTextStyles.inter(
-                          12.5, FontWeight.w600, CScholarMaterial.textPrimary),
+                      style: CScholarTextStyles.body(
+                        12.5,
+                        FontWeight.w600,
+                        CScholarMaterial.textPrimary,
+                      ),
                     ),
                   ),
                 ),
@@ -1605,11 +1798,16 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 rise: pitch.rise,
                 child: CScholarCard(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   child: Text(
                     'block ${i + 1} — +${(i * pitch.step.inMilliseconds).clamp(0, pitch.max.inMilliseconds)}ms',
-                    style: CScholarTextStyles.inter(12, FontWeight.w500,
-                        CScholarMaterial.textPrimary),
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w500,
+                      CScholarMaterial.textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -1617,8 +1815,11 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
           const SizedBox(height: 8),
           Text(
             note,
-            style: CScholarTextStyles.inter(
-                12, FontWeight.w400, CScholarMaterial.textMuted),
+            style: CScholarTextStyles.body(
+              12,
+              FontWeight.w400,
+              CScholarMaterial.textMuted,
+            ),
           ),
         ],
       );
@@ -1644,25 +1845,35 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _bullet(
-              'One style per structural role: clay = content and pressable, glass = floating, gel = identity. Never two on one element.'),
+            'One style per structural role: clay = content and pressable, glass = floating, gel = identity. Never two on one element.',
+          ),
           _bullet(
-              'Lightest text on clay or glass is #475569 (6.92:1). #64748B is 4.35:1 on clay — white surfaces only.'),
+            'Lightest text on clay or glass is #475569 (6.92:1). #64748B is 4.35:1 on clay — white surfaces only.',
+          ),
           _bullet(
-              'Green text is #007A14 (5.06:1). #009900 is graphics only: it is 3.23:1 as text.'),
+            'Green text is #007A14 (5.06:1). #009900 is graphics only: it is 3.23:1 as text.',
+          ),
           _bullet(
-              'Gold glows: the halo is the only coloured shadow in the system. 1.26:1 on clay as a colour, so it is light or a gradient — never body text — and at most 3 glowing objects per screen.'),
+            'Gold glows: the halo is the only coloured shadow in the system. 1.26:1 on clay as a colour, so it is light or a gradient — never body text — and at most 3 glowing objects per screen.',
+          ),
           _bullet(
-              'Gold objects carry a DARK glyph: #0F172A is 12.98:1 on the top stop and 6.08:1 on the bottom. White on gold is 1.38:1 — never.'),
+            'Gold objects carry a DARK glyph: #0F172A is 12.98:1 on the top stop and 6.08:1 on the bottom. White on gold is 1.38:1 — never.',
+          ),
           _bullet(
-              'Controls draw NO rim at rest — the fill plus one soft shadow is the edge. Focus, error and high contrast draw a 1.5px rim, because shadow alone is not an affordance.'),
+            'Controls draw NO rim at rest — the fill plus one soft shadow is the edge. Focus, error and high contrast draw a 1.5px rim, because shadow alone is not an affordance.',
+          ),
           _bullet(
-              'No glass inside scrolling list items, and never more than two glass layers per screen — wrap them in one BackdropGroup.'),
+            'No glass inside scrolling list items, and never more than two glass layers per screen — wrap them in one BackdropGroup.',
+          ),
           _bullet(
-              'Admin tables, long abstracts and dense forms stay flat: clay on the wrapper, 1px separators in the rows.'),
+            'Admin tables, long abstracts and dense forms stay flat: clay on the wrapper, 1px separators in the rows.',
+          ),
           _bullet(
-              'Clay covers under ~25% of a viewport. It is seasoning, not the meal.'),
+            'Clay covers under ~25% of a viewport. It is seasoning, not the meal.',
+          ),
           _bullet(
-              '200% text must grow the panels, never clip them — no fixed heights on clay surfaces.'),
+            '200% text must grow the panels, never clip them — no fixed heights on clay surfaces.',
+          ),
         ],
       ),
     );
@@ -1695,16 +1906,13 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         ),
         Text(
           label,
-          style: CScholarTextStyles.inter(
-              11, FontWeight.w500, CScholarMaterial.textFaint),
+          style: CScholarTextStyles.body(
+            11,
+            FontWeight.w500,
+            CScholarMaterial.textFaint,
+          ),
         ),
       ],
     );
   }
-
-
-
-
-
-
 }

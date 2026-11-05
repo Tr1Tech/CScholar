@@ -119,6 +119,11 @@ Widget _kpiGrid(BuildContext context, int columns) {
 }
 
 void main() {
+  // Static-structure suite: no Animate wrapper may arm here. The global kill
+  // switch returns every one-shot bare (no Timer), same as screens_render.
+  setUp(() => CScholarMotion.ambientEnabled = false);
+  tearDown(() => CScholarMotion.ambientEnabled = true);
+
   group('tier 1 — WCAG AA status tokens', () {
     test('every status chip pair clears 4.5:1', () {
       final pairs = <String, (Color, Color)>{
@@ -249,8 +254,8 @@ void main() {
       // The panel is clay: ONE soft shadow and no rim (the slab is the
       // boundary). The tile is a moulded object with its own gradient + rim.
       final panel = _decorationOf(tester, find.text('STUDIES'));
-      expect(panel.boxShadow, hasLength(1),
-          reason: 'the KPI slab is clay — one shadow, not a light/dark pair');
+      expect(panel.boxShadow, hasLength(2),
+          reason: 'the KPI slab uses the two-layer card shadow');
       final tile = _decorationOf(tester, find.byIcon(Icons.article_outlined));
       expect(tile.gradient, isNotNull);
       expect(tile.border, isNotNull);

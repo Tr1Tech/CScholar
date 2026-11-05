@@ -204,7 +204,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(text,
-          style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
+          style: CScholarTextStyles.body(12.5, FontWeight.w600, CScholarColors.textPrimary)),
     );
   }
 
@@ -298,10 +298,10 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(me?.username ?? 'You',
-                        style: CScholarTextStyles.inter(
+                        style: CScholarTextStyles.body(
                             13, FontWeight.w600, CScholarColors.textPrimary)),
                     Text('Adviser (you)',
-                        style: CScholarTextStyles.inter(
+                        style: CScholarTextStyles.body(
                             11.5, FontWeight.w400, CScholarColors.textMuted)),
                   ],
                 ),
@@ -393,7 +393,7 @@ class _FacultyThesisFormScreenState extends ConsumerState<FacultyThesisFormScree
               child: Text(_pdfFileName ?? 'Manuscript attached',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(12.5, FontWeight.w600, CScholarColors.textPrimary)),
+                  style: CScholarTextStyles.body(12.5, FontWeight.w600, CScholarColors.textPrimary)),
             ),
             if (widget.thesisId == null)
               TextButton(

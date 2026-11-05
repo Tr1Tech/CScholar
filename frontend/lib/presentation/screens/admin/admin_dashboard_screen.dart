@@ -56,12 +56,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                 // 4 KPI Summary Cards
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
+                    final count = constraints.maxWidth > 900
+                        ? 4
+                        : (constraints.maxWidth > 520 ? 2 : 1);
                     final cards = [
                       (
                         label: 'STUDIES',
                         value: '${stats.value?['studies'] ?? 0}',
-                        trend: '+${stats.value?['studies_this_week'] ?? 0} this week',
+                        trend:
+                            '+${stats.value?['studies_this_week'] ?? 0} this week',
                         icon: Icons.article_outlined,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
@@ -182,7 +185,9 @@ class AdminDashboardScreen extends ConsumerWidget {
   /// Client-side on purpose: the admin summary endpoint has no breakdown,
   /// and the list is already fetched for management anyway.
   Widget _analyticsStrip(WidgetRef ref) {
-    final list = ref.watch(thesisListProvider(const ThesisListParams(showAll: true)));
+    final list = ref.watch(
+      thesisListProvider(const ThesisListParams(showAll: true)),
+    );
     return asyncSlot<List<Thesis>?>(
       list,
       skeleton: const SkeletonList(count: 1, cardHeight: 180),
@@ -202,11 +207,23 @@ class AdminDashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Repository Analytics',
-                  style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
+              Text(
+                'Repository Analytics',
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('$total studies in this view',
-                  style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+              Text(
+                '$total studies in this view',
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w500,
+                  CScholarColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 16),
               for (final s in order)
                 if ((counts[s] ?? 0) > 0)
@@ -218,19 +235,30 @@ class AdminDashboardScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(s.toUpperCase(),
-                                style: CScholarTextStyles.inter(
-                                    12, FontWeight.w700, CScholarColors.textPrimary)),
-                            Text('${counts[s]}',
-                                style: CScholarTextStyles.inter(
-                                    12, FontWeight.w600, CScholarColors.textMuted)),
+                            Text(
+                              s.toUpperCase(),
+                              style: CScholarTextStyles.body(
+                                12,
+                                FontWeight.w700,
+                                CScholarColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              '${counts[s]}',
+                              style: CScholarTextStyles.body(
+                                12,
+                                FontWeight.w600,
+                                CScholarColors.textMuted,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         ClayProgressBar(
                           value: total == 0 ? 0 : counts[s]! / total,
                           height: 8,
-                          tint: CScholarColors.statusFill[s] ??
+                          tint:
+                              CScholarColors.statusFill[s] ??
                               CScholarColors.textSecondary,
                         ),
                       ],
@@ -266,23 +294,33 @@ class AdminDashboardScreen extends ConsumerWidget {
                               'Recent Activity',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: CScholarTextStyles.poppins(16,
-                                  FontWeight.w700, CScholarColors.textPrimary),
+                              style: CScholarTextStyles.heading(
+                                16,
+                                FontWeight.w700,
+                                CScholarColors.textPrimary,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: CScholarColors.primaryGreenVeryLight,
-                              borderRadius:
-                                  BorderRadius.circular(CScholarRadius.full),
+                              borderRadius: BorderRadius.circular(
+                                CScholarRadius.full,
+                              ),
                             ),
-                            child: Text('Live audit',
-                                style: CScholarTextStyles.inter(10.5,
-                                    FontWeight.w700,
-                                    CScholarColors.primaryGreen)),
+                            child: Text(
+                              'Live audit',
+                              style: CScholarTextStyles.body(
+                                10.5,
+                                FontWeight.w700,
+                                CScholarColors.primaryGreen,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -294,14 +332,11 @@ class AdminDashboardScreen extends ConsumerWidget {
               ],
             ),
           ),
-          error: (_, _) => CScholarCard(
-            padding: const EdgeInsets.all(24),
-            child: EmptyState(
-              icon: Icons.error_outline,
-              title: 'Could not load activity',
-              actionLabel: 'Retry',
-              onAction: () => ref.invalidate(recentActivityProvider),
-            ),
+          error: (_, _) => EmptyState(
+            icon: Icons.error_outline,
+            title: 'Could not load activity',
+            actionLabel: 'Retry',
+            onAction: () => ref.invalidate(recentActivityProvider),
           ),
           data: (items) => CScholarCard(
             padding: const EdgeInsets.all(24),
@@ -323,56 +358,71 @@ class AdminDashboardScreen extends ConsumerWidget {
                 'Recent Activity',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.poppins(
-                    16, FontWeight.w700, CScholarColors.textPrimary),
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: CScholarColors.primaryGreenVeryLight,
                 borderRadius: BorderRadius.circular(CScholarRadius.full),
               ),
-              child: Text('Live audit',
-                  style: CScholarTextStyles.inter(
-                      10.5, FontWeight.w700, CScholarColors.primaryGreen)),
+              child: Text(
+                'Live audit',
+                style: CScholarTextStyles.body(
+                  10.5,
+                  FontWeight.w700,
+                  CScholarColors.primaryGreen,
+                ),
+              ),
             ),
           ],
         ),
         const Divider(color: CScholarMaterial.rim, height: 20),
         if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: Text('No recent activity', style: TextStyle(color: CScholarColors.textSecondary))),
+          const EmptyState(
+            compact: true,
+            icon: Icons.history,
+            title: 'No recent activity',
+            message: 'New submissions and updates will appear here.',
           )
         else
           ...items.asMap().entries.expand((entry) {
-          final idx = entry.key;
-          final item = entry.value;
-          final widgets = <Widget>[];
-          if (idx > 0) {
-            widgets.add(const Divider(color: CScholarMaterial.rim, height: 16));
-          }
-          // Dense feed rows step on the tight rhythm — one gesture, not a
-          // second cascade competing with the page.
-          widgets.add(Stagger(
-            index: idx,
-            step: MotionPitch.tight.step,
-            max: MotionPitch.tight.max,
-            rise: MotionPitch.tight.rise,
-            child: _activityItem(
-              icon: _iconFor(item['icon'] as String? ?? 'info'),
-              iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
-              iconColor: _colorFor(item['icon_color'] as String? ?? '#6B7280'),
-              title: item['title'] as String? ?? '',
-              subtitle: item['subtitle'] as String? ?? '',
-              time: item['time'] as String? ?? '',
-            ),
-          ));
-          return widgets;
-        }),
+            final idx = entry.key;
+            final item = entry.value;
+            final widgets = <Widget>[];
+            if (idx > 0) {
+              widgets.add(
+                const Divider(color: CScholarMaterial.rim, height: 16),
+              );
+            }
+            // Dense feed rows step on the tight rhythm — one gesture, not a
+            // second cascade competing with the page.
+            widgets.add(
+              Stagger(
+                index: idx,
+                step: MotionPitch.tight.step,
+                max: MotionPitch.tight.max,
+                rise: MotionPitch.tight.rise,
+                child: _activityItem(
+                  icon: _iconFor(item['icon'] as String? ?? 'info'),
+                  iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
+                  iconColor: _colorFor(
+                    item['icon_color'] as String? ?? '#6B7280',
+                  ),
+                  title: item['title'] as String? ?? '',
+                  subtitle: item['subtitle'] as String? ?? '',
+                  time: item['time'] as String? ?? '',
+                ),
+              ),
+            );
+            return widgets;
+          }),
       ],
     );
   }
@@ -425,13 +475,34 @@ class AdminDashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
+                Text(
+                  title,
+                  style: CScholarTextStyles.body(
+                    13,
+                    FontWeight.w600,
+                    CScholarColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted)),
+                Text(
+                  subtitle,
+                  style: CScholarTextStyles.body(
+                    11.5,
+                    FontWeight.w400,
+                    CScholarColors.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(time, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textHint)),
+          Text(
+            time,
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w400,
+              CScholarColors.textHint,
+            ),
+          ),
         ],
       ),
     );
@@ -445,7 +516,11 @@ class AdminDashboardScreen extends ConsumerWidget {
         children: [
           Text(
             'Quick Management',
-            style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+            style: CScholarTextStyles.heading(
+              16,
+              FontWeight.w700,
+              CScholarColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
           _managementTile(
@@ -493,14 +568,14 @@ class AdminDashboardScreen extends ConsumerWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(CScholarRadius.lg),
+      borderRadius: BorderRadius.circular(CScholarRadius.xl),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          // A recessed well: the row's shape comes from its tonal fill, not a
-          // drawn outline.
+          // Soft well on the white card: the row's shape comes from its
+          // tonal fill, not a drawn outline.
           color: CScholarMaterial.clayDeep,
-          borderRadius: BorderRadius.circular(CScholarRadius.lg),
+          borderRadius: BorderRadius.circular(CScholarRadius.xl),
         ),
         child: Row(
           children: [
@@ -516,12 +591,30 @@ class AdminDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: CScholarTextStyles.inter(13, FontWeight.w700, CScholarColors.textPrimary)),
-                  Text(subtitle, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textMuted)),
+                  Text(
+                    title,
+                    style: CScholarTextStyles.body(
+                      13,
+                      FontWeight.w700,
+                      CScholarColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: CScholarTextStyles.body(
+                      11,
+                      FontWeight.w400,
+                      CScholarColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: CScholarColors.textHint),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: CScholarColors.textHint,
+            ),
           ],
         ),
       ),

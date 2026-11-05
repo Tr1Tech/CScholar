@@ -22,7 +22,8 @@ class FacultyThesesScreen extends ConsumerStatefulWidget {
   const FacultyThesesScreen({super.key});
 
   @override
-  ConsumerState<FacultyThesesScreen> createState() => _FacultyThesesScreenState();
+  ConsumerState<FacultyThesesScreen> createState() =>
+      _FacultyThesesScreenState();
 }
 
 class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
@@ -65,18 +66,20 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                 children: _filters
                     .asMap()
                     .entries
-                    .map((entry) => Stagger(
-                          index: entry.key,
-                          step: MotionPitch.tight.step,
-                          max: MotionPitch.tight.max,
-                          rise: MotionPitch.tight.rise,
-                          child: ClayChip(
-                            label: entry.value,
-                            selected: _statusFilter == entry.value,
-                            onTap: () =>
-                                setState(() => _statusFilter = entry.value),
-                          ),
-                        ))
+                    .map(
+                      (entry) => Stagger(
+                        index: entry.key,
+                        step: MotionPitch.tight.step,
+                        max: MotionPitch.tight.max,
+                        rise: MotionPitch.tight.rise,
+                        child: ClayChip(
+                          label: entry.value,
+                          selected: _statusFilter == entry.value,
+                          onTap: () =>
+                              setState(() => _statusFilter = entry.value),
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
               const SizedBox(height: 16),
@@ -86,11 +89,19 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                 data: (list) {
                   final filtered = _statusFilter == 'All'
                       ? list
-                      : list.where((t) => t.status.toLowerCase() == _statusFilter.toLowerCase()).toList();
+                      : list
+                            .where(
+                              (t) =>
+                                  t.status.toLowerCase() ==
+                                  _statusFilter.toLowerCase(),
+                            )
+                            .toList();
                   if (filtered.isEmpty) {
                     return EmptyState(
                       icon: Icons.article_outlined,
-                      title: _statusFilter == 'All' ? 'No advised theses yet' : 'No ${_statusFilter.toLowerCase()} theses',
+                      title: _statusFilter == 'All'
+                          ? 'No advised theses yet'
+                          : 'No ${_statusFilter.toLowerCase()} theses',
                       message: _statusFilter == 'All'
                           ? 'Theses you submit or advise will appear here.'
                           : 'Try a different status filter.',
@@ -102,13 +113,15 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                     children: filtered
                         .asMap()
                         .entries
-                        .map((entry) => Stagger(
-                              index: entry.key,
-                              step: MotionPitch.result.step,
-                              max: MotionPitch.result.max,
-                              rise: MotionPitch.result.rise,
-                              child: _thesisCard(context, entry.value),
-                            ))
+                        .map(
+                          (entry) => Stagger(
+                            index: entry.key,
+                            step: MotionPitch.result.step,
+                            max: MotionPitch.result.max,
+                            rise: MotionPitch.result.rise,
+                            child: _thesisCard(context, entry.value),
+                          ),
+                        )
                         .toList(),
                   );
                 },
@@ -144,16 +157,22 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                 children: [
                   Text(
                     t.title,
-                    style: CScholarTextStyles.inter(
-                        14, FontWeight.w700, CScholarColors.textPrimary),
+                    style: CScholarTextStyles.body(
+                      14,
+                      FontWeight.w700,
+                      CScholarColors.textPrimary,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
-                    style: CScholarTextStyles.inter(
-                        12, FontWeight.w400, CScholarColors.textMuted),
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w400,
+                      CScholarColors.textMuted,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -175,8 +194,11 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                       onPressed: () => context.go('/thesis/${t.id}'),
                       child: Text(
                         'View',
-                        style: CScholarTextStyles.inter(
-                            12, FontWeight.w600, CScholarColors.primaryGreen),
+                        style: CScholarTextStyles.body(
+                          12,
+                          FontWeight.w600,
+                          CScholarColors.primaryGreen,
+                        ),
                       ),
                     ),
                     if (mine) ...[
@@ -186,13 +208,20 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                         child: const Text(
                           'Edit',
                           style: TextStyle(
-                              fontSize: 12, color: CScholarColors.orange),
+                            fontSize: 12,
+                            // Violet is the edit affordance: coral sat too
+                            // close to the red of the delete control.
+                            color: CScholarColors.violetInk,
+                          ),
                         ),
                       ),
                       NeumorphIconButton(
                         icon: Icons.delete_outline,
                         size: 36,
                         tooltip: 'Delete draft',
+                        // Red is the delete affordance everywhere, not just on
+                        // the admin lists.
+                        color: CScholarColors.error,
                         onPressed: () => _deleteDraft(context, t),
                       ),
                     ],
@@ -211,12 +240,15 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Delete Draft'),
-        content: Text('Delete "${t.title}"? Published and approved studies can only be removed by an admin.'),
+        content: Text(
+          'Delete "${t.title}"? Published and approved studies can only be removed by an admin.',
+        ),
         actions: [
           NeumorphButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              label: 'Cancel',
-              gel: false),
+            onPressed: () => Navigator.pop(ctx, false),
+            label: 'Cancel',
+            gel: false,
+          ),
           NeumorphButton(
             onPressed: () => Navigator.pop(ctx, true),
             label: 'Delete',
@@ -233,9 +265,12 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
         final stillThere = fresh.any((x) => x.id == t.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(stillThere
+            content: Text(
+              stillThere
                   ? 'Deleted on server, but the list did not refresh — reload the page'
-                  : 'Draft deleted')),
+                  : 'Draft deleted',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -250,14 +285,27 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
     final color = isOwner ? CScholarColors.primaryGreen : CScholarColors.orange;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isOwner ? Icons.upload_file_outlined : Icons.people_outline, size: 12, color: color),
+          Icon(
+            isOwner ? Icons.upload_file_outlined : Icons.people_outline,
+            size: 12,
+            color: color,
+          ),
           const SizedBox(width: 4),
-          Text(isOwner ? 'SUBMITTED BY YOU' : 'ASSIGNED TO YOU',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            isOwner ? 'SUBMITTED BY YOU' : 'ASSIGNED TO YOU',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

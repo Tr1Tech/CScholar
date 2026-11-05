@@ -53,16 +53,12 @@ class NeumorphToggle extends StatelessWidget {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [CScholarMaterial.clayHigh, CScholarMaterial.clay],
-                ),
+                color: CScholarMaterial.clay,
                 border: Border.all(
                   color: on ? CScholarMaterial.gelTop : CScholarMaterial.rim,
                   width: on ? 2 : 1,
                 ),
-                boxShadow: CScholarMaterial.clayDrop(depth: 0.5),
+                boxShadow: CScholarMaterial.softShadow(depth: 0.4),
               ),
             ),
           ),
@@ -81,8 +77,11 @@ class NeumorphToggle extends StatelessWidget {
           Flexible(
             child: Text(
               label!,
-              style: CScholarTextStyles.inter(
-                  13, FontWeight.w500, CScholarMaterial.textPrimary),
+              style: CScholarTextStyles.body(
+                13,
+                FontWeight.w500,
+                CScholarMaterial.textPrimary,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -110,15 +109,19 @@ class NeumorphSegmented extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(CScholarRadius.md);
-    final index = selectedIndex.clamp(0, labels.isEmpty ? 0 : labels.length - 1);
+    final radius = BorderRadius.circular(CScholarRadius.full);
+    final index = selectedIndex.clamp(
+      0,
+      labels.isEmpty ? 0 : labels.length - 1,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = labels.length;
         if (count == 0) return const SizedBox.shrink();
-        final trackWidth =
-            constraints.maxWidth.isFinite ? constraints.maxWidth : count * 110.0;
+        final trackWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : count * 110.0;
         final segment = trackWidth / count;
         final duration = motionEnabled(context)
             ? CScholarDurations.normal
@@ -139,7 +142,7 @@ class NeumorphSegmented extends StatelessWidget {
             width: trackWidth,
             child: Stack(
               children: [
-                  AnimatedPositioned(
+                AnimatedPositioned(
                   duration: duration,
                   curve: CScholarCurves.standard,
                   left: segment * index + 4,
@@ -148,16 +151,9 @@ class NeumorphSegmented extends StatelessWidget {
                   width: segment - 8,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(CScholarRadius.sm),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          CScholarMaterial.clayHigh,
-                          CScholarMaterial.clay,
-                        ],
-                      ),
-                      boxShadow: CScholarMaterial.clayDrop(depth: 0.6),
+                      borderRadius: BorderRadius.circular(CScholarRadius.full),
+                      color: CScholarMaterial.clay,
+                      boxShadow: CScholarMaterial.softShadow(depth: 0.5),
                     ),
                   ),
                 ),
@@ -171,11 +167,9 @@ class NeumorphSegmented extends StatelessWidget {
                           child: Center(
                             child: AnimatedDefaultTextStyle(
                               duration: duration,
-                              style: CScholarTextStyles.inter(
+                              style: CScholarTextStyles.body(
                                 i == index ? 13.5 : 13,
-                                i == index
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                                i == index ? FontWeight.w700 : FontWeight.w500,
                                 i == index
                                     ? CScholarMaterial.textGreen
                                     : CScholarMaterial.textMuted,
@@ -200,7 +194,6 @@ class NeumorphSegmented extends StatelessWidget {
     );
   }
 }
-
 
 /// Recessed dropdown selector — the system's ONE dropdown/select control.
 ///
@@ -236,33 +229,33 @@ class NeumorphSelect<T> extends FormField<T> {
     Color? dropdownColor,
     EdgeInsetsGeometry? contentPadding,
   }) : super(
-          autovalidateMode:
-              autovalidateMode ?? AutovalidateMode.onUserInteraction,
-          builder: (field) {
-            return NeumorphSelectField<T>(
-              value: field.value,
-              items: items,
-              onChanged: (v) {
-                field.didChange(v);
-                onChanged?.call(v);
-              },
-              label: label,
-              hintText: hintText,
-              // An explicit errorText is a screen-level failure and outranks
-              // the validator's complaint — same merge as NeumorphField.
-              errorText: (errorText ?? '').isNotEmpty
-                  ? errorText
-                  : field.errorText,
-              prefixIcon: prefixIcon,
-              isDense: isDense,
-              isExpanded: isExpanded,
-              enabled: enabled,
-              focusNode: focusNode,
-              dropdownColor: dropdownColor,
-              contentPadding: contentPadding,
-            );
-          },
-        );
+         autovalidateMode:
+             autovalidateMode ?? AutovalidateMode.onUserInteraction,
+         builder: (field) {
+           return NeumorphSelectField<T>(
+             value: field.value,
+             items: items,
+             onChanged: (v) {
+               field.didChange(v);
+               onChanged?.call(v);
+             },
+             label: label,
+             hintText: hintText,
+             // An explicit errorText is a screen-level failure and outranks
+             // the validator's complaint — same merge as NeumorphField.
+             errorText: (errorText ?? '').isNotEmpty
+                 ? errorText
+                 : field.errorText,
+             prefixIcon: prefixIcon,
+             isDense: isDense,
+             isExpanded: isExpanded,
+             enabled: enabled,
+             focusNode: focusNode,
+             dropdownColor: dropdownColor,
+             contentPadding: contentPadding,
+           );
+         },
+       );
 }
 
 /// Controlled half of [NeumorphSelect]: renders [value], reports picks through
@@ -300,8 +293,7 @@ class NeumorphSelectField<T> extends StatefulWidget {
   final EdgeInsetsGeometry? contentPadding;
 
   @override
-  State<NeumorphSelectField<T>> createState() =>
-      _NeumorphSelectFieldState<T>();
+  State<NeumorphSelectField<T>> createState() => _NeumorphSelectFieldState<T>();
 }
 
 class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
@@ -348,12 +340,11 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
     final disabled = !widget.enabled;
     final error = widget.errorText;
     final hasError = (error ?? '').isNotEmpty;
-    final radius = BorderRadius.circular(CScholarRadius.md);
+    final radius = BorderRadius.circular(CScholarRadius.well);
 
     // The caret turns 180 degrees while the menu is up and settles back on
     // close — a transform, so layout never moves. Reduced motion gets no turn.
-    final menuOpen =
-        _tapped && !(ModalRoute.of(context)?.isCurrent ?? true);
+    final menuOpen = _tapped && !(ModalRoute.of(context)?.isCurrent ?? true);
 
     // No outline at rest: the tonal well IS the affordance (see NeumorphField).
     // Focus, error and the high-contrast fallback all draw the same 1.5px rim.
@@ -362,10 +353,10 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
     final Color? borderColor = flat
         ? CScholarMaterial.rimStrong
         : hasError
-            ? CScholarColors.error
-            : focused
-                ? CScholarMaterial.gelTop
-                : null;
+        ? CScholarColors.error
+        : focused
+        ? CScholarMaterial.gelTop
+        : null;
 
     return Opacity(
       opacity: disabled ? 0.5 : 1,
@@ -376,7 +367,7 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
           if (widget.label != null) ...[
             Text(
               widget.label!.toUpperCase(),
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                 11,
                 FontWeight.w700,
                 CScholarMaterial.textMuted,
@@ -387,7 +378,7 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
           ],
           DecoratedBox(
             decoration: BoxDecoration(
-              color: CScholarMaterial.clayDeep,
+              color: CScholarMaterial.well,
               borderRadius: radius,
               border: borderColor == null
                   ? null
@@ -396,7 +387,8 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
                   : Border.all(color: borderColor, width: 1.5),
             ),
             child: Padding(
-                padding: widget.contentPadding ??
+              padding:
+                  widget.contentPadding ??
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: Row(
                 children: [
@@ -440,14 +432,14 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
                         hint: widget.hintText != null
                             ? Text(
                                 widget.hintText!,
-                                style: CScholarTextStyles.inter(
+                                style: CScholarTextStyles.body(
                                   13.5,
                                   FontWeight.w400,
                                   CScholarMaterial.textFaint,
                                 ),
                               )
                             : null,
-                        style: CScholarTextStyles.inter(
+                        style: CScholarTextStyles.body(
                           14,
                           FontWeight.w400,
                           CScholarMaterial.textPrimary,
@@ -465,7 +457,7 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
             const SizedBox(height: 6),
             Text(
               error!,
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                 12,
                 FontWeight.w500,
                 CScholarColors.error,
@@ -477,4 +469,3 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
     );
   }
 }
-

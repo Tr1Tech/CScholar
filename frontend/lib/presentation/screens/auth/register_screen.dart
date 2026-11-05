@@ -92,14 +92,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Text(
               'Create your account',
               textAlign: TextAlign.center,
-              style: CScholarTextStyles.poppins(
+              style: CScholarTextStyles.heading(
                   26, FontWeight.w800, CScholarColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               'Register using your CSU institutional credentials',
               textAlign: TextAlign.center,
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                   13.5, FontWeight.w400, CScholarColors.textMuted),
             ),
             const SizedBox(height: 20),
@@ -264,7 +264,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   child: Text('Already have an account?',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.inter(13,
+                      style: CScholarTextStyles.body(13,
                           FontWeight.w400, CScholarColors.textMuted)),
                 ),
                 Flexible(
@@ -273,7 +273,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     child: Text('Sign In',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.inter(13,
+                        style: CScholarTextStyles.body(13,
                             FontWeight.w700, CScholarColors.primaryGreen)),
                   ),
                 ),

@@ -111,21 +111,21 @@ class _NeumorphBaseState extends State<_NeumorphBase>
     final target = _disabled
         ? _kRest
         : (widget.previewState == NeumorphState.pressed || _down)
-            ? _kPressed
-            : (_hover || widget.previewState == NeumorphState.hover)
-                ? _kHover
-                : _kRest;
+        ? _kPressed
+        : (_hover || widget.previewState == NeumorphState.hover)
+        ? _kHover
+        : _kRest;
     if (!motionEnabled(context)) {
       _c.value = target;
       return;
     }
     final pressing = target > _c.value;
     if (target == _kPressed || _c.value == _kPressed) {
-      _c.duration =
-          pressing ? CScholarDurations.fast : CScholarMotion.swap;
-      _c.animateTo(target,
-          curve:
-              pressing ? CScholarCurves.standard : CScholarCurves.overshoot);
+      _c.duration = pressing ? CScholarDurations.fast : CScholarMotion.swap;
+      _c.animateTo(
+        target,
+        curve: pressing ? CScholarCurves.standard : CScholarCurves.overshoot,
+      );
     } else {
       _c.duration = CScholarMotion.micro;
       _c.animateTo(target, curve: CScholarCurves.standard);
@@ -140,9 +140,15 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 
   BoxDecoration _decoration(double t) {
     if (widget.gel) {
-      final top = widget.danger ? CScholarColors.error : CScholarMaterial.gelTop;
+      final top = widget.danger
+          ? CScholarColors.error
+          : CScholarMaterial.gelTop;
       final bottom = widget.danger
-          ? Color.lerp(CScholarColors.error, CScholarMaterial.textPrimary, 0.22)!
+          ? Color.lerp(
+              CScholarColors.error,
+              CScholarMaterial.textPrimary,
+              0.22,
+            )!
           : CScholarMaterial.gelBottom;
       final deep = widget.danger
           ? Color.lerp(CScholarColors.error, CScholarMaterial.textPrimary, 0.4)!
@@ -153,46 +159,29 @@ class _NeumorphBaseState extends State<_NeumorphBase>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color.lerp(top, bottom, 0.25 + 0.65 * t)!,
+            Color.lerp(top, bottom, 0.2 + 0.6 * t)!,
             Color.lerp(bottom, deep, t)!,
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: CScholarMaterial.shadowDark.withValues(alpha: 0.30 * (1 - t)),
-            blurRadius: 14 * (1 - t) + 2,
-            offset: Offset(0, 6 * (1 - t)),
-            spreadRadius: -2,
-          ),
-        ],
+        // Pressing lifts the card's shadow away instead of adding an inset.
+        boxShadow: t > 0.5
+            ? CScholarMaterial.softShadow(depth: 0.35)
+            : CScholarMaterial.softShadow(depth: 0.8),
       );
     }
     return BoxDecoration(
       borderRadius: BorderRadius.circular(widget.radius),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color.lerp(CScholarMaterial.clayHigh, CScholarMaterial.clayDeep, t)!,
-          Color.lerp(CScholarMaterial.clay, CScholarMaterial.clayDeep, t)!,
-        ],
-      ),
+      color: CScholarMaterial.clay,
       border: Border.all(
         color: Color.lerp(CScholarMaterial.rim, CScholarMaterial.rimStrong, t)!,
       ),
-      boxShadow: [
-        BoxShadow(
-          color: CScholarMaterial.shadowDark.withValues(alpha: 0.40 * (1 - t)),
-          blurRadius: 14 * (1 - t) + 2,
-          offset: Offset(0, 7 * (1 - t)),
-          spreadRadius: -4,
-        ),
-      ],
+      boxShadow: t > 0.5
+          ? CScholarMaterial.softShadow(depth: 0.25)
+          : CScholarMaterial.softShadow(depth: 0.5),
     );
   }
 
-  /// Focus must be visible: neumorphism has no visible focus by default, and
-  /// this is a web app driven by Tab + Enter.
+  /// Focus must be visible: this is a web app driven by Tab + Enter.
   Widget _focusRing(Widget child) {
     if (!_isFocused) return child;
     return Container(
@@ -200,7 +189,7 @@ class _NeumorphBaseState extends State<_NeumorphBase>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(widget.radius + 5),
         border: Border.all(
-          color: CScholarMaterial.gelTop.withValues(alpha: 0.45),
+          color: CScholarMaterial.gelTop.withValues(alpha: 0.6),
           width: 2,
         ),
       ),
@@ -235,7 +224,8 @@ class _NeumorphBaseState extends State<_NeumorphBase>
               // The release overshoot may push [t] a hair past its target;
               // that transient IS the spring, so it is not clamped away.
               offset: Offset(0, 1.5 * t),
-              child: widget.child,
+              // Tactile micro-feedback from the brief: scale(0.96) on press.
+              child: Transform.scale(scale: 1 - 0.04 * t, child: widget.child),
             ),
           ),
         );
@@ -269,6 +259,9 @@ class _NeumorphBaseState extends State<_NeumorphBase>
               button: true,
               enabled: !_disabled,
               label: widget.semanticLabel,
+              // The child already paints the same words; without this a screen
+              // reader announces the label twice ("Add User Add User").
+              excludeSemantics: widget.semanticLabel != null,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: _disabled
@@ -326,14 +319,15 @@ class NeumorphButton extends StatelessWidget {
   /// Width of [text] in the button label style, so the swap slot can reserve
   /// the wider face. A fixed [SizedBox] from a build-time measurement keeps
   /// the width stable without ever animating layout.
-  static double _textWidth(
-      BuildContext context, String text, TextStyle style) {
+  static double _textWidth(BuildContext context, String text, TextStyle style) {
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-    final width = painter.width;
+    // Ceil: a fractional width rounds down inside a tight box and clips the
+    // last glyph. The slot is a floor, never a ceiling (see the caller).
+    final width = painter.width.ceilToDouble();
     painter.dispose();
     return width;
   }
@@ -342,25 +336,26 @@ class NeumorphButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isGel = gel || danger;
     final foreground = isGel ? Colors.white : CScholarMaterial.textPrimary;
-    final labelStyle =
-        CScholarTextStyles.inter(14, FontWeight.w600, foreground);
+    final labelStyle = CScholarTextStyles.body(14, FontWeight.w700, foreground);
     // Icon glyph (18px) plus its 8px gap; the sweep plus its 8px gap.
     final labelFace =
         _textWidth(context, label, labelStyle) + (icon != null ? 26 : 0);
-    final savingFace =
-        _textWidth(context, 'Saving…', labelStyle) + 48 + 8;
+    final savingFace = _textWidth(context, 'Saving…', labelStyle) + 48 + 8;
     final slotWidth = labelFace > savingFace ? labelFace : savingFace;
     final button = _NeumorphBase(
-      radius: CScholarRadius.md,
+      radius: CScholarRadius.full,
       gel: isGel,
       danger: danger,
       onTap: loading ? null : onPressed,
       previewState: previewState,
       semanticLabel: label,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-        child: SizedBox(
-          width: slotWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        // A minimum, not a fixed width: the swap keeps its stable slot, but a
+        // label that measures wider than the slot (web fonts land after the
+        // first build) grows the button instead of ellipsizing.
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: slotWidth),
           child: AnimatedSwap(
             style: SwapStyle.swap,
             child: loading
@@ -372,8 +367,9 @@ class NeumorphButton extends StatelessWidget {
                       SizedBox(
                         width: 48,
                         child: ClayLoader(
-                            height: 5,
-                            tint: isGel ? Colors.white : null),
+                          height: 5,
+                          tint: isGel ? Colors.white : null,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Flexible(
@@ -430,6 +426,8 @@ class NeumorphIconButton extends StatelessWidget {
     this.previewState,
     this.selectedIcon,
     this.selected = false,
+    this.color,
+    this.selectedColor,
   });
 
   final IconData icon;
@@ -445,9 +443,22 @@ class NeumorphIconButton extends StatelessWidget {
   /// Which glyph shows when [selectedIcon] is set.
   final bool selected;
 
+  /// Glyph hue. Defaults to the ink every control has always used; a row
+  /// action passes its semantic colour (edit, delete) so the meaning reads
+  /// before the tooltip does.
+  final Color? color;
+
+  /// Glyph hue while [selectedIcon] is showing, for two-meaning toggles.
+  final Color? selectedColor;
+
   @override
   Widget build(BuildContext context) {
-    final foreground = gel ? Colors.white : CScholarMaterial.textPrimary;
+    final foreground = gel
+        ? Colors.white
+        : (color ?? CScholarMaterial.textPrimary);
+    final selectedForeground = gel
+        ? Colors.white
+        : (selectedColor ?? foreground);
     final glyph = selectedIcon == null
         ? Icon(icon, size: size * 0.42, color: foreground)
         : MorphIcon(
@@ -455,7 +466,7 @@ class NeumorphIconButton extends StatelessWidget {
             selectedIcon: selectedIcon!,
             selected: selected,
             color: foreground,
-            selectedColor: foreground,
+            selectedColor: selectedForeground,
             size: size * 0.42,
           );
     final button = _NeumorphBase(
@@ -466,16 +477,14 @@ class NeumorphIconButton extends StatelessWidget {
       semanticLabel: tooltip,
       // Square tile, so the 90-degree press turn reads as the glyph turning.
       spinContent: true,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: glyph,
-      ),
+      child: SizedBox(width: size, height: size, child: glyph),
     );
     if (tooltip == null) return button;
-    return Tooltip(message: tooltip!, child: button);
+    // The base already carries the tooltip as its semantic label.
+    return Tooltip(
+      message: tooltip!,
+      excludeFromSemantics: true,
+      child: button,
+    );
   }
 }
-
-
-

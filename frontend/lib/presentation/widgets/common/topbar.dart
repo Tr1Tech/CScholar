@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
-import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 
 /// Shared topbar chrome for every role shell (admin / faculty / student).
 ///
@@ -12,6 +11,12 @@ import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 ///
 ///   * search  -> a recessed clay well  ("input fields are wells", never white)
 ///   * identity-> a raised clay pill + gel avatar
+///
+/// It also stays transparent once content scrolls under it: seating it would
+/// stretch a clay plate across the whole page width, which on a bar holding a
+/// single pill is an empty white band, and on the search bars frames one well
+/// and one pill with a strip of nothing. The controls keep their own material,
+/// so they stay legible with rows passing beneath them.
 ///
 /// Glass is deliberately NOT used here. Glass pays for itself when there is
 /// content behind it to blur; above a flat canvas it is pure cost and looks
@@ -30,25 +35,7 @@ class Topbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Seated: once content scrolls past the enclosing ScrollVeil's trigger,
-    // the bar gains a clay fill, a bottom rim and a deeper shadow — a
-    // colour/shadow change over micro, never a height change. At rest the bar
-    // stays transparent: above a flat canvas with nothing behind it, a fill
-    // would be a second surface with nothing to seat on. Reads the scope the
-    // shell wraps around the whole content column, because a listener can only
-    // hear a scrollable it is an ANCESTOR of — the bar sits beside it.
-    final seated = ScrollVeil.seatedOf(context) ?? false;
-    return AnimatedContainer(
-      duration: motionDuration(context, CScholarMotion.micro),
-      decoration: BoxDecoration(
-        color: seated ? CScholarMaterial.clay : Colors.transparent,
-        border: Border(
-          bottom: BorderSide(
-            color: seated ? CScholarMaterial.rim : Colors.transparent,
-          ),
-        ),
-        boxShadow: seated ? CScholarMaterial.clayDrop(depth: 1) : null,
-      ),
+    return Padding(
       padding: padding,
       child: Row(
         children: [
@@ -94,26 +81,38 @@ class TopbarSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final flat = MediaQuery.highContrastOf(context);
-    final radius = BorderRadius.circular(CScholarRadius.full);
+    final radius = BorderRadius.circular(CScholarRadius.well);
 
     final field = TextField(
       controller: controller,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
-      style: CScholarTextStyles.inter(
-          13.5, FontWeight.w400, CScholarColors.textPrimary),
+      style: CScholarTextStyles.body(
+        13.5,
+        FontWeight.w400,
+        CScholarColors.textPrimary,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle:
-            CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textHint),
-        prefixIcon: const Icon(Icons.search,
-            size: 20, color: CScholarColors.textSecondary),
+        hintStyle: CScholarTextStyles.body(
+          13.5,
+          FontWeight.w400,
+          CScholarColors.textHint,
+        ),
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: CScholarColors.textSecondary,
+        ),
         suffixIcon: onClear == null
             ? null
             : IconButton(
                 tooltip: 'Clear search',
-                icon: const Icon(Icons.clear,
-                    size: 18, color: CScholarColors.textSecondary),
+                icon: const Icon(
+                  Icons.clear,
+                  size: 18,
+                  color: CScholarColors.textSecondary,
+                ),
                 onPressed: onClear,
               ),
         // The well's fill and rim are painted by the Container below.
@@ -122,8 +121,10 @@ class TopbarSearchField extends StatelessWidget {
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 11,
+        ),
       ),
     );
 
@@ -133,7 +134,7 @@ class TopbarSearchField extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Container(
           decoration: BoxDecoration(
-            color: CScholarMaterial.clayDeep,
+            color: CScholarMaterial.well,
             borderRadius: radius,
             // No outline at rest — the tonal fill is the field. High contrast
             // keeps a strong rim as its fallback.
@@ -190,7 +191,7 @@ class TopbarUserPill extends StatelessWidget {
           color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
           width: flat ? 1.5 : 1,
         ),
-        boxShadow: flat ? null : CScholarMaterial.clayDrop(depth: 0.5),
+        boxShadow: flat ? null : CScholarMaterial.softShadow(depth: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -198,9 +199,9 @@ class TopbarUserPill extends StatelessWidget {
           heroAvatar
               ? Hero(
                   tag: userAvatarHeroTag,
-                  child: GelAvatar(name: label, size: 32),
+                  child: CScholarHeaderAvatar(name: label, size: 32),
                 )
-              : GelAvatar(name: label, size: 32),
+              : CScholarHeaderAvatar(name: label, size: 32),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,17 +209,63 @@ class TopbarUserPill extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: CScholarTextStyles.inter(
-                    12.5, FontWeight.w700, CScholarMaterial.textPrimary),
+                style: CScholarTextStyles.body(
+                  12.5,
+                  FontWeight.w700,
+                  CScholarMaterial.textPrimary,
+                ),
               ),
               Text(
                 role,
-                style: CScholarTextStyles.inter(
-                    10.5, FontWeight.w500, CScholarMaterial.textMuted),
+                style: CScholarTextStyles.body(
+                  10.5,
+                  FontWeight.w500,
+                  CScholarMaterial.textMuted,
+                ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Topbar identity avatar: soft coral circle with green initials.
+class CScholarHeaderAvatar extends StatelessWidget {
+  const CScholarHeaderAvatar({
+    super.key,
+    required this.name,
+    required this.size,
+  });
+
+  final String name;
+  final double size;
+
+  String get _initials {
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: CScholarColors.goldSoft,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _initials,
+        style: CScholarTextStyles.body(
+          size * 0.32,
+          FontWeight.w800,
+          CScholarColors.primaryGreen,
+        ),
       ),
     );
   }

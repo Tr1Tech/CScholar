@@ -47,6 +47,7 @@ dependencies:
   hooks_riverpod: ^3.4.3
   riverpod: ^3.4.3
   file_picker: ^13.1.0
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:

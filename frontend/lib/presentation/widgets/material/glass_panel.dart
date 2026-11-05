@@ -1,32 +1,22 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 
-/// Wraps a subtree so that every [GlassPanel] inside it shares ONE blur pass.
-///
-/// Put this around any screen that shows more than one glass layer (topbar +
-/// rail + hero search). Flutter's engine then filters the backdrop once
-/// instead of once per panel.
+/// Formerly a blur group. Soft UI v4 retires glass, so this is a pass-through
+/// kept so callers compile.
 class GlassGroup extends StatelessWidget {
   const GlassGroup({super.key, required this.child});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => BackdropGroup(child: child);
+  Widget build(BuildContext context) => child;
 }
 
-/// Dialog shell — dialogs are floating chrome, so per the fusion law they are
-/// glass: one shared recipe (fill, rim, blur, kill switch, high-contrast
-/// fallback) instead of thirteen hand-styled AlertDialogs.
-///
-/// Same slots as [AlertDialog] (title / content / actions), so migrating a
-/// site is mechanical: move the three slots across untouched. Content keeps
-/// its own width (the SizedBox the AlertDialog had); the shell only sizes to
-/// it. Actions lay out end-aligned like AlertDialog's button row.
+/// Dialog shell — dialogs are floating chrome, so they get the shared solid
+/// surface + overlay shadow recipe. Same slots as [AlertDialog] (title /
+/// content / actions), so migrating a site stays mechanical.
 class GlassDialog extends StatelessWidget {
   const GlassDialog({
     super.key,
@@ -46,64 +36,60 @@ class GlassDialog extends StatelessWidget {
       elevation: 0,
       insetPadding:
           const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-      child: GlassPanel(
-        radius: CScholarRadius.xl,
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title != null) ...[
-              title!,
-              const SizedBox(height: 12),
-            ],
-            content,
-            if (actions.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < actions.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 8),
-                    // The action row staggers by 30ms (a quarter of the micro
-                    // budget, derived from the token — the literal lives in
-                    // cscholar_constants) so the buttons land after the panel
-                    // does: the dialog opens as one motion, not a wall of
-                    // buttons arriving at once.
-                    EntranceReveal(
-                      delay: CScholarMotion.micro ~/ 4,
-                      rise: 6,
-                      child: actions[i],
-                    ),
+      // A Dialog gives its child the whole window; a text field's intrinsic
+      // width then stretches every form dialog edge to edge. Cap the surface
+      // at a comfortable reading width (AlertDialog's own 560 is close).
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: GlassPanel(
+          radius: CScholarRadius.softSheet,
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (title != null) ...[
+                title!,
+                const SizedBox(height: 12),
+              ],
+              content,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      // The action row staggers by 30ms (a quarter of the micro
+                      // budget, derived from the token) so the buttons land after
+                      // the panel does: the dialog opens as one motion.
+                      EntranceReveal(
+                        delay: CScholarMotion.micro ~/ 4,
+                        rise: 6,
+                        child: actions[i],
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Glass panel — chrome and overlays only (topbar, nav rail, sticky search,
-/// dialogs, sheets). Never inside a scrolling list item: blur cost scales
-/// with the number of blurred layers.
+/// Floating panel — chrome and overlays only (dialogs, sheets, sticky bars).
 ///
-/// Dialogs use the shared [GlassDialog] shell above rather than calling this
-/// directly, so every dialog gets the same surface, padding and action row.
-///
-/// Text safety: glass that carries text must sit on the >= .55 white fill
-/// ([glassChrome]). Below that, treat the glass as decoration only.
-///
-/// Degrades automatically to a solid clay surface with a strong rim when:
-///   * `MediaQuery.highContrastOf(context)` is true, or
-///   * [CScholarMaterial.glassEnabled] is false (low-power mode).
+/// Soft UI v4: a solid near-white surface, a hairline and a deep diffuse
+/// shadow. No backdrop blur. High contrast swaps in the strong rim and drops
+/// the shadow.
 class GlassPanel extends StatelessWidget {
   const GlassPanel({
     super.key,
     required this.child,
-    this.radius = CScholarRadius.xl,
+    this.radius = CScholarRadius.softCard,
     this.fill = CScholarMaterial.glassChrome,
     this.blur = CScholarMaterial.blurChrome,
     this.padding = const EdgeInsets.all(16),
@@ -114,91 +100,32 @@ class GlassPanel extends StatelessWidget {
   final Widget child;
   final double radius;
   final Color fill;
+
+  /// Retained for API compatibility; unused.
   final double blur;
   final EdgeInsetsGeometry padding;
   final bool lifted;
 
-  /// Overrides the default lifted shadow. Pass `const []` for a flush panel, or
-  /// a bespoke list when the glass sits on a dark hero: there the sage-tinted
-  /// default reads as soot, so the hero casts its own deep-green shadow.
+  /// Overrides the default lifted shadow. Pass `const []` for a flush panel.
   final List<BoxShadow>? shadows;
 
   @override
   Widget build(BuildContext context) {
-    final flat = !CScholarMaterial.glassEnabled || MediaQuery.highContrastOf(context);
+    final flat = MediaQuery.highContrastOf(context);
     final borderRadius = BorderRadius.circular(radius);
 
-    if (flat) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: CScholarMaterial.clay,
-          borderRadius: borderRadius,
-          border: Border.all(color: CScholarMaterial.rimStrong),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: flat ? CScholarMaterial.clay : fill,
+        borderRadius: borderRadius,
+        border: Border.all(
+          color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
         ),
-        child: Padding(padding: padding, child: child),
-      );
-    }
-
-    // The rim is painted OUTSIDE the clip, otherwise ClipRRect halves it.
-    final inner = ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter.grouped(
-        filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: fill, borderRadius: borderRadius),
-          child: Stack(
-            children: [
-              // specular sheen: white from the top, fading out
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: borderRadius,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [CScholarMaterial.glassSpecular, Colors.transparent],
-                        stops: [0, 0.55],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(padding: padding, child: child),
-            ],
-          ),
-        ),
+        boxShadow: flat || !lifted
+            ? null
+            : (shadows ?? CScholarMaterial.overlay),
       ),
-    );
-
-    final sheathed = BackdropGroup.of(context) == null
-        // Standalone panel: establish its own group so `.grouped` always has
-        // an ancestor to bind to.
-        ? BackdropGroup(child: inner)
-        : inner;
-
-    return RepaintBoundary(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          border: Border.all(color: CScholarMaterial.glassRim),
-          boxShadow: shadows ??
-              (lifted
-                  ? [
-                      // Tinted, never black: glass still floats on the sage
-                      // canvas, and a black-alpha shadow there reads as dirt
-                      // rather than depth. Same law as clayDrop.
-                      BoxShadow(
-                        color: CScholarMaterial.shadowDark.withValues(alpha: 0.42),
-                        blurRadius: 28,
-                        offset: const Offset(0, 10),
-                        spreadRadius: -10,
-                      ),
-                    ]
-                  : null),
-        ),
-        child: sheathed,
-      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }

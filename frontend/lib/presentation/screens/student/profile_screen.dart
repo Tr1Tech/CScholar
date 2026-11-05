@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
@@ -9,10 +11,11 @@ import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
-import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -22,8 +25,17 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final savedTheses = ref.watch(savedThesesProvider);
+
+    if (MobileStudentScaffold.useMobileShell(context)) {
+      return StudentLayout(
+        currentIndex: 3,
+        heroAvatar: false,
+        child: _mobileBody(context, ref, user, savedTheses),
+      );
+    }
+
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 900;
+    final isDesktop = size.width > CScholarBreakpoints.wide;
 
     return StudentLayout(
       currentIndex: 3,
@@ -47,7 +59,9 @@ class ProfileScreen extends ConsumerWidget {
                   action: NeumorphButton(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile edit mode enabled.')),
+                        const SnackBar(
+                          content: Text('Profile edit mode enabled.'),
+                        ),
                       );
                     },
                     icon: Icons.edit_outlined,
@@ -65,7 +79,10 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           Expanded(flex: 7, child: _leftColumn(user)),
                           const SizedBox(width: 24),
-                          Expanded(flex: 4, child: _rightColumn(context, savedTheses)),
+                          Expanded(
+                            flex: 4,
+                            child: _rightColumn(context, savedTheses),
+                          ),
                         ],
                       )
                     : Column(
@@ -84,30 +101,231 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  /// Mobile Profile (`cscholar-mobile-ui/src/App.tsx:905-953`): hero,
+  /// stats, menu list. No `RoleSwitcher` — mobile is student-only.
+  Widget _mobileBody(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic user,
+    AsyncValue<List<Thesis>> savedTheses,
+  ) {
+    final t = CScholarMobileTheme.of(context);
+    final saved = savedTheses.value ?? const <Thesis>[];
+    String initials = 'AS';
+    final name = (user?.username ?? '').toString().trim();
+    if (name.isNotEmpty) {
+      final parts = name
+          .split(RegExp(r'\s+'))
+          .where((p) => p.isNotEmpty)
+          .toList();
+      if (parts.length == 1) {
+        initials = parts.first
+            .substring(0, parts.first.length >= 2 ? 2 : 1)
+            .toUpperCase();
+      } else {
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 106),
+      child: StaggerColumn(
+        pitch: MotionPitch.page,
+        children: [
+          Column(
+            children: [
+              Hero(
+                tag: userAvatarHeroTag,
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: CScholarMobileColors.green,
+                    borderRadius: BorderRadius.circular(23),
+                    boxShadow: CScholarMaterial.gelDrop(depth: 0.9),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    initials,
+                    style: t.manrope(20, FontWeight.w800, CScholarColors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 13),
+              Text(
+                name.isEmpty ? 'Alex Santos' : name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: t.manrope(21, FontWeight.w700, t.ink),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                (user?.email ?? '').toString().isEmpty
+                    ? 'BS Computer Science · 4th year'
+                    : (user?.email ?? '').toString(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: t.dmSans(10, FontWeight.w400, t.muted),
+              ),
+              const SizedBox(height: 9),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: t.mint,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Student',
+                  style: t.dmSans(
+                    8,
+                    FontWeight.w800,
+                    t.green,
+                    height: 1.2,
+                    letterSpacing: 0.64,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: t.line),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _profileStat(context, '${saved.length}', 'Saved'),
+                ),
+                _profileDivider(context),
+                Expanded(child: _profileStat(context, '12', 'Viewed')),
+                _profileDivider(context),
+                Expanded(child: _profileStat(context, '3', 'Topics')),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: t.line),
+                bottom: BorderSide(color: t.line),
+              ),
+            ),
+            child: Column(
+              children: [
+                _profileMenuItem(
+                  context,
+                  icon: Icons.person_outline,
+                  label: 'Personal information',
+                  onTap: () =>
+                      MobileToast.show(context, 'Profile edit mode enabled.'),
+                ),
+                _profileMenuItem(
+                  context,
+                  icon: Icons.settings_outlined,
+                  label: 'Preferences',
+                  onTap: () =>
+                      MobileToast.show(context, 'Preferences coming soon.'),
+                  last: true,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileStat(BuildContext context, String value, String label) {
+    final t = CScholarMobileTheme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 13),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.manrope(15, FontWeight.w700, t.ink),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: t.dmSans(9, FontWeight.w400, t.muted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileDivider(BuildContext context) {
+    final t = CScholarMobileTheme.of(context);
+    return Container(width: 1, height: 40, color: t.line);
+  }
+
+  Widget _profileMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool last = false,
+  }) {
+    final t = CScholarMobileTheme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          border: last ? null : Border(bottom: BorderSide(color: t.line)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 19, color: t.ink),
+                  const SizedBox(width: 11),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.dmSans(11, FontWeight.w600, t.ink),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: t.muted),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _leftColumn(dynamic user) {
     return Column(
       children: [
         // 1. User Identity Profile Card
         ClaySurface(
-          radius: CScholarRadius.xxl,
           padding: EdgeInsets.zero,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(CScholarRadius.xxl),
+            borderRadius: BorderRadius.circular(CScholarRadius.softCard),
             child: Column(
               children: [
-                // Gradient Accent Bar at Top
-                Container(
-                  height: 7,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        CScholarColors.primaryGreen,
-                        CScholarMaterial.gelHigh,
-                        CScholarColors.gold,
-                      ],
-                    ),
-                  ),
-                ),
                 Padding(
                   padding: const EdgeInsets.all(26),
                   child: Row(
@@ -115,10 +333,28 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       // Avatar — the target of the shell avatar's hero, so the
                       // identity appears to travel from the top bar into the
-                      // card when the profile opens.
+                      // card when the profile opens. Mobile treatment: green
+                      // rounded square with white initials.
                       Hero(
                         tag: userAvatarHeroTag,
-                        child: GelAvatar(name: user?.username ?? '', size: 88),
+                        child: Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            color: CScholarColors.primaryGreen,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: CScholarMaterial.gelDrop(depth: 0.8),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            _initialsOf(user?.username ?? ''),
+                            style: CScholarTextStyles.heading(
+                              26,
+                              FontWeight.w800,
+                              CScholarColors.white,
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 24),
                       // General Info
@@ -128,22 +364,45 @@ class ProfileScreen extends ConsumerWidget {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  user?.username ?? '',
-                                  style: CScholarTextStyles.poppins(20, FontWeight.w700, CScholarColors.textPrimary),
+                                // The role chip is a non-flex sibling, so the
+                                // name must be allowed to ellipsize; otherwise
+                                // a long name at 200% text overflows the row.
+                                Flexible(
+                                  child: Text(
+                                    user?.username ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: CScholarTextStyles.heading(
+                                      20,
+                                      FontWeight.w700,
+                                      CScholarColors.textPrimary,
+                                    ),
+                                  ),
                                 ),
                                 if ((user?.role ?? '').isNotEmpty) ...[
                                   const SizedBox(width: 10),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: CScholarColors.primaryGreenVeryLight,
-                                      borderRadius: BorderRadius.circular(CScholarRadius.full),
-                                      border: Border.all(color: CScholarMaterial.rimPublished),
+                                      color:
+                                          CScholarColors.primaryGreenVeryLight,
+                                      borderRadius: BorderRadius.circular(
+                                        CScholarRadius.full,
+                                      ),
+                                      border: Border.all(
+                                        color: CScholarMaterial.rimPublished,
+                                      ),
                                     ),
                                     child: Text(
                                       _roleLabel(user?.role),
-                                      style: CScholarTextStyles.inter(11, FontWeight.w700, CScholarColors.primaryGreen),
+                                      style: CScholarTextStyles.body(
+                                        11,
+                                        FontWeight.w700,
+                                        CScholarColors.primaryGreen,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -152,7 +411,11 @@ class ProfileScreen extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Text(
                               user?.email ?? '',
-                              style: CScholarTextStyles.inter(13.5, FontWeight.w400, CScholarColors.textSecondary),
+                              style: CScholarTextStyles.body(
+                                13.5,
+                                FontWeight.w400,
+                                CScholarColors.textSecondary,
+                              ),
                             ),
                             if (user != null) ...[
                               const SizedBox(height: 16),
@@ -169,7 +432,9 @@ class ProfileScreen extends ConsumerWidget {
                                   ),
                                   _infoPill(
                                     Icons.verified_user_outlined,
-                                    user.isActive ? 'Account active' : 'Account inactive',
+                                    user.isActive
+                                        ? 'Account active'
+                                        : 'Account inactive',
                                     CScholarColors.primaryGreenVeryLight,
                                     CScholarMaterial.textGreen,
                                   ),
@@ -196,7 +461,11 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 'Account Information',
-                style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary),
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 16),
               const Divider(color: CScholarMaterial.rim, height: 1),
@@ -206,9 +475,15 @@ class ProfileScreen extends ConsumerWidget {
               const Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Email', user?.email ?? ''),
               const Divider(color: CScholarMaterial.rim, height: 1),
-              _academicRow('Status', user == null ? '' : (user.isActive ? 'Active' : 'Inactive')),
+              _academicRow(
+                'Status',
+                user == null ? '' : (user.isActive ? 'Active' : 'Inactive'),
+              ),
               const Divider(color: CScholarMaterial.rim, height: 1),
-              _academicRow('Member Since', user == null ? '' : _formatDate(user.createdAt)),
+              _academicRow(
+                'Member Since',
+                user == null ? '' : _formatDate(user.createdAt),
+              ),
             ],
           ),
         ),
@@ -216,13 +491,14 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _rightColumn(BuildContext context, AsyncValue<List<Thesis>> savedTheses) {
+  Widget _rightColumn(
+    BuildContext context,
+    AsyncValue<List<Thesis>> savedTheses,
+  ) {
     return Column(
       children: [
         // Saved Studies Widget
-        CScholarCard(
-          child: _savedStudiesList(savedTheses, context),
-        ),
+        CScholarCard(child: _savedStudiesList(savedTheses, context)),
 
         const SizedBox(height: 20),
 
@@ -233,12 +509,18 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               Text(
                 'Recent Searches',
-                style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
+                style: CScholarTextStyles.heading(
+                  15,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'No recent searches',
-                style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+              const EmptyState(
+                compact: true,
+                icon: Icons.search,
+                title: 'No recent searches',
+                message: 'Your latest queries will appear here.',
               ),
             ],
           ),
@@ -247,7 +529,10 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _savedStudiesList(AsyncValue<List<Thesis>> savedTheses, BuildContext context) {
+  Widget _savedStudiesList(
+    AsyncValue<List<Thesis>> savedTheses,
+    BuildContext context,
+  ) {
     final saved = savedTheses.value ?? const <Thesis>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +545,11 @@ class ProfileScreen extends ConsumerWidget {
                 'Saved Studies',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.poppins(15, FontWeight.w700, CScholarColors.textPrimary),
+                style: CScholarTextStyles.heading(
+                  15,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -270,7 +559,11 @@ class ProfileScreen extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted),
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w500,
+                  CScholarColors.textMuted,
+                ),
               ),
             ),
           ],
@@ -294,13 +587,11 @@ class ProfileScreen extends ConsumerWidget {
           ),
           data: (list) {
             if (list.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text(
-                  'No saved studies',
-                  style: TextStyle(
-                      color: CScholarColors.textSecondary, fontSize: 13),
-                ),
+              return const EmptyState(
+                compact: true,
+                icon: Icons.bookmark_border,
+                title: 'No saved studies',
+                message: 'Bookmark a study to keep it here.',
               );
             }
             return Column(
@@ -309,8 +600,11 @@ class ProfileScreen extends ConsumerWidget {
                 for (final t in list.take(3))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: _savedMiniItem(t.title, t.program?.code ?? '',
-                        () => context.go('/thesis/${t.id}')),
+                    child: _savedMiniItem(
+                      t.title,
+                      t.program?.code ?? '',
+                      () => context.go('/thesis/${t.id}'),
+                    ),
                   ),
               ],
             );
@@ -345,7 +639,17 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           Icon(icon, size: 14, color: textColor),
           const SizedBox(width: 6),
-          Text(text, style: CScholarTextStyles.inter(12, FontWeight.w600, textColor)),
+          // The pill sits in a Wrap with no intrinsic cap of its own. Let the
+          // label ellipsize instead of making the row wider than the card at
+          // 200% text.
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: CScholarTextStyles.body(12, FontWeight.w600, textColor),
+            ),
+          ),
         ],
       ),
     );
@@ -354,35 +658,67 @@ class ProfileScreen extends ConsumerWidget {
   Widget _academicRow(String label, String value, {bool hasDot = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.inter(
-                    12.5, FontWeight.w500, CScholarColors.textMuted)),
-          ),
-          const SizedBox(width: 16),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (hasDot) ...[
-                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: CScholarColors.primaryGreen, shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                ],
-                Flexible(
-                  child: Text(value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary)),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Same rule as [PageHeader]: the label owns the remaining width and
+          // the value is a plain trailing child. Two flexible children with the
+          // default flex both took half the row, so the value only reached the
+          // trailing edge as a side effect of `spaceBetween`. Cap the value at
+          // two thirds so a long email at 200% text ellipsizes itself instead
+          // of squeezing the label to nothing.
+          final maxValueWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth * 2 / 3
+              : double.infinity;
+          return Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.body(
+                    12.5,
+                    FontWeight.w500,
+                    CScholarColors.textMuted,
+                  ),
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+              const SizedBox(width: 16),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxValueWidth),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasDot) ...[
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: CScholarColors.primaryGreen,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Flexible(
+                      child: Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: CScholarTextStyles.body(
+                          13,
+                          FontWeight.w600,
+                          CScholarColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -405,7 +741,14 @@ class ProfileScreen extends ConsumerWidget {
                 color: CScholarColors.skyTint,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Text(tag, style: CScholarTextStyles.inter(10, FontWeight.w700, CScholarColors.skyInk)),
+              child: Text(
+                tag,
+                style: CScholarTextStyles.body(
+                  10,
+                  FontWeight.w700,
+                  CScholarColors.skyInk,
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -413,10 +756,18 @@ class ProfileScreen extends ConsumerWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.inter(12, FontWeight.w600, CScholarColors.textPrimary),
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w600,
+                  CScholarColors.textPrimary,
+                ),
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: CScholarColors.textHint),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: CScholarColors.textHint,
+            ),
           ],
         ),
       ),
@@ -424,6 +775,21 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   /// Human readable label for the role stored in the database.
+  String _initialsOf(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) {
+      return parts.first
+          .substring(0, parts.first.length >= 2 ? 2 : 1)
+          .toUpperCase();
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
   String _roleLabel(String? role) {
     switch ((role ?? '').toLowerCase()) {
       case 'admin':
@@ -437,5 +803,6 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
-  String _formatDate(DateTime date) => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

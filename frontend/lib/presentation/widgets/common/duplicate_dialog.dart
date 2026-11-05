@@ -115,7 +115,7 @@ Future<bool> showDuplicateConfirmDialog(
               'A thesis with the same title already exists. '
               'Same titles are allowed when the study is different — '
               'submit anyway only if this is not a copy.',
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                   12.5, FontWeight.w500, CScholarColors.warningFg),
             ),
           ),
@@ -152,14 +152,14 @@ Future<bool> showDuplicateConfirmDialog(
                                   candidates[i].title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: CScholarTextStyles.inter(13,
+                                  style: CScholarTextStyles.body(13,
                                       FontWeight.w600,
                                       CScholarColors.textPrimary),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '#${candidates[i].id} • ${candidates[i].matchLabel}',
-                                  style: CScholarTextStyles.inter(
+                                  style: CScholarTextStyles.body(
                                       11.5,
                                       FontWeight.w500,
                                       CScholarColors.textMuted),

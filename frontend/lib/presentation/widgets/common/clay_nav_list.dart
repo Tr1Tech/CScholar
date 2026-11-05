@@ -44,6 +44,7 @@ class ClayNavList extends StatefulWidget {
     super.key,
     required this.links,
     required this.selectedIndex,
+    required this.rail,
   });
 
   final List<ClayNavLink> links;
@@ -53,6 +54,18 @@ class ClayNavList extends StatefulWidget {
   /// then fades out rather than highlighting the wrong item.
   final int selectedIndex;
 
+  /// Identifies this rail, so the roles do not share a remembered row.
+  final String rail;
+
+  /// The row each rail last landed on, kept outside the widget tree.
+  ///
+  /// Every screen owns its own shell, so a route change disposes this widget
+  /// and the next page mounts a fresh one. Without this the pill would be born
+  /// already sitting on the new row — a pop, not a slide. It is a plain static
+  /// map rather than a provider so the list still renders standalone (the
+  /// design lab shows it without the app's provider scope).
+  static final Map<String, int> _landed = <String, int>{};
+
   /// Row height at 100% text: the 20px glyph plus 11px breathing room above and
   /// below, which is what the three sidebars were sized around.
   static const double rowHeight = 42;
@@ -61,7 +74,7 @@ class ClayNavList extends StatefulWidget {
   static const double gap = 4;
 
   /// Corner radius, shared with the pill.
-  static const double radius = 14;
+  static const double radius = CScholarRadius.navPill;
 
   @override
   State<ClayNavList> createState() => _ClayNavListState();
@@ -70,6 +83,36 @@ class ClayNavList extends StatefulWidget {
 class _ClayNavListState extends State<ClayNavList> {
   late List<FocusNode> _nodes = _buildNodes(widget.links.length);
   int _focused = -1;
+
+  /// Row the pill is currently drawn on. It starts on the row the same rail
+  /// had on the previous page, then glides to this page's selection.
+  late int _pillIndex = _initialPillIndex();
+
+  int _initialPillIndex() {
+    final landed = ClayNavList._landed[widget.rail];
+    // No remembered row on first load: start already landed, no fly-in.
+    return landed ?? widget.selectedIndex;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // After the first paint, glide from the remembered row to this one. The
+    // write has to leave the build phase before it can be read again.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.selectedIndex >= 0 && _pillIndex != widget.selectedIndex) {
+        setState(() => _pillIndex = widget.selectedIndex);
+      }
+      _remember();
+    });
+  }
+
+  void _remember() {
+    if (widget.selectedIndex >= 0) {
+      ClayNavList._landed[widget.rail] = widget.selectedIndex;
+    }
+  }
 
   List<FocusNode> _buildNodes(int count) =>
       List<FocusNode>.generate(count, (index) {
@@ -91,6 +134,12 @@ class _ClayNavListState extends State<ClayNavList> {
       _disposeNodes(_nodes);
       _nodes = _buildNodes(widget.links.length);
       _focused = -1;
+    }
+    // Same widget, new page (a rail that survives the route): the pill glides
+    // from wherever it is now.
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      if (widget.selectedIndex >= 0) _pillIndex = widget.selectedIndex;
+      _remember();
     }
   }
 
@@ -136,16 +185,16 @@ class _ClayNavListState extends State<ClayNavList> {
           curve: CScholarCurves.standard,
           left: 0,
           right: 0,
-          top: (selected < 0 ? 0 : selected) * stride,
+          top: (_pillIndex < 0 ? 0 : _pillIndex) * stride,
           height: height,
           child: AnimatedOpacity(
             duration: motionDuration(context, CScholarDurations.fast),
             opacity: selected < 0 ? 0 : 1,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: CScholarColors.navActiveBg,
+                color: CScholarColors.primaryGreenLight,
                 borderRadius: radius,
-                boxShadow: CScholarShadows.primaryGlow,
+                boxShadow: CScholarMaterial.softShadow(depth: 0.35),
               ),
             ),
           ),
@@ -167,8 +216,9 @@ class _ClayNavListState extends State<ClayNavList> {
   Widget _row(int index, double height, BorderRadius radius) {
     final link = widget.links[index];
     final isSelected = widget.selectedIndex == index;
-    final foreground =
-        isSelected ? CScholarColors.white : CScholarColors.textSecondary;
+    final foreground = isSelected
+        ? CScholarColors.primaryGreen
+        : CScholarColors.textSecondary;
 
     final body = SizedBox(
       height: height,
@@ -176,17 +226,14 @@ class _ClayNavListState extends State<ClayNavList> {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            // The glyph morphs outline <-> filled and pops as it lands, like
-            // every other selected glyph in the app. Both glyphs share the
-            // fixed 20px box, so the swap can never nudge the label — the row
-            // stays one ellipsised line and the pill stays un-measured.
-            MorphIcon(
-              icon: link.icon,
-              selectedIcon: link.selectedIcon,
-              selected: isSelected,
-              color: CScholarColors.textSecondary,
-              selectedColor: CScholarColors.white,
+            // Static glyph: on navigation only the pill moves. The outline <->
+            // filled morph used to fade and pop here, which read as a second,
+            // competing motion next to the travelling pill. Both glyphs share
+            // the fixed 20px box, so the instant swap cannot nudge the label.
+            Icon(
+              isSelected ? link.selectedIcon : link.icon,
               size: 20,
+              color: foreground,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -194,9 +241,9 @@ class _ClayNavListState extends State<ClayNavList> {
                 link.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: CScholarTextStyles.inter(
+                style: CScholarTextStyles.body(
                   13,
-                  isSelected ? FontWeight.w600 : FontWeight.w500,
+                  isSelected ? FontWeight.w700 : FontWeight.w500,
                   foreground,
                 ),
               ),
@@ -237,7 +284,8 @@ class _ClayNavListState extends State<ClayNavList> {
                     borderRadius: radius,
                     border: Border.all(
                       color: CScholarMaterial.gelTop.withValues(
-                          alpha: _focused == index ? 0.45 : 0),
+                        alpha: _focused == index ? 0.45 : 0,
+                      ),
                       width: 2,
                     ),
                   ),

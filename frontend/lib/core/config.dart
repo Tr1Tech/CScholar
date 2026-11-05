@@ -17,4 +17,19 @@ class AppConfig {
   // Embedding settings (backend)
   static const String embeddingModel = 'all-MiniLM-L6-v2';
   static const int embeddingDim = 384;
+
+  /// Mobile shell breakpoint — mirrors the prototype's `<=800px full-bleed`
+  /// rule (`cscholar-mobile-ui/src/index.css:1019-1045`).
+  static const double mobileMaxWidth = 800;
+}
+
+/// Layout breakpoints. One source so shells stop disagreeing (800/900/920).
+class CScholarBreakpoints {
+  CScholarBreakpoints._();
+
+  /// At or below this width the mobile chrome owns the screen.
+  static const double mobile = AppConfig.mobileMaxWidth;
+
+  /// Above this width multi-column content splits (list + rail, two panels).
+  static const double wide = 1100;
 }

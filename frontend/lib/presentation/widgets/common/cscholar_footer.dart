@@ -28,7 +28,7 @@ class CScholarFooter extends StatelessWidget {
               const CSUIdentity(),
               Text(
                 'College of Engineering and Information Technology • Caraga State University',
-                style: CScholarTextStyles.inter(
+                style: CScholarTextStyles.body(
                     11.5, FontWeight.w400, CScholarColors.textMuted),
                 textAlign: TextAlign.center,
               ),

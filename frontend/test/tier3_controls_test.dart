@@ -18,6 +18,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/hover_lift.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
@@ -49,14 +50,15 @@ Widget _host(
 
 BoxDecoration _wellDecoration(WidgetTester tester) {
   return tester
-      .widgetList<DecoratedBox>(
-        find.ancestor(
-          of: find.byType(TextField),
-          matching: find.byType(DecoratedBox),
-        ),
-      )
-      .first
-      .decoration as BoxDecoration;
+          .widgetList<DecoratedBox>(
+            find.ancestor(
+              of: find.byType(TextField),
+              matching: find.byType(DecoratedBox),
+            ),
+          )
+          .first
+          .decoration
+      as BoxDecoration;
 }
 
 /// WCAG 2.1 relative luminance contrast ratio — the same measurement the tier 2
@@ -71,49 +73,57 @@ double _contrast(Color a, Color b) {
 
 void main() {
   group('tier 3 — NeumorphField is a Form field', () {
-    testWidgets('Form.validate() runs the validator and blocks submit',
-        (tester) async {
+    testWidgets('Form.validate() runs the validator and blocks submit', (
+      tester,
+    ) async {
       final formKey = GlobalKey<FormState>();
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       var submitted = 0;
 
       await tester.pumpWidget(
-        _host(Form(
-          key: formKey,
-          child: Column(
-            children: [
-              NeumorphField(
-                controller: controller,
-                label: 'Email',
-                validator: (v) => (v == null || !v.contains('@'))
-                    ? 'Please enter a valid institutional email'
-                    : null,
-              ),
-              TextButton(
-                onPressed: () {
-                  if (formKey.currentState!.validate()) submitted++;
-                },
-                child: const Text('Sign In'),
-              ),
-            ],
+        _host(
+          Form(
+            key: formKey,
+            child: Column(
+              children: [
+                NeumorphField(
+                  controller: controller,
+                  label: 'Email',
+                  validator: (v) => (v == null || !v.contains('@'))
+                      ? 'Please enter a valid institutional email'
+                      : null,
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) submitted++;
+                  },
+                  child: const Text('Sign In'),
+                ),
+              ],
+            ),
           ),
-        )),
+        ),
       );
 
       // Empty then invalid: both blocked, both surfaced by the SAME widget.
       await tester.tap(find.text('Sign In'));
       await tester.pump();
       expect(submitted, 0);
-      expect(find.text('Please enter a valid institutional email'),
-          findsOneWidget);
+      expect(
+        find.text('Please enter a valid institutional email'),
+        findsOneWidget,
+      );
 
       await tester.enterText(find.byType(TextField), 'juan@csu.edu.ph');
       await tester.pump();
       await tester.tap(find.text('Sign In'));
       await tester.pump();
       expect(submitted, 1);
-      expect(find.text('Please enter a valid institutional email'), findsNothing);
+      expect(
+        find.text('Please enter a valid institutional email'),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -122,12 +132,15 @@ void main() {
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
-        _host(NeumorphField(
-          controller: controller,
-          label: 'Email',
-          errorText: 'Invalid credentials',
-          validator: (v) => (v == null || !v.contains('@')) ? 'Bad format' : null,
-        )),
+        _host(
+          NeumorphField(
+            controller: controller,
+            label: 'Email',
+            errorText: 'Invalid credentials',
+            validator: (v) =>
+                (v == null || !v.contains('@')) ? 'Bad format' : null,
+          ),
+        ),
       );
       await tester.pump();
 
@@ -141,30 +154,32 @@ void main() {
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
-        _host(NeumorphField(
-          controller: controller,
-          label: 'Email',
-          enabled: false,
-        )),
+        _host(
+          NeumorphField(controller: controller, label: 'Email', enabled: false),
+        ),
       );
 
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('submitting from the keyboard fires onSubmitted', (tester) async {
+    testWidgets('submitting from the keyboard fires onSubmitted', (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       var submissions = 0;
 
       await tester.pumpWidget(
-        _host(NeumorphField(
-          controller: controller,
-          label: 'Password',
-          obscureText: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => submissions++,
-        )),
+        _host(
+          NeumorphField(
+            controller: controller,
+            label: 'Password',
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => submissions++,
+          ),
+        ),
       );
 
       // The action only reaches the widget through an open input connection,
@@ -180,12 +195,14 @@ void main() {
       addTearDown(controller.dispose);
 
       await tester.pumpWidget(
-        _host(NeumorphField(
-          controller: controller,
-          label: 'Password',
-          obscureText: true,
-          maxLines: 5,
-        )),
+        _host(
+          NeumorphField(
+            controller: controller,
+            label: 'Password',
+            obscureText: true,
+            maxLines: 5,
+          ),
+        ),
       );
 
       // Flutter's TextField asserts on obscureText + maxLines > 1.
@@ -195,27 +212,119 @@ void main() {
   });
 
   group('tier 3 — the recessed well reacts to state', () {
-    testWidgets('rest state is a tonal clay well with no outline',
-        (tester) async {
+    test('the well is findable on paper and on a card', () {
+      // With no rim at rest the fill is the ONLY thing marking the field, so it
+      // owes a measurable step away from whatever it sits on. clayDeep
+      // measured 1.04:1 on paper — an empty search bar read as blank space.
+      final onPaper = _contrast(CScholarMaterial.well, CScholarMaterial.canvas);
+      final onCard = _contrast(CScholarMaterial.well, CScholarMaterial.clay);
+      expect(
+        onPaper,
+        greaterThanOrEqualTo(1.20),
+        reason:
+            'the well is ${onPaper.toStringAsFixed(2)}:1 on the paper '
+            'canvas — too close to the page to be found',
+      );
+      expect(
+        onCard,
+        greaterThanOrEqualTo(1.28),
+        reason: 'the well is ${onCard.toStringAsFixed(2)}:1 inside a card',
+      );
+      // The step is paid for out of the hint ink's budget: the placeholder is
+      // still body text and owes the 4.5:1 floor.
+      expect(
+        _contrast(CScholarMaterial.textFaint, CScholarMaterial.well),
+        greaterThanOrEqualTo(4.5),
+        reason: 'hint ink dropped below AA on the deeper well',
+      );
+    });
+
+    test('the loading skeleton is findable on paper and on a card', () {
+      // Same law as the well: a skeleton block has no rim, so its fill alone
+      // has to separate from the surface. clayDeep measured 1.04:1 on paper —
+      // the mobile shell loaded onto what looked like a blank page.
+      final onPaper = _contrast(
+        CScholarMaterial.skeletonBase,
+        CScholarMaterial.canvas,
+      );
+      final onCard = _contrast(
+        CScholarMaterial.skeletonBase,
+        CScholarMaterial.clay,
+      );
+      expect(
+        onPaper,
+        greaterThanOrEqualTo(1.20),
+        reason:
+            'the skeleton is ${onPaper.toStringAsFixed(2)}:1 on the paper '
+            'canvas — a loading page reads as an empty one',
+      );
+      expect(
+        onCard,
+        greaterThanOrEqualTo(1.28),
+        reason: 'the skeleton is ${onCard.toStringAsFixed(2)}:1 inside a card',
+      );
+      // The shimmer has to have somewhere to travel.
+      expect(
+        _contrast(
+          CScholarMaterial.skeletonHighlight,
+          CScholarMaterial.skeletonBase,
+        ),
+        greaterThanOrEqualTo(1.15),
+        reason: 'the shimmer highlight is too close to the block tone to read',
+      );
+
+      // The dark shell inverts the step: a light block there is a glowing slab.
+      final darkOnPaper = _contrast(
+        CScholarMaterial.skeletonBaseDark,
+        CScholarMobileColors.paperDark,
+      );
+      final darkOnCard = _contrast(
+        CScholarMaterial.skeletonBaseDark,
+        CScholarMobileColors.surfaceDark,
+      );
+      expect(
+        darkOnPaper,
+        greaterThanOrEqualTo(1.20),
+        reason:
+            'the dark skeleton is ${darkOnPaper.toStringAsFixed(2)}:1 on dark '
+            'paper — it would vanish instead of loading',
+      );
+      expect(
+        darkOnCard,
+        greaterThanOrEqualTo(1.15),
+        reason:
+            'the dark skeleton is ${darkOnCard.toStringAsFixed(2)}:1 on a '
+            'dark card',
+      );
+    });
+
+    testWidgets('rest state is a tonal clay well with no outline', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host(NeumorphField(label: 'Email', hintText: 'you@csu.edu.ph')),
       );
 
       final well = _wellDecoration(tester);
-      expect(well.color, CScholarMaterial.clayDeep);
+      expect(well.color, CScholarMaterial.well);
       // No drawn outline at rest: the tonal fill IS the affordance, and a rim
       // on every control is exactly what the clay pass removed.
-      expect(well.border, isNull,
-          reason: 'the well grew an outline back — only focus, error and high '
-              'contrast draw one');
+      expect(
+        well.border,
+        isNull,
+        reason:
+            'the well grew an outline back — only focus, error and high '
+            'contrast draw one',
+      );
 
       final field = tester.widget<TextField>(find.byType(TextField));
       expect(field.decoration!.hintText, 'you@csu.edu.ph');
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('focus thickens the rim to the gel brand colour',
-        (tester) async {
+    testWidgets('focus thickens the rim to the gel brand colour', (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
@@ -234,19 +343,21 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('high contrast draws the boundary the rest of the system omits',
-        (tester) async {
-      await tester.pumpWidget(
-        _host(NeumorphField(label: 'Email'), highContrast: true),
-      );
+    testWidgets(
+      'high contrast draws the boundary the rest of the system omits',
+      (tester) async {
+        await tester.pumpWidget(
+          _host(NeumorphField(label: 'Email'), highContrast: true),
+        );
 
-      // Clay draws no outline at rest, so high contrast is the mode that has to
-      // supply one — the whole no-rim decision leans on this fallback.
-      final border = _wellDecoration(tester).border as Border;
-      expect(border.top.color, CScholarMaterial.rimStrong);
-      expect(border.top.width, 1.5);
-      expect(tester.takeException(), isNull);
-    });
+        // Clay draws no outline at rest, so high contrast is the mode that has to
+        // supply one — the whole no-rim decision leans on this fallback.
+        final border = _wellDecoration(tester).border as Border;
+        expect(border.top.color, CScholarMaterial.rimStrong);
+        expect(border.top.width, 1.5);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('a suffix control renders and reports taps', (tester) async {
       final controller = TextEditingController();
@@ -254,16 +365,18 @@ void main() {
       var toggles = 0;
 
       await tester.pumpWidget(
-        _host(NeumorphField(
-          controller: controller,
-          label: 'Password',
-          obscureText: true,
-          suffixIcon: IconButton(
-            tooltip: 'Show password',
-            icon: const Icon(Icons.visibility_outlined),
-            onPressed: () => toggles++,
+        _host(
+          NeumorphField(
+            controller: controller,
+            label: 'Password',
+            obscureText: true,
+            suffixIcon: IconButton(
+              tooltip: 'Show password',
+              icon: const Icon(Icons.visibility_outlined),
+              onPressed: () => toggles++,
+            ),
           ),
-        )),
+        ),
       );
 
       expect(find.byTooltip('Show password'), findsOneWidget);
@@ -289,16 +402,19 @@ void main() {
     /// Y translation of the lifted surface. Scoped to [HoverLift] so a stray
     /// AnimatedContainer elsewhere in the tree can't satisfy the finder.
     double liftOf(WidgetTester tester) => tester
-        .widget<AnimatedContainer>(find.descendant(
-          of: find.byType(HoverLift),
-          matching: find.byType(AnimatedContainer),
-        ))
+        .widget<AnimatedContainer>(
+          find.descendant(
+            of: find.byType(HoverLift),
+            matching: find.byType(AnimatedContainer),
+          ),
+        )
         .transform!
         .getTranslation()
         .y;
 
-    testWidgets('hovering raises the card and leaving sets it back',
-        (tester) async {
+    testWidgets('hovering raises the card and leaving sets it back', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host(const HoverLift(child: SizedBox(width: 180, height: 60))),
       );
@@ -341,12 +457,14 @@ void main() {
     /// The sweep painter inside [ClayLoader]. Scoped to the loader so this scan can
     /// never latch onto an unrelated CustomPaint elsewhere in the tree.
     CustomPainter sweepOf(WidgetTester tester) => tester
-        .widget<CustomPaint>(find
-            .descendant(
-              of: find.byType(ClayLoader),
-              matching: find.byType(CustomPaint),
-            )
-            .first)
+        .widget<CustomPaint>(
+          find
+              .descendant(
+                of: find.byType(ClayLoader),
+                matching: find.byType(CustomPaint),
+              )
+              .first,
+        )
         .painter!;
 
     testWidgets('the segment sweeps while motion is allowed', (tester) async {
@@ -357,8 +475,11 @@ void main() {
 
       // The phase lives in the painter, so "it moved" is exactly "this painter
       // no longer matches the previous frame" — no golden image required.
-      expect(sweepOf(tester).shouldRepaint(before), isTrue,
-          reason: 'an indeterminate loader must keep moving');
+      expect(
+        sweepOf(tester).shouldRepaint(before),
+        isTrue,
+        reason: 'an indeterminate loader must keep moving',
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -373,15 +494,22 @@ void main() {
         _host(const ClayLoader(height: 8), reducedMotion: true),
       );
       final pinned = sweepOf(tester);
-      expect(pinned.shouldRepaint(moved), isTrue,
-          reason: 'turning motion off must re-seat the segment on the pinned '
-              'phase, not freeze it mid-sweep');
+      expect(
+        pinned.shouldRepaint(moved),
+        isTrue,
+        reason:
+            'turning motion off must re-seat the segment on the pinned '
+            'phase, not freeze it mid-sweep',
+      );
 
       // A parked ticker stops driving the painter, so a full sweep interval
       // later it is the very same painter — nothing moved.
       await tester.pump(const Duration(milliseconds: 300));
-      expect(identical(sweepOf(tester), pinned), isTrue,
-          reason: 'a pinned loader must not keep sweeping');
+      expect(
+        identical(sweepOf(tester), pinned),
+        isTrue,
+        reason: 'a pinned loader must not keep sweeping',
+      );
 
       // The pinned segment is still ON the track. A parked controller at phase
       // 0 would paint the segment entirely off the leading edge — an empty
@@ -398,30 +526,40 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the segment is a gel fill on a recessed clay track',
-        (tester) async {
+    testWidgets('the segment is a gel fill on a recessed clay track', (
+      tester,
+    ) async {
       await tester.pumpWidget(_host(const ClayLoader(height: 8)));
 
-      final track = tester.widget<DecoratedBox>(find.descendant(
-        of: find.byType(ClayLoader),
-        matching: find.byType(DecoratedBox),
-      ));
+      final track = tester.widget<DecoratedBox>(
+        find.descendant(
+          of: find.byType(ClayLoader),
+          matching: find.byType(DecoratedBox),
+        ),
+      );
       final decoration = track.decoration as BoxDecoration;
-      expect(decoration.color, CScholarMaterial.clayDeep,
-          reason: 'the loader shares the bar track, so both read as recessed');
-      expect(decoration.borderRadius, BorderRadius.circular(4),
-          reason: 'a full-radius pill, matching ClayProgressBar');
+      expect(
+        decoration.color,
+        CScholarMaterial.clayDeep,
+        reason: 'the loader shares the bar track, so both read as recessed',
+      );
+      expect(
+        decoration.borderRadius,
+        BorderRadius.circular(4),
+        reason: 'a full-radius pill, matching ClayProgressBar',
+      );
       expect(tester.takeException(), isNull);
     });
   });
 
   group('tier 3 — system adoption guards', () {
     /// Reads lib/ once; shared by the scans below.
-    List<File> libSources() => Directory('lib')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart'))
-        .toList();
+    List<File> libSources() =>
+        Directory('lib')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))
+            .toList();
 
     test('no screen still uses a stock TextFormField', () {
       final offences = <String>[];
@@ -433,10 +571,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'every form input must be NeumorphField so focus, rim and '
-              'high contrast come from one place. Offenders:\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'every form input must be NeumorphField so focus, rim and '
+            'high contrast come from one place. Offenders:\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('every fixed-size icon tile is ClayIconTile or marked exempt', () {
@@ -446,8 +588,11 @@ void main() {
       // of in someone's head.
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
 
       for (final file in files) {
         final lines = file.readAsLinesSync();
@@ -457,7 +602,8 @@ void main() {
           final width = int.parse(w.group(1)!);
           if (width < 28 || width > 64) continue;
 
-          final h = RegExp(r'^\s*height:\s*(\d+),\s*$').firstMatch(lines[i + 1]);
+          final h = RegExp(r'^\s*height:\s*(\d+),\s*$')
+              .firstMatch(lines[i + 1]);
           if (h == null || int.parse(h.group(1)!) != width) continue;
 
           // The exemption must be attached to THIS site. A `tile-exempt:`
@@ -488,14 +634,21 @@ void main() {
           offences.add('${file.path}:${i + 1} (${width}px square)');
         }
       }
-      expect(offences, isEmpty,
-          reason: 'hand-rolled icon tiles must become ClayIconTile, or carry a '
-              '`tile-exempt:` comment. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'hand-rolled icon tiles must become ClayIconTile, or carry a '
+            '`tile-exempt:` comment. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('the dead second theme file is gone', () {
-      expect(File('lib/core/theme/app_theme.dart').existsSync(), isFalse,
-          reason: 'app_theme.dart was dead code; main.dart owns the theme');
+      expect(
+        File('lib/core/theme/app_theme.dart').existsSync(),
+        isFalse,
+        reason: 'app_theme.dart was dead code; main.dart owns the theme',
+      );
 
       final offenders = <String>[];
       for (final file in libSources()) {
@@ -506,9 +659,11 @@ void main() {
       // main.dart is allowed only because its comment documents the removal.
       for (final path in offenders) {
         final text = File(path).readAsStringSync();
-        expect(text.contains('CScholarTheme') || text.contains('AppTheme'),
-            isFalse,
-            reason: '$path still references the deleted theme definition');
+        expect(
+          text.contains('CScholarTheme') || text.contains('AppTheme'),
+          isFalse,
+          reason: '$path still references the deleted theme definition',
+        );
       }
     });
 
@@ -521,18 +676,23 @@ void main() {
         for (var i = 0; i < lines.length; i++) {
           if (!lines[i].contains('styleFrom(')) continue;
           final window = lines.sublist(i, (i + 6).clamp(0, lines.length));
-          if (window.any((l) => RegExp(r'^\s*elevation:\s*[1-9]').hasMatch(l))) {
+          if (window.any(
+            (l) => RegExp(r'^\s*elevation:\s*[1-9]').hasMatch(l),
+          )) {
             offences.add('${file.path}:${i + 1}');
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'primary actions must not override the flat theme:\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'primary actions must not override the flat theme:\n'
+            '${offences.join('\n')}',
+      );
     });
 
-    test('the design lab is the only NeumorphField caller using previewState',
-        () {
+    test('the design lab is the only NeumorphField caller using previewState', () {
       // previewState exists to render every state side by side in the lab.
       // Shipping it in a real screen would freeze a field's appearance.
       final offences = <String>[];
@@ -551,8 +711,11 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'previewState is design-lab only:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason: 'previewState is design-lab only:\n${offences.join('\n')}',
+      );
     });
 
     test('clickable cards opt into the hover lift', () {
@@ -561,17 +724,24 @@ void main() {
       // reachable from nothing. Assert it is wired, not just written.
       final card = File('lib/presentation/widgets/common/cscholar_card.dart')
           .readAsStringSync();
-      expect(card.contains('HoverLift'), isTrue,
-          reason: 'the lift belongs in CScholarCard, so screens cannot each '
-              'invent their own hover behaviour');
+      expect(
+        card.contains('HoverLift'),
+        isTrue,
+        reason:
+            'the lift belongs in CScholarCard, so screens cannot each '
+            'invent their own hover behaviour',
+      );
 
       for (final clickable in const [
         'lib/presentation/widgets/thesis_card.dart',
         'lib/presentation/widgets/result_card.dart',
         'lib/presentation/screens/faculty/faculty_students_screen.dart',
       ]) {
-        expect(File(clickable).readAsStringSync().contains('lift: true'), isTrue,
-            reason: '$clickable is clickable, so it must lift on hover');
+        expect(
+          File(clickable).readAsStringSync().contains('lift: true'),
+          isTrue,
+          reason: '$clickable is clickable, so it must lift on hover',
+        );
       }
     });
 
@@ -599,9 +769,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'progress must come from ClayProgressBar (a value) or '
-              'ClayLoader (indeterminate):\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'progress must come from ClayProgressBar (a value) or '
+            'ClayLoader (indeterminate):\n${offences.join('\n')}',
+      );
     });
 
     test('glass is built by GlassPanel, never hand-rolled', () {
@@ -620,8 +794,11 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'blur belongs to GlassPanel alone:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason: 'blur belongs to GlassPanel alone:\n${offences.join('\n')}',
+      );
     });
 
     test('the material primitives are adopted outside the design lab', () {
@@ -661,8 +838,11 @@ void main() {
         if (path.endsWith('design_lab_screen.dart')) continue;
         sources[path] = file.readAsStringSync();
       }
-      expect(sources.length, greaterThan(30),
-          reason: 'the scan found almost nothing — is lib/ at the root?');
+      expect(
+        sources.length,
+        greaterThan(30),
+        reason: 'the scan found almost nothing — is lib/ at the root?',
+      );
 
       for (final entry in primitives.entries) {
         final minAdopters = entry.value.$2;
@@ -672,11 +852,15 @@ void main() {
             .map((e) => e.key)
             .where((p) => p.contains('/screens/') || p.contains('/widgets/'))
             .toList();
-        expect(adopters.length, greaterThanOrEqualTo(minAdopters),
-            reason: '${entry.key} is adopted by only ${adopters.length} '
-                'shipping file(s), needs >= $minAdopters — a lab-only or '
-                'single-site primitive is a false positive. Adopters:\n'
-                '${adopters.join('\n')}');
+        expect(
+          adopters.length,
+          greaterThanOrEqualTo(minAdopters),
+          reason:
+              '${entry.key} is adopted by only ${adopters.length} '
+              'shipping file(s), needs >= $minAdopters — a lab-only or '
+              'single-site primitive is a false positive. Adopters:\n'
+              '${adopters.join('\n')}',
+        );
       }
     });
 
@@ -699,10 +883,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'dropdowns must be NeumorphSelect (forms) or '
-              'NeumorphSelectField (externally reset filters):\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'dropdowns must be NeumorphSelect (forms) or '
+            'NeumorphSelectField (externally reset filters):\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('dialogs are built by GlassDialog, never hand-rolled', () {
@@ -722,9 +910,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'dialogs must be GlassDialog (same title/content/actions '
-              'slots as AlertDialog):\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'dialogs must be GlassDialog (same title/content/actions '
+            'slots as AlertDialog):\n${offences.join('\n')}',
+      );
     });
 
     test('no stock filter chip survives outside the primitive', () {
@@ -745,10 +937,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'filter chips must be ClayChip (multi/single select) or '
-              'NeumorphSegmented (one choice among fixed options):\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'filter chips must be ClayChip (multi/single select) or '
+            'NeumorphSegmented (one choice among fixed options):\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('no stock toggle control without a control-exempt note', () {
@@ -757,12 +953,16 @@ void main() {
       // override is the same defect class as the dropdowns. Genuine
       // exceptions carry a `control-exempt:` comment with the reason, the
       // same way icon tiles carry `tile-exempt:`.
-      final pattern =
-          RegExp(r'(^|[^_A-Za-z])(Switch|Checkbox|Radio|Slider)\s*[<(]');
+      final pattern = RegExp(
+        r'(^|[^_A-Za-z])(Switch|Checkbox|Radio|Slider)\s*[<(]',
+      );
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(30),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(30),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
 
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
@@ -794,9 +994,13 @@ void main() {
           offences.add('${file.path}:${i + 1}');
         }
       }
-      expect(offences, isEmpty,
-          reason: 'toggles must be NeumorphToggle/NeumorphSegmented, or carry '
-              'a `control-exempt:` comment. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'toggles must be NeumorphToggle/NeumorphSegmented, or carry '
+            'a `control-exempt:` comment. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no stock structure widget outside the allow-list', () {
@@ -832,9 +1036,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'structure must come from the card/chip set, not stock '
-              'Card/ListTile/TabBar. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'structure must come from the card/chip set, not stock '
+            'Card/ListTile/TabBar. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no spinner in an AsyncValue loading slot', () {
@@ -865,9 +1073,13 @@ void main() {
           offences.add('${file.path}:${i + 1}');
         }
       }
-      expect(offences, isEmpty,
-          reason: 'loading slots must use ClayLoader/SkeletonList, not a bare '
-              'CircularProgressIndicator. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'loading slots must use ClayLoader/SkeletonList, not a bare '
+            'CircularProgressIndicator. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no stock text field outside the primitives and the allow-list', () {
@@ -902,10 +1114,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'text input must be NeumorphField so focus, rim and high '
-              'contrast come from one place. Offenders:\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'text input must be NeumorphField so focus, rim and high '
+            'contrast come from one place. Offenders:\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('every bar fill clears 3:1 on the clay track (WCAG 1.4.11)', () {
@@ -913,16 +1129,22 @@ void main() {
       // its own track. This is why `draft` is warningFg and not orange.
       for (final entry in CScholarColors.statusFill.entries) {
         final ratio = _contrast(entry.value, CScholarMaterial.clayDeep);
-        expect(ratio, greaterThanOrEqualTo(3.0),
-            reason: '${entry.key} fill is ${ratio.toStringAsFixed(2)}:1 on the '
-                'clayDeep track — below the 3:1 floor for a graphical object');
+        expect(
+          ratio,
+          greaterThanOrEqualTo(3.0),
+          reason:
+              '${entry.key} fill is ${ratio.toStringAsFixed(2)}:1 on the '
+              'clayDeep track — below the 3:1 floor for a graphical object',
+        );
       }
 
       // The failure this test was written for stays on the record: if #FF9900
       // ever clears 3:1, the track token moved and every stop needs re-measuring.
-      expect(_contrast(CScholarColors.orange, CScholarMaterial.clayDeep),
-          lessThan(3.0),
-          reason: '#FF9900 is decoration-only (1.76:1 as a bar fill)');
+      expect(
+        _contrast(CScholarColors.orange, CScholarMaterial.clayDeep),
+        lessThan(3.0),
+        reason: '#FF9900 is decoration-only (1.76:1 as a bar fill)',
+      );
     });
 
     test('state rings clear 3:1 and the hairline stays decoration', () {
@@ -937,29 +1159,42 @@ void main() {
       };
       surfaces.forEach((name, surface) {
         final focus = _contrast(CScholarMaterial.gelTop, surface);
-        expect(focus, greaterThanOrEqualTo(3.0),
-            reason: 'the focus ring is ${focus.toStringAsFixed(2)}:1 on $name '
-                '— a focused field must not look unfocused');
+        expect(
+          focus,
+          greaterThanOrEqualTo(3.0),
+          reason:
+              'the focus ring is ${focus.toStringAsFixed(2)}:1 on $name '
+              '— a focused field must not look unfocused',
+        );
         final error = _contrast(CScholarColors.error, surface);
-        expect(error, greaterThanOrEqualTo(3.0),
-            reason: 'the error ring is ${error.toStringAsFixed(2)}:1 on $name');
+        expect(
+          error,
+          greaterThanOrEqualTo(3.0),
+          reason: 'the error ring is ${error.toStringAsFixed(2)}:1 on $name',
+        );
       });
 
       // The hairline is decoration and must STAY decoration. If it climbs to
       // the floor it stops being a hairline and becomes the outline this pass
       // deliberately removed — so this is the assertion that stops the two
       // from quietly collapsing into each other.
-      expect(_contrast(CScholarMaterial.rim, CScholarMaterial.clay),
-          lessThan(2.0),
-          reason: 'rim is the hairline for small tokens and dividers, not a '
-              'control boundary');
+      expect(
+        _contrast(CScholarMaterial.rim, CScholarMaterial.clay),
+        lessThan(2.0),
+        reason:
+            'rim is the hairline for small tokens and dividers, not a '
+            'control boundary',
+      );
 
       // High contrast is the mode that DOES draw boundaries, so it has to be
       // unmistakably stronger than the hairline it stands in for.
-      expect(_contrast(CScholarMaterial.rimStrong, CScholarMaterial.clay),
-          greaterThan(4.5),
-          reason: 'high contrast exists to supply the boundary the rest of the '
-              'system omits');
+      expect(
+        _contrast(CScholarMaterial.rimStrong, CScholarMaterial.clay),
+        greaterThan(4.5),
+        reason:
+            'high contrast exists to supply the boundary the rest of the '
+            'system omits',
+      );
     });
 
     test('no stock Material action button outside the primitive', () {
@@ -979,11 +1214,15 @@ void main() {
         'lib/main.dart',
       };
       final pattern = RegExp(
-          r'(^|[^_A-Za-z])(ElevatedButton|FilledButton|OutlinedButton)\s*[.(<]');
+        r'(^|[^_A-Za-z])(ElevatedButton|FilledButton|OutlinedButton)\s*[.(<]',
+      );
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
 
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
@@ -996,10 +1235,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'primary/secondary actions must be NeumorphButton (or '
-              'NeumorphIconButton for icon-only). Offenders:\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'primary/secondary actions must be NeumorphButton (or '
+            'NeumorphIconButton for icon-only). Offenders:\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('no Colors.white fill inside a BoxDecoration', () {
@@ -1020,10 +1263,12 @@ void main() {
       };
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
-      final whiteFill =
-          RegExp(r'^\s*color:\s*Colors\.white\s*,\s*$');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
+      final whiteFill = RegExp(r'^\s*color:\s*Colors\.white\s*,\s*$');
 
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
@@ -1040,9 +1285,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'panels are clay, never white. Replace the fill with '
-              'CScholarCard/ClaySurface. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'panels are clay, never white. Replace the fill with '
+            'CScholarCard/ClaySurface. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no hairline alias used as a panel or control side', () {
@@ -1055,10 +1304,14 @@ void main() {
       // *sides* naming an alias.
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
       final aliasSide = RegExp(
-          r'(border|side):\s*(const\s+)?(Border\.all\(color:\s*)?CScholarColors\.(borderLight|dividerLight|sidebarLightBorder)\b');
+        r'(border|side):\s*(const\s+)?(Border\.all\(color:\s*)?CScholarColors\.(borderLight|dividerLight|sidebarLightBorder)\b',
+      );
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
         if (path.endsWith('core/constants/cscholar_constants.dart')) continue;
@@ -1069,10 +1322,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'a hairline alias is not a panel/control boundary — use '
-              'ClaySurface (fill + one soft shadow), and keep the hairline for '
-              'dividers and small tokens. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'a hairline alias is not a panel/control boundary — use '
+            'ClaySurface (fill + one soft shadow), and keep the hairline for '
+            'dividers and small tokens. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no hardcoded animation Duration in screens', () {
@@ -1080,8 +1337,11 @@ void main() {
       // coherent and nothing outlives the 300ms ceiling.
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
       final literal = RegExp(r'Duration\(milliseconds:');
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
@@ -1089,6 +1349,10 @@ void main() {
         if (path.endsWith('core/constants/cscholar_constants.dart')) continue;
         if (path.endsWith('material/clay_progress.dart')) continue;
         if (path.endsWith('common/motion.dart')) continue;
+        // The mobile shell mirrors the Figma prototype's measured CSS timings
+        // (orbit 2.1s legs, 450ms paper lag, 1.8s toast). Those are design
+        // values, not ad-hoc screen durations.
+        if (path.contains('widgets/mobile/')) continue;
         final lines = file.readAsLinesSync();
         for (var i = 0; i < lines.length; i++) {
           if (literal.hasMatch(lines[i])) {
@@ -1096,9 +1360,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'use CScholarDurations (the 300ms ceiling lives there):\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'use CScholarDurations (the 300ms ceiling lives there):\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('no raw Color(0x...) in screens outside the token layer', () {
@@ -1107,16 +1375,26 @@ void main() {
       // gradient stops.
       const allowed = {
         'lib/core/material/material_tokens.dart',
+        'lib/core/material/cscholar_mobile_tokens.dart',
         'lib/core/constants/cscholar_constants.dart',
         'lib/presentation/widgets/common/csu_mark.dart',
         'lib/presentation/widgets/common/cscholar_logo.dart',
         'lib/presentation/widgets/thesis_card.dart',
         'lib/presentation/screens/design_lab_screen.dart',
+        // The mobile shell is the prototype skin: it owns its measured literals
+        // (brand greens, prototype shadows) and is the source the web aliases.
+        'lib/presentation/widgets/mobile/mobile_student_header.dart',
+        'lib/presentation/widgets/mobile/mobile_student_nav.dart',
+        'lib/presentation/widgets/mobile/mobile_student_scaffold.dart',
+        'lib/presentation/widgets/mobile/mobile_widgets.dart',
       };
       final offences = <String>[];
       final files = libSources();
-      expect(files.length, greaterThan(40),
-          reason: 'the scan found almost no sources — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(40),
+        reason: 'the scan found almost no sources — is lib/ at the root?',
+      );
       final literal = RegExp(r'Color\(0x[0-9A-Fa-f]{8}\)');
       for (final file in files) {
         final path = file.path.replaceAll('\\', '/');
@@ -1128,9 +1406,13 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'add a named token to material_tokens.dart instead of an '
-              'inline literal. Offenders:\n${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'add a named token to material_tokens.dart instead of an '
+            'inline literal. Offenders:\n${offences.join('\n')}',
+      );
     });
 
     test('no raw Material palette name in a screen', () {
@@ -1148,10 +1430,14 @@ void main() {
       final files = libSources()
           .where((f) => f.path.replaceAll('\\', '/').contains('/screens/'))
           .toList();
-      expect(files.length, greaterThan(15),
-          reason: 'the scan found almost no screens — is lib/ at the root?');
-      final palette =
-          RegExp(r'(?<![A-Za-z])Colors\.(?!transparent\b)[A-Za-z0-9]+');
+      expect(
+        files.length,
+        greaterThan(15),
+        reason: 'the scan found almost no screens — is lib/ at the root?',
+      );
+      final palette = RegExp(
+        r'(?<![A-Za-z])Colors\.(?!transparent\b)[A-Za-z0-9]+',
+      );
 
       for (final file in files) {
         final lines = file.readAsLinesSync();
@@ -1161,10 +1447,14 @@ void main() {
           }
         }
       }
-      expect(offences, isEmpty,
-          reason: 'screens name tokens, never Material palette entries — use '
-              'CScholarColors / CScholarMaterial. Offenders:\n'
-              '${offences.join('\n')}');
+      expect(
+        offences,
+        isEmpty,
+        reason:
+            'screens name tokens, never Material palette entries — use '
+            'CScholarColors / CScholarMaterial. Offenders:\n'
+            '${offences.join('\n')}',
+      );
     });
 
     test('hero ink clears the body floor on every hero gradient stop', () {
@@ -1175,11 +1465,11 @@ void main() {
       // 5.14:1 there. Both hero gradients are asserted, because "the hero"
       // is whichever one a screen happens to paint.
       Color over(Color ink, Color stop) => Color.fromARGB(
-            255,
-            ((ink.r * 255 * ink.a) + (stop.r * 255 * (1 - ink.a))).round(),
-            ((ink.g * 255 * ink.a) + (stop.g * 255 * (1 - ink.a))).round(),
-            ((ink.b * 255 * ink.a) + (stop.b * 255 * (1 - ink.a))).round(),
-          );
+        255,
+        ((ink.r * 255 * ink.a) + (stop.r * 255 * (1 - ink.a))).round(),
+        ((ink.g * 255 * ink.a) + (stop.g * 255 * (1 - ink.a))).round(),
+        ((ink.b * 255 * ink.a) + (stop.b * 255 * (1 - ink.a))).round(),
+      );
 
       const stops = <String, Color>{
         'heroDeep': CScholarColors.heroDeep,
@@ -1190,18 +1480,27 @@ void main() {
       };
       stops.forEach((name, stop) {
         final white = _contrast(CScholarColors.white, stop);
-        expect(white, greaterThanOrEqualTo(4.5),
-            reason: 'hero ink on $name is ${white.toStringAsFixed(2)}:1');
+        expect(
+          white,
+          greaterThanOrEqualTo(4.5),
+          reason: 'hero ink on $name is ${white.toStringAsFixed(2)}:1',
+        );
       });
 
       // The failure stays on the record: if 70%-white ever clears the floor,
       // the gradient stops moved and every hero needs re-measuring.
       const white70 = Color(0xB3FFFFFF);
       final soft = _contrast(
-          over(white70, CScholarColors.heroGlow), CScholarColors.heroGlow);
-      expect(soft, lessThan(4.5),
-          reason: 'white70 on heroGlow is only ${soft.toStringAsFixed(2)}:1 — '
-              'hero ink is the token white, never white at 70%');
+        over(white70, CScholarColors.heroGlow),
+        CScholarColors.heroGlow,
+      );
+      expect(
+        soft,
+        lessThan(4.5),
+        reason:
+            'white70 on heroGlow is only ${soft.toStringAsFixed(2)}:1 — '
+            'hero ink is the token white, never white at 70%',
+      );
     });
 
     test('every screen adopts the motion vocabulary', () {
@@ -1232,8 +1531,11 @@ void main() {
       final files = libSources()
           .where((f) => f.path.replaceAll('\\', '/').contains('/screens/'))
           .toList();
-      expect(files.length, greaterThan(15),
-          reason: 'the scan found almost no screens — is lib/ at the root?');
+      expect(
+        files.length,
+        greaterThan(15),
+        reason: 'the scan found almost no screens — is lib/ at the root?',
+      );
 
       final offenders = <String>[];
       for (final file in files) {
@@ -1242,12 +1544,15 @@ void main() {
         final source = file.readAsStringSync();
         if (!vocabulary.any(source.contains)) offenders.add(path);
       }
-      expect(offenders, isEmpty,
-          reason: 'every screen must use the shared motion vocabulary '
-              '(${vocabulary.join(', ')}) — or be listed in `exempt` with a '
-              'reason. Offenders:\n${offenders.join('\n')}');
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'every screen must use the shared motion vocabulary '
+            '(${vocabulary.join(', ')}) — or be listed in `exempt` with a '
+            'reason. Offenders:\n${offenders.join('\n')}',
+      );
     });
-
 
     test('the design lab mirrors the component catalogue', () {
       // A primitive the lab never shows cannot be reviewed by feel, and a lab
@@ -1290,11 +1595,14 @@ void main() {
       ];
       final lab = File('lib/presentation/screens/design_lab_screen.dart')
           .readAsStringSync();
-      final missing =
-          catalogue.where((c) => !lab.contains(c)).toList();
-      expect(missing, isEmpty,
-          reason: 'the design lab must demo every catalogued component so it is '
-              'the catalogue of record. Missing:\n${missing.join('\n')}');
+      final missing = catalogue.where((c) => !lab.contains(c)).toList();
+      expect(
+        missing,
+        isEmpty,
+        reason:
+            'the design lab must demo every catalogued component so it is '
+            'the catalogue of record. Missing:\n${missing.join('\n')}',
+      );
     });
   });
 }

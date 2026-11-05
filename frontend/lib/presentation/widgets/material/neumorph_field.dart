@@ -38,38 +38,38 @@ class NeumorphField extends FormField<String> {
     this.onSubmitted,
     super.validator,
     AutovalidateMode? autovalidateMode,
-  })  : super(
-          initialValue: controller?.text ?? '',
-          // `enabled` forwards straight to FormField's own property, so the
-          // field and the Form can never disagree about whether it is active.
-          // Validate as the user types, not only on submit: a 4-character
-          // password rule discovered after pressing Sign In is a dead end.
-          autovalidateMode:
-              autovalidateMode ?? AutovalidateMode.onUserInteraction,
-          builder: (field) => _NeumorphFieldBody(
-            field: field,
-            controller: controller,
-            label: label,
-            hintText: hintText,
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            errorText: errorText,
-            obscureText: obscureText,
-            // A super parameter is in scope for the initializer list, so this
-            // is FormField's value (default true) — not a second flag.
-            enabled: enabled,
-            previewState: previewState,
-            keyboardType: keyboardType,
-            textInputAction: textInputAction,
-            autofillHints: autofillHints,
-            textCapitalization: textCapitalization,
-            maxLines: maxLines,
-            minLines: minLines,
-            focusNode: focusNode,
-            onChanged: onChanged,
-            onSubmitted: onSubmitted,
-          ),
-        );
+  }) : super(
+         initialValue: controller?.text ?? '',
+         // `enabled` forwards straight to FormField's own property, so the
+         // field and the Form can never disagree about whether it is active.
+         // Validate as the user types, not only on submit: a 4-character
+         // password rule discovered after pressing Sign In is a dead end.
+         autovalidateMode:
+             autovalidateMode ?? AutovalidateMode.onUserInteraction,
+         builder: (field) => _NeumorphFieldBody(
+           field: field,
+           controller: controller,
+           label: label,
+           hintText: hintText,
+           prefixIcon: prefixIcon,
+           suffixIcon: suffixIcon,
+           errorText: errorText,
+           obscureText: obscureText,
+           // A super parameter is in scope for the initializer list, so this
+           // is FormField's value (default true) — not a second flag.
+           enabled: enabled,
+           previewState: previewState,
+           keyboardType: keyboardType,
+           textInputAction: textInputAction,
+           autofillHints: autofillHints,
+           textCapitalization: textCapitalization,
+           maxLines: maxLines,
+           minLines: minLines,
+           focusNode: focusNode,
+           onChanged: onChanged,
+           onSubmitted: onSubmitted,
+         ),
+       );
 
   /// Uppercase label above the field. Also the field's semantic label.
   final String? label;
@@ -182,7 +182,7 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
         ? widget.errorText
         : field.errorText;
     final hasError = (error ?? '').isNotEmpty;
-    final radius = BorderRadius.circular(CScholarRadius.md);
+    final radius = BorderRadius.circular(CScholarRadius.well);
     final animate = motionEnabled(context);
 
     // No outline at rest: the tonal well IS the affordance, and a drawn rim on
@@ -200,10 +200,10 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
     final Color? borderColor = flat
         ? CScholarMaterial.rimStrong
         : hasError
-            ? CScholarColors.error
-            : focused
-                ? CScholarMaterial.gelTop
-                : null;
+        ? CScholarColors.error
+        : focused
+        ? CScholarMaterial.gelTop
+        : null;
 
     // The placeholder lifts 2px on focus — a transform, so layout never
     // moves. Reduced motion gets no lift at all, never a snapped one.
@@ -217,8 +217,12 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
           if (widget.label != null) ...[
             Text(
               widget.label!.toUpperCase(),
-              style: CScholarTextStyles.inter(11, FontWeight.w700,
-                  CScholarMaterial.textMuted, letterSpacing: 0.5),
+              style: CScholarTextStyles.body(
+                11,
+                FontWeight.w700,
+                CScholarMaterial.textMuted,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 6),
           ],
@@ -226,7 +230,7 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             duration: animate ? CScholarMotion.micro : Duration.zero,
             curve: CScholarCurves.standard,
             decoration: BoxDecoration(
-              color: CScholarMaterial.clayDeep,
+              color: CScholarMaterial.well,
               borderRadius: radius,
               border: borderColor == null
                   ? null
@@ -242,44 +246,55 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
               transform: Matrix4.translationValues(0, lift, 0),
               child: TextField(
                 controller: widget.controller,
-              focusNode: _focus,
-              enabled: !disabled,
-              obscureText: widget.obscureText,
-              keyboardType: widget.keyboardType,
-              textInputAction: widget.textInputAction,
-              autofillHints: widget.autofillHints,
-              textCapitalization: widget.textCapitalization,
-              // A multiline maxLines and obscureText are mutually exclusive
-              // in Flutter's TextField, so obscure wins.
-              maxLines: widget.obscureText ? 1 : widget.maxLines,
-              minLines: widget.minLines,
-              cursorColor: CScholarMaterial.gelTop,
-              style: CScholarTextStyles.inter(
-                  14, FontWeight.w400, CScholarMaterial.textPrimary),
-              onChanged: (v) {
-                field.didChange(v);
-                widget.onChanged?.call(v);
-              },
-              onSubmitted: widget.onSubmitted,
-              decoration: InputDecoration(
-                isDense: true,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                hintText: widget.hintText,
-                hintStyle: CScholarTextStyles.inter(
-                    13.5, FontWeight.w400, CScholarMaterial.textFaint),
-                prefixIcon: widget.prefixIcon == null
-                    ? null
-                    : Icon(widget.prefixIcon,
-                        size: 18, color: CScholarMaterial.textMuted),
-                suffixIcon: widget.suffixIcon,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                focusNode: _focus,
+                enabled: !disabled,
+                obscureText: widget.obscureText,
+                keyboardType: widget.keyboardType,
+                textInputAction: widget.textInputAction,
+                autofillHints: widget.autofillHints,
+                textCapitalization: widget.textCapitalization,
+                // A multiline maxLines and obscureText are mutually exclusive
+                // in Flutter's TextField, so obscure wins.
+                maxLines: widget.obscureText ? 1 : widget.maxLines,
+                minLines: widget.minLines,
+                cursorColor: CScholarMaterial.gelTop,
+                style: CScholarTextStyles.body(
+                  14,
+                  FontWeight.w400,
+                  CScholarMaterial.textPrimary,
+                ),
+                onChanged: (v) {
+                  field.didChange(v);
+                  widget.onChanged?.call(v);
+                },
+                onSubmitted: widget.onSubmitted,
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  hintText: widget.hintText,
+                  hintStyle: CScholarTextStyles.body(
+                    13.5,
+                    FontWeight.w400,
+                    CScholarMaterial.textFaint,
+                  ),
+                  prefixIcon: widget.prefixIcon == null
+                      ? null
+                      : Icon(
+                          widget.prefixIcon,
+                          size: 18,
+                          color: CScholarMaterial.textMuted,
+                        ),
+                  suffixIcon: widget.suffixIcon,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                ),
               ),
-            ),
             ),
           ),
           // Error replaces the hint through AnimatedSwap: one swap style for
@@ -297,8 +312,11 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
                   error!,
-                  style: CScholarTextStyles.inter(
-                      12, FontWeight.w500, CScholarColors.error),
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w500,
+                    CScholarColors.error,
+                  ),
                 ),
               ),
             ),
@@ -307,4 +325,3 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
     );
   }
 }
-

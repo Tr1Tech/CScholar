@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
@@ -24,11 +25,11 @@ class RecRail extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('AI Recommendations',
-              style: CScholarTextStyles.poppins(
+              style: CScholarTextStyles.heading(
                   16, FontWeight.w700, CScholarColors.textPrimary)),
           const SizedBox(height: 2),
           Text('Related to your current search',
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                   12, FontWeight.w400, CScholarColors.textMuted)),
           const SizedBox(height: 14),
           if (query.trim().isEmpty)
@@ -36,7 +37,7 @@ class RecRail extends ConsumerWidget {
           else
             _results(context, ref),
           const SizedBox(height: 14),
-          _aiNote(),
+          _aiNote(context),
         ],
       ),
     );
@@ -56,7 +57,7 @@ class RecRail extends ConsumerWidget {
         child: Text(
           'Type a query to see AI picks',
           textAlign: TextAlign.center,
-          style: CScholarTextStyles.inter(
+          style: CScholarTextStyles.body(
               12, FontWeight.w500, CScholarColors.textMuted),
         ),
       ),
@@ -74,7 +75,7 @@ class RecRail extends ConsumerWidget {
         final top = results.take(4).toList();
         if (top.isEmpty) {
           return Text('No AI matches for this query yet',
-              style: CScholarTextStyles.inter(
+              style: CScholarTextStyles.body(
                   12, FontWeight.w500, CScholarColors.textMuted));
         }
         return Column(
@@ -95,7 +96,7 @@ class RecRail extends ConsumerWidget {
         );
       },
       error: (_, _) => Text('Recommendations unavailable right now',
-          style: CScholarTextStyles.inter(
+          style: CScholarTextStyles.body(
               12, FontWeight.w500, CScholarColors.textMuted)),
     );
   }
@@ -124,7 +125,7 @@ class RecRail extends ConsumerWidget {
                   Text(t.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.inter(
+                      style: CScholarTextStyles.body(
                           12.5, FontWeight.w600, CScholarColors.textPrimary)),
                   const SizedBox(height: 4),
                   Row(
@@ -139,10 +140,10 @@ class RecRail extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(isThesis ? 'Thesis' : 'Capstone',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: isThesis
+                            style: CScholarTextStyles.body(
+                                10,
+                                FontWeight.w700,
+                                isThesis
                                     ? CScholarColors.thesisChipFg
                                     : CScholarColors.capstoneChipFg)),
                       ),
@@ -152,14 +153,14 @@ class RecRail extends ConsumerWidget {
                             '${t.program?.name ?? ''} • ${t.academicYear?.label ?? ''}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: CScholarTextStyles.inter(11,
+                            style: CScholarTextStyles.body(11,
                                 FontWeight.w400, CScholarColors.textMuted)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text('$pct% match',
-                      style: CScholarTextStyles.inter(11, FontWeight.w700,
+                      style: CScholarTextStyles.body(11, FontWeight.w700,
                           CScholarColors.primaryGreen)),
                 ],
               ),
@@ -172,8 +173,8 @@ class RecRail extends ConsumerWidget {
     );
   }
 
-  Widget _aiNote() {
-    return Container(
+  Widget _aiNote(BuildContext context) {
+    final note = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: CScholarColors.goldSoft,
@@ -193,12 +194,12 @@ class RecRail extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Ranked by meaning, not keywords',
-                    style: CScholarTextStyles.inter(
+                    style: CScholarTextStyles.body(
                         12, FontWeight.w700, CScholarColors.textPrimary)),
                 const SizedBox(height: 2),
                 Text(
                     'Semantic search compares the meaning of your query against every study.',
-                    style: CScholarTextStyles.inter(
+                    style: CScholarTextStyles.body(
                         11.5, FontWeight.w400, CScholarColors.textMuted)),
               ],
             ),
@@ -206,5 +207,8 @@ class RecRail extends ConsumerWidget {
         ],
       ),
     );
+    // One-shot shimmer sweep so the gold identity announces itself once,
+    // then rests. Decor only — the copy carries the meaning.
+    return note.shimmerOnce(context);
   }
 }

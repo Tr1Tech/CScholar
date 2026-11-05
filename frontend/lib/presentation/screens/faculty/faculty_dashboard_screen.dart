@@ -6,10 +6,12 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
@@ -23,33 +25,14 @@ class FacultyDashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final stats = ref.watch(facultyStatsProvider);
     final recentActivity = ref.watch(facultyActivityProvider);
-    final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 920;
-
-    return Scaffold(
-      backgroundColor: CScholarMaterial.canvas,
-      body: Row(
-        children: [
-          // Sidebar
-          if (isDesktop)
-            const FacultySidebar(currentPath: '/faculty/dashboard'),
-          Expanded(
-            // Wrapped like the shared shell, so the topbar seats once content
-            // scrolls past the ScrollVeil's trigger.
-            child: ScrollVeil(
-              child: Column(
-                children: [
-                  FacultyTopbar(user: user),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16, vertical: 24),
-                      child: Center(
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 1200),
-                          // Header, metrics, then the explicitly scheduled panels
-                          // below: one Column, same order as before.
-                          child: Column(
-                            children: [
+    return CScholarShell(
+      sidebar: const FacultySidebar(currentPath: '/faculty/dashboard'),
+      topbar: FacultyTopbar(user: user),
+      mobileTitle: 'Faculty Dashboard',
+      backRoute: '/faculty/dashboard',
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
                               StaggerColumn(
                             pitch: MotionPitch.page,
                             children: [
@@ -180,18 +163,8 @@ class FacultyDashboardScreen extends ConsumerWidget {
                               }
                             },
                           ),
-                        ],
-                      ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-              builder: (context, pane, seated) => pane,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -208,7 +181,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 child: Text('Recent Activity',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: CScholarTextStyles.poppins(
+                    style: CScholarTextStyles.heading(
                         16, FontWeight.w700, CScholarColors.textPrimary)),
               ),
               const SizedBox(width: 12),
@@ -228,11 +201,11 @@ class FacultyDashboardScreen extends ConsumerWidget {
             skeleton: const SkeletonList(count: 4, cardHeight: 56),
             data: (items) {
               if (items.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 30),
-                    child: Text('No recent activity', style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
-                  ),
+                return const EmptyState(
+                  compact: true,
+                  icon: Icons.history,
+                  title: 'No recent activity',
+                  message: 'Supervised studies and reviews will show up here.',
                 );
               }
               return Column(
@@ -262,7 +235,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text('Could not load activity: $err',
-                    style: CScholarTextStyles.inter(12, FontWeight.w500, CScholarColors.textMuted)),
+                    style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted)),
               ),
             ),
           ),
@@ -277,20 +250,17 @@ class FacultyDashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('My Advisees', style: CScholarTextStyles.poppins(16, FontWeight.w700, CScholarColors.textPrimary)),
+          Text('My Advisees', style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
           const Divider(color: CScholarMaterial.rim, height: 20),
           stats.when(
             data: (s) {
               final count = (s['advisees'] as num?)?.toInt() ?? 0;
               if (count == 0) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(
-                    child: Text(
-                      'No users found',
-                      style: TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
-                    ),
-                  ),
+                return const EmptyState(
+                  compact: true,
+                  icon: Icons.person_search_outlined,
+                  title: 'No advisees yet',
+                  message: 'Students you advise will appear here.',
                 );
               }
               return Padding(
@@ -298,7 +268,8 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 child: Center(
                   child: Text(
                     '$count advisee${count == 1 ? '' : 's'} linked to your account',
-                    style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                    style: CScholarTextStyles.body(
+                        13, FontWeight.w400, CScholarColors.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -310,7 +281,8 @@ class FacultyDashboardScreen extends ConsumerWidget {
               child: Center(
                 child: Text(
                   'Could not load advisees: $err',
-                  style: const TextStyle(fontSize: 13, color: CScholarColors.textSecondary),
+                  style: CScholarTextStyles.body(
+                      13, FontWeight.w400, CScholarColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -354,13 +326,13 @@ class FacultyDashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: CScholarTextStyles.inter(13, FontWeight.w600, CScholarColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(title, style: CScholarTextStyles.body(13, FontWeight.w600, CScholarColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(subtitle, style: CScholarTextStyles.inter(11.5, FontWeight.w400, CScholarColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(subtitle, style: CScholarTextStyles.body(11.5, FontWeight.w400, CScholarColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          Text(time, style: CScholarTextStyles.inter(11, FontWeight.w400, CScholarColors.textHint)),
+          Text(time, style: CScholarTextStyles.body(11, FontWeight.w400, CScholarColors.textHint)),
         ],
       ),
     );

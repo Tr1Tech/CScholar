@@ -47,13 +47,13 @@ class CSUIdentity extends StatelessWidget {
               Text('Caraga State University',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.inter(
+                  style: CScholarTextStyles.body(
                       compact ? 11.5 : 12.5,
                       FontWeight.w700,
                       CScholarColors.textPrimary)),
               if (!compact)
                 Text('CEIT Department',
-                    style: CScholarTextStyles.inter(11,
+                    style: CScholarTextStyles.body(11,
                         FontWeight.w400, CScholarColors.textMuted)),
             ],
           ),
