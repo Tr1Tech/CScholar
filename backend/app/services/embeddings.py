@@ -51,8 +51,7 @@ class EmbeddingService:
             try:
                 from sentence_transformers import SentenceTransformer
 
-                self._model = SentenceTransformer(
-                    self.model_name,
+                kwargs = dict(
                     device="cpu",
                     # Never load onto the meta device. The default
                     # ``low_cpu_mem_usage`` path materialises weights lazily,
@@ -61,6 +60,16 @@ class EmbeddingService:
                     # was surfacing.
                     model_kwargs={"low_cpu_mem_usage": False},
                 )
+                try:
+                    # Cached installs: skip the Hugging Face round-trip that
+                    # was adding ~10s to every cold start.
+                    self._model = SentenceTransformer(
+                        self.model_name, local_files_only=True, **kwargs
+                    )
+                except Exception:
+                    # First run on a new machine: the weights are not cached
+                    # yet, so retry allowing the download.
+                    self._model = SentenceTransformer(self.model_name, **kwargs)
                 self._available = True
                 logger.info("Loaded embedding model: %s", self.model_name)
             except ImportError:
@@ -75,9 +84,32 @@ class EmbeddingService:
                 self._available = False
                 self._next_retry = time.monotonic() + self._RETRY_AFTER
 
+    def warm_up(self):
+        """Start loading the model in the background.
+
+        Called from the app lifespan so the (expensive) import of
+        sentence-transformers/torch and the weight load happen while the server
+        is idle, not on the first thesis submission. Returns immediately.
+        """
+        if self._model is not None:
+            return
+        threading.Thread(
+            target=self._load_model, daemon=True, name="embedding-warmup"
+        ).start()
+
+    @property
+    def is_ready(self) -> bool:
+        """Non-blocking check: True only when the model is already loaded.
+
+        Request handlers use this to decide whether to embed inline or hand the
+        work to a background thread. Unlike ``available`` it never triggers the
+        load, so it can never stall a response.
+        """
+        return self._model is not None and self._available
+
     @property
     def available(self) -> bool:
-        """Check if embedding service is available."""
+        """Check if embedding service is available (may load the model)."""
         self._load_model()
         return self._available
 

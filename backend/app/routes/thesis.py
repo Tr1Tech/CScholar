@@ -1,6 +1,7 @@
 """Thesis routes -- list, detail, create, update, delete."""
 
 import os
+import re
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
 from fastapi import status as http_status
 from .. import models as db
@@ -47,9 +48,11 @@ def list_theses(
             raise HTTPException(status_code=403, detail="Admin access required")
         if not user or not user.get("is_active") or user.get("role") != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
-        status = None
     elif not status:
-        status = ["published", "approved"]
+        # The student-facing repository is publication-only. `approved` is an
+        # internal review state; it stays visible to staff and the study's own
+        # people through the detail guards, not in public search/browse.
+        status = ["published"]
 
     page, per_page = _pagination_args(page, per_page)
     result = db.list_theses(
@@ -64,6 +67,11 @@ def list_theses(
         page=page,
         per_page=per_page,
     )
+    if not show_all_bool:
+        # Reviewer notes are internal. The public list never carries them, even
+        # for a published record that was once returned.
+        for item in result["theses"]:
+            item.pop("review_notes", None)
     return result
 
 
@@ -72,17 +80,29 @@ def get_thesis(id: int, request: Request):
     thesis = db.get_thesis_by_id(id)
     if not thesis:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    if thesis.get("status") not in ("published", "approved"):
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            raise HTTPException(status_code=404, detail="Thesis not found")
+    user = None
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
         try:
             payload = decode_token(auth.split(" ", 1)[1])
             user = get_user_by_id(int(payload.get("sub")))
         except Exception:
+            user = None
+    if thesis.get("status") != "published":
+        if not user or not user.get("is_active"):
             raise HTTPException(status_code=404, detail="Thesis not found")
-        if not user or not user.get("is_active") or user.get("role") not in ("admin", "faculty"):
+        if not db.user_can_view_unpublished(thesis, user):
             raise HTTPException(status_code=404, detail="Thesis not found")
+    else:
+        can_see_notes = bool(
+            user
+            and user.get("is_active")
+            and db.user_can_view_unpublished(thesis, user)
+        )
+        if not can_see_notes:
+            # A published record is public, but its review trail is internal.
+            thesis.pop("review_notes", None)
+            thesis["reviews"] = []
     return thesis
 
 
@@ -112,11 +132,13 @@ def public_stats():
 
 
 @router.get("/api/dashboard/recent-activity", dependencies=[Depends(login_required)], tags=["Dashboard"])
-def dashboard_recent_activity(limit: int = Query(10)):
+def dashboard_recent_activity(limit: int = Query(10), page: int = Query(1)):
     if limit is None or not 1 <= limit <= 100:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
-    activity = db.recent_activity(limit=limit)
-    return {"activity": activity}
+    if page is None or page < 1:
+        raise HTTPException(status_code=400, detail="page must be 1 or greater")
+    activity, total = db.recent_activity(limit=limit, offset=(page - 1) * limit)
+    return {"activity": activity, "total": total, "page": page, "limit": limit}
 
 
 @router.get("/api/faculty/dashboard", dependencies=[Depends(login_required)], tags=["Dashboard"],
@@ -155,6 +177,12 @@ def _valid_upload_url(pdf_url):
         return False
     upload_dir = UPLOAD_DIR
     return os.path.exists(os.path.join(upload_dir, filename))
+
+
+def _original_upload_name(pdf_url):
+    """Recover the user's filename from '<uuid32>_<original>' storage names."""
+    stored = pdf_url.rsplit("/", 1)[-1]
+    return re.sub(r"^[0-9a-fA-F]{32}_", "", stored) or stored
 
 
 @router.get("/api/faculty/theses", dependencies=[Depends(login_required)], tags=["Theses"],
@@ -228,6 +256,7 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
             "possible_duplicates": dupes,
         })
 
+    stored_pdf_url = data.get("pdf_url") if role == "admin" else faculty_pdf_url
     thesis_id = db.create_thesis(
         title=data["title"],
         abstract=data["abstract"],
@@ -240,22 +269,38 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
         adviser_id=data_adviser_id,
         category_ids=data.get("category_ids"),
         keyword_terms=data.get("keyword_terms"),
-        pdf_url=data.get("pdf_url") if role == "admin" else faculty_pdf_url,
+        pdf_url=stored_pdf_url,
+        approved_by=request.state.current_user["id"] if role == "admin" else None,
     )
 
+    # Persist the upload metadata for a PDF attached during creation. The
+    # upload endpoint could not do it (no thesis id existed yet), which left
+    # v_thesis_admin_overview.file_count at 0 while has_pdf was true.
+    if stored_pdf_url and _valid_upload_url(stored_pdf_url):
+        try:
+            stored_name = stored_pdf_url.rsplit("/", 1)[-1]
+            db.create_thesis_file(
+                thesis_id=thesis_id,
+                filename=_original_upload_name(stored_pdf_url),
+                file_path=stored_pdf_url,
+                file_size=os.path.getsize(os.path.join(UPLOAD_DIR, stored_name)),
+                mime_type="application/pdf",
+                uploaded_by=request.state.current_user["id"],
+            )
+        except Exception:
+            pass
+
+    # Index for semantic search off the request thread. Loading the embedding
+    # model on a cold process takes tens of seconds; doing it inline made the
+    # first submission after every backend restart look like a hang. Passing
+    # the PDF URL makes the worker include the manuscript body, so a study
+    # created with an attachment is indexed on title + abstract + PDF content.
     try:
-        from ..services.chunking import build_thesis_chunks
-        from ..services.embeddings import embedding_service
-        if embedding_service.available:
-            chunks = build_thesis_chunks(data["title"], data["abstract"])
-            if chunks:
-                vectors = embedding_service.embed_batch(chunks)
-                if vectors and len(vectors) == len(chunks):
-                    db.replace_thesis_embeddings(
-                        thesis_id,
-                        list(zip(chunks, vectors)),
-                        embedding_service.model_name,
-                    )
+        from ..services.indexing import embed_thesis_async
+        embed_thesis_async(
+            thesis_id, data["title"], data["abstract"],
+            pdf_url=stored_pdf_url,
+        )
     except Exception:
         pass
 
@@ -281,7 +326,7 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
             raise HTTPException(status_code=403, detail="You can only edit theses you submitted")
         if existing.get("status") != "draft":
             raise HTTPException(status_code=403, detail="Only drafts can be edited")
-        data = {k: v for k, v in data.items() if k not in ("status", "pdf_url", "adviser_id", "co_adviser_id")}
+        data = {k: v for k, v in data.items() if k not in ("status", "pdf_url", "adviser_id", "co_adviser_id", "review_notes")}
         if not data:
             raise HTTPException(status_code=400, detail="Nothing editable in request body")
     elif role != "admin":
@@ -301,11 +346,24 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
                     raise HTTPException(status_code=404, detail="Adviser not found")
                 data["adviser_id"] = primary
 
+        # Status changes are admin decisions: stamp who released it and record
+        # the decision in the review trail. The DB layer sets approved_at and
+        # clears the stamp again when it returns to draft.
+        if data.get("status") is not None:
+            data["actor_id"] = request.state.current_user["id"]
+            if data["status"] == "approved":
+                data["approved_by"] = request.state.current_user["id"]
+
+    if data.get("status") is not None and data.get("status") not in (
+        "draft", "approved", "published", "archived"
+    ):
+        raise HTTPException(status_code=400, detail="Invalid status")
+
     try:
         db.update_thesis(id, **data)
     except ThesisStatusConflict as e:
         raise HTTPException(status_code=409, detail={
-            "error": "Thesis is no longer pending review.",
+            "error": "This status change is not allowed from the study's current status.",
             "thesis_id": e.thesis_id,
             "required_statuses": e.required_statuses,
             "current_status": e.current_status,
@@ -314,18 +372,48 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
         raise HTTPException(status_code=400, detail=f"Update failed: {str(e)}")
     thesis = db.get_thesis_by_id(id)
 
+    # Admin PUTs can set pdf_url directly, bypassing /api/upload/pdf. Keep
+    # thesis_files in sync so v_thesis_admin_overview.file_count never
+    # disagrees with theses.pdf_url.
+    if role == "admin" and isinstance(data.get("pdf_url"), str):
+        try:
+            new_pdf_url = data["pdf_url"]
+            current_path = (db.get_thesis_file(id) or {}).get("file_path")
+            if not new_pdf_url:
+                # Explicitly cleared: the stored file is no longer active.
+                db.delete_thesis_files(id)
+            elif _valid_upload_url(new_pdf_url):
+                # Only rewrite when the active file actually changed; leaving
+                # an unchanged attachment alone preserves uploaded_at.
+                if current_path != new_pdf_url:
+                    stored_name = new_pdf_url.rsplit("/", 1)[-1]
+                    db.replace_thesis_file(
+                        thesis_id=id,
+                        filename=_original_upload_name(new_pdf_url),
+                        file_path=new_pdf_url,
+                        file_size=os.path.getsize(
+                            os.path.join(UPLOAD_DIR, stored_name)
+                        ),
+                        mime_type="application/pdf",
+                        uploaded_by=request.state.current_user["id"],
+                    )
+            elif current_path is not None:
+                # The active PDF is no longer a managed upload, so the old
+                # metadata row is stale.
+                db.delete_thesis_files(id)
+        except Exception:
+            pass
+
     if "title" in data or "abstract" in data:
         try:
-            from ..services.chunking import build_thesis_chunks
-            from ..services.embeddings import embedding_service
-            if (embedding_service.available and not (thesis.get("pdf_url") or "")):
-                chunks = build_thesis_chunks(thesis["title"], thesis["abstract"])
-                if chunks:
-                    vectors = embedding_service.embed_batch(chunks)
-                    if vectors and len(vectors) == len(chunks):
-                        db.replace_thesis_embeddings(
-                            id, list(zip(chunks, vectors)),
-                            embedding_service.model_name)
+            from ..services.indexing import embed_thesis_async
+            # Pass the stored PDF URL when there is one so an edit rebuilds the
+            # full index (title + abstract + manuscript) instead of dropping
+            # the PDF chunks that upload.py wrote.
+            embed_thesis_async(
+                id, thesis["title"], thesis["abstract"],
+                pdf_url=thesis.get("pdf_url") or None,
+            )
         except Exception:
             pass
     return thesis

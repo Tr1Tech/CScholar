@@ -29,11 +29,13 @@ class ThesisStatusConflict(Exception):
 # Valid lifecycle transitions (FR-08), keyed by target status. Mirrors
 # ceit_repo.fn_can_transition_status in db/logic/cscholar_lab5_logic.sql.
 # The source status is part of the UPDATE guard, so an approval can only
-# ever succeed once — from 'draft'.
+# ever succeed once — from 'draft'. Archiving is reversible: an archived
+# thesis can be restored to 'draft' (edit and re-approve) or sent straight
+# back to 'published' (unarchive into the repository).
 THESIS_STATUS_SOURCES = {
-    "draft": ("approved",),
+    "draft": ("approved", "archived"),
     "approved": ("draft",),
-    "published": ("approved",),
+    "published": ("approved", "archived"),
     "archived": ("draft", "published"),
 }
 
@@ -246,6 +248,12 @@ def serialize_thesis(row, detailed=False):
         "created_at": row[19].isoformat() if row[19] else None,
         "updated_at": row[20].isoformat() if row[20] else None,
         "pdf_url": row[21] if len(row) > 21 else None,
+        # Optional approval/review columns — only the detail query selects
+        # them, so short (list) rows simply leave them unset.
+        "approved_by": row[22] if len(row) > 22 else None,
+        "approved_at": row[23].isoformat() if len(row) > 23 and row[23] else None,
+        "review_notes": row[24] if len(row) > 24 else None,
+        "approved_by_name": row[25] if len(row) > 25 else None,
     }
     return data
 
@@ -321,6 +329,33 @@ def _load_thesis_relations(cur, thesis_id):
     ]
 
     return {"authors": authors, "advisers": advisers, "categories": categories, "keywords": keywords}
+
+
+def _load_thesis_reviews(cur, thesis_id):
+    """Review trail for one thesis, newest first.
+
+    `theses.review_notes` only holds the latest return note; this table keeps
+    every decision so a re-approval cannot erase the reason for a past return.
+    """
+    cur.execute(
+        "SELECT r.id, r.decision, r.notes, r.reviewer_id, u.username, r.created_at "
+        "FROM thesis_reviews r "
+        "LEFT JOIN users u ON r.reviewer_id = u.id "
+        "WHERE r.thesis_id = %s "
+        "ORDER BY r.created_at DESC, r.id DESC",
+        (thesis_id,),
+    )
+    return [
+        {
+            "id": r[0],
+            "decision": r[1],
+            "notes": r[2],
+            "reviewer_id": r[3],
+            "reviewer_name": r[4],
+            "created_at": r[5].isoformat() if r[5] else None,
+        }
+        for r in cur.fetchall()
+    ]
 
 
 def _load_thesis_relations_batch(cur, thesis_ids):
@@ -435,10 +470,12 @@ def get_thesis_by_id(thesis_id):
                 "SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
                 "       p.id, p.name, p.code, p.description, p.created_at, "
                 "       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
-                "       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url "
+                "       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url, "
+                "       t.approved_by, t.approved_at, t.review_notes, u.username "
                 "FROM theses t "
                 "LEFT JOIN programs p ON t.program_id = p.id "
                 "LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
+                "LEFT JOIN users u ON t.approved_by = u.id "
                 "WHERE t.id = %s",
                 (thesis_id,),
             )
@@ -447,9 +484,28 @@ def get_thesis_by_id(thesis_id):
                 return None
             data = serialize_thesis(row, detailed=True)
             data.update(_load_thesis_relations(cur, thesis_id))
+            data["reviews"] = _load_thesis_reviews(cur, thesis_id)
             return data
     finally:
         put_conn(conn)
+
+
+def user_can_view_unpublished(thesis, user):
+    """Whether [user] may open a study that is not publicly published.
+
+    The repository is public for `published` only. Everything else is an
+    internal archival record: staff can open it, and the submitting account can
+    keep working on it. The people named as authors are bibliographic metadata,
+    not accounts, so authorship alone grants no access.
+    """
+    if not user or not thesis:
+        return False
+    if user.get("role") in ("admin", "faculty"):
+        return True
+    return (
+        thesis.get("creator_id") is not None
+        and thesis["creator_id"] == user.get("id")
+    )
 
 
 def list_theses(q=None, program_id=None, year_id=None, research_type=None, status=None, category_id=None, keyword=None, sort_by=None, page=1, per_page=20, adviser_email=None, creator_id=None):
@@ -540,7 +596,8 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 f"SELECT t.id, t.title, t.abstract, t.research_type, t.program_id, "
                 f"       p.id, p.name, p.code, p.description, p.created_at, "
                 f"       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
-                f"       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url "
+                f"       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url, "
+                f"       t.approved_by, t.approved_at, t.review_notes "
                 f"FROM theses t "
                 f"LEFT JOIN programs p ON t.program_id = p.id "
                 f"LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
@@ -617,15 +674,28 @@ def find_possible_duplicates(title, abstract=None, limit=5):
 
 
 def create_thesis(title, abstract, research_type, program_id, academic_year_id, creator_id, status="draft",
-                  author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None, pdf_url=None):
+                  author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None, pdf_url=None,
+                  approved_by=None):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
-                (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url),
+            # A record created straight into approved/published records who
+            # released it, so the approval trail is never blank.
+            recorded_approval = (
+                approved_by is not None and status in ("approved", "published")
             )
+            if recorded_approval:
+                cur.execute(
+                    "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url, approved_by, approved_at) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()) RETURNING id",
+                    (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url, approved_by),
+                )
+            else:
+                cur.execute(
+                    "INSERT INTO theses (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                    (title, abstract, research_type, program_id, academic_year_id, status, creator_id, pdf_url),
+                )
             thesis_id = cur.fetchone()[0]
             _persist_thesis_relations(
                 cur, thesis_id,
@@ -634,6 +704,14 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
                 category_ids=category_ids,
                 keyword_terms=keyword_terms,
             )
+            if recorded_approval:
+                # The creation itself is the first review decision; record it
+                # so the trail starts at the same place as the stamp.
+                cur.execute(
+                    "INSERT INTO thesis_reviews (thesis_id, reviewer_id, decision) "
+                    "VALUES (%s, %s, %s)",
+                    (thesis_id, approved_by, status),
+                )
         conn.commit()
         return thesis_id
     except Exception:
@@ -644,9 +722,12 @@ def create_thesis(title, abstract, research_type, program_id, academic_year_id, 
 
 
 def update_thesis(thesis_id, **kwargs):
-    allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status", "pdf_url"}
+    allowed = {"title", "abstract", "research_type", "program_id", "academic_year_id", "status", "pdf_url", "approved_by", "review_notes"}
     fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
     target_status = fields.get("status")
+    # The acting account, for the review trail. Not a column on `theses`, so it
+    # stays outside `allowed`.
+    actor_id = kwargs.get("actor_id")
 
     author_ids = kwargs.get("author_ids") if isinstance(kwargs.get("author_ids"), list) else None
     adviser_id = kwargs.get("adviser_id")
@@ -657,8 +738,21 @@ def update_thesis(thesis_id, **kwargs):
     try:
         with conn.cursor() as cur:
             if fields:
-                set_clause = ", ".join(f"{k} = %s" for k in fields)
-                params = list(fields.values()) + [thesis_id]
+                set_parts = [f"{k} = %s" for k in fields]
+                params = list(fields.values())
+                if target_status == "approved":
+                    # Stamp the release decision server-side; the API passes
+                    # the acting admin as approved_by. Review notes are kept —
+                    # they are history, not a flag on the current status.
+                    set_parts.append("approved_at = NOW()")
+                elif target_status == "draft":
+                    # Returning to draft revokes the approval record. The
+                    # reviewer's notes stay on the row (and in thesis_reviews)
+                    # so the reason for the return survives re-approval.
+                    set_parts.append("approved_by = NULL")
+                    set_parts.append("approved_at = NULL")
+                set_clause = ", ".join(set_parts)
+                params.append(thesis_id)
                 where_clause = "id = %s"
 
                 if target_status is not None:
@@ -683,6 +777,16 @@ def update_thesis(thesis_id, **kwargs):
                         thesis_id,
                         required_statuses,
                         row[0] if row else None,
+                    )
+
+                if target_status is not None and actor_id is not None:
+                    # Append the decision to the audit trail. Notes are only
+                    # meaningful on a return, but recording every decision keeps
+                    # the approval history complete.
+                    cur.execute(
+                        "INSERT INTO thesis_reviews (thesis_id, reviewer_id, decision, notes) "
+                        "VALUES (%s, %s, %s, %s)",
+                        (thesis_id, actor_id, target_status, fields.get("review_notes")),
                     )
 
             _persist_thesis_relations(
@@ -1340,6 +1444,84 @@ def create_thesis_file(thesis_id, filename, file_path, file_size=None, mime_type
         put_conn(conn)
 
 
+def replace_thesis_file(thesis_id, filename, file_path, file_size=None, mime_type=None, uploaded_by=None):
+    """Make ``thesis_files`` hold exactly one row: the current file.
+
+    Re-uploads used to append, so v_thesis_admin_overview.file_count could
+    report 3 files for a thesis with a single active PDF. Delete+insert in one
+    transaction also cleans up duplicates left by earlier appends.
+
+    The old blob on disk is deliberately left alone: an admin can attach the
+    same stored PDF URL to more than one record, so removing the file could
+    break the other thesis. Metadata is the source of truth for "current".
+    """
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM thesis_files WHERE thesis_id = %s", (thesis_id,)
+            )
+            cur.execute(
+                "INSERT INTO thesis_files (thesis_id, filename, file_path, file_size, mime_type, uploaded_by) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                (thesis_id, filename, file_path, file_size, mime_type, uploaded_by),
+            )
+            file_id = cur.fetchone()[0]
+        conn.commit()
+        return file_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def get_thesis_file(thesis_id):
+    """Return the current thesis_files row for a thesis, or None."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, filename, file_path, file_size, mime_type, "
+                "       uploaded_by, uploaded_at "
+                "FROM thesis_files WHERE thesis_id = %s "
+                "ORDER BY id DESC LIMIT 1",
+                (thesis_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "id": row[0],
+                "filename": row[1],
+                "file_path": row[2],
+                "file_size": row[3],
+                "mime_type": row[4],
+                "uploaded_by": row[5],
+                "uploaded_at": row[6].isoformat() if row[6] else None,
+            }
+    finally:
+        put_conn(conn)
+
+
+def delete_thesis_files(thesis_id):
+    """Remove file metadata for a thesis (the blob on disk is left alone)."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM thesis_files WHERE thesis_id = %s", (thesis_id,)
+            )
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
 def get_dashboard_stats():
     """Get admin dashboard statistics."""
     conn = get_conn()
@@ -1375,7 +1557,7 @@ def get_public_stats():
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT count(*) FROM theses WHERE status IN ('published','approved')")
+            cur.execute("SELECT count(*) FROM theses WHERE status = 'published'")
             total_theses = cur.fetchone()[0]
             cur.execute("SELECT count(*) FROM programs")
             total_programs = cur.fetchone()[0]
@@ -1384,26 +1566,39 @@ def get_public_stats():
         put_conn(conn)
 
 
-def recent_activity(limit=10):
-    """Get recent activity for the admin dashboard."""
+def recent_activity(limit=10, offset=0):
+    """Get one page of recent activity for the admin dashboard.
+
+    Returns ``(items, total)`` so the caller can render pagination. Authors are
+    aggregated per thesis: the old author join duplicated a multi-author thesis
+    once per author, which made a page look like repeated rows and would have
+    made LIMIT/OFFSET walk the wrong rows.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            cur.execute("SELECT count(*) FROM theses")
+            total = cur.fetchone()[0]
             # Get recent theses
             cur.execute(
                 "SELECT t.id, t.title, t.created_at, "
                 "       p.name as program_name, "
                 "       'New thesis added' as activity_type, "
-                "       'Author: ' || COALESCE(a.first_name || ' ' || a.last_name, 'Unknown') as subtitle "
+                "       'Author: ' || COALESCE(a.authors, 'Unknown') as subtitle "
                 "FROM theses t "
                 "LEFT JOIN programs p ON t.program_id = p.id "
-                "LEFT JOIN thesis_authors ta ON t.id = ta.thesis_id "
-                "LEFT JOIN authors a ON ta.author_id = a.id "
-                "ORDER BY t.created_at DESC LIMIT %s",
-                (limit,),
+                "LEFT JOIN ("
+                "    SELECT ta.thesis_id, "
+                "           string_agg(au.first_name || ' ' || au.last_name, ', ') AS authors "
+                "    FROM thesis_authors ta "
+                "    JOIN authors au ON ta.author_id = au.id "
+                "    GROUP BY ta.thesis_id"
+                ") a ON t.id = a.thesis_id "
+                "ORDER BY t.created_at DESC LIMIT %s OFFSET %s",
+                (limit, offset),
             )
             rows = cur.fetchall()
-            return [
+            items = [
                 {
                     "id": r[0],
                     "title": r[1],
@@ -1414,6 +1609,7 @@ def recent_activity(limit=10):
                 }
                 for r in rows
             ]
+            return items, total
     finally:
         put_conn(conn)
 
@@ -1441,7 +1637,7 @@ def semantic_search(query_vector, limit=10):
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
-                "WHERE t.status IN ('published', 'approved') "
+                "WHERE t.status = 'published' "
                 "ORDER BY t.id, e.embedding <=> %s::vector"
                 ") s ORDER BY similarity DESC "
                 "LIMIT %s",
@@ -1677,7 +1873,7 @@ def recommend_for_thesis(thesis_id, limit=5):
                 "       1 - (e.embedding <=> %s::vector) AS similarity "
                 "FROM thesis_embeddings e "
                 "JOIN theses t ON e.thesis_id = t.id "
-                "WHERE t.status IN ('published', 'approved') AND t.id != %s "
+                "WHERE t.status = 'published' AND t.id != %s "
                 "ORDER BY t.id, e.embedding <=> %s::vector"
                 ") s ORDER BY similarity DESC "
                 "LIMIT %s",

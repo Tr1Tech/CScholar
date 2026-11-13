@@ -1,6 +1,8 @@
 """FastAPI application factory."""
 
 import os
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 
 from fastapi import FastAPI, Request
@@ -26,7 +28,26 @@ tags_metadata = [
     {"name": "Admin", "description": "Endpoints restricted to administrators (admin only)"},
 ]
 
-app = FastAPI(title="CScholar API", version="1.0.0", openapi_tags=tags_metadata, docs_url=None, redoc_url=None)
+@asynccontextmanager
+async def _lifespan(_app):
+    """Warm the embedding model in the background at startup."""
+    try:
+        from .services.embeddings import embedding_service
+
+        embedding_service.warm_up()
+    except Exception:
+        pass
+    yield
+
+
+app = FastAPI(
+    title="CScholar API",
+    version="1.0.0",
+    openapi_tags=tags_metadata,
+    docs_url=None,
+    redoc_url=None,
+    lifespan=_lifespan,
+)
 
 
 def _order_example_keys(node):

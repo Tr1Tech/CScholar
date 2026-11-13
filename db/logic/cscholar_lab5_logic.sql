@@ -131,7 +131,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_mv_counts
 -- =============================================================
 
 -- F1: fn_can_transition_status (scalar validation)
--- Rule: thesis lifecycle draft -> approved -> published -> archived (FR-08)
+-- Rule: thesis lifecycle draft -> approved -> published -> archived (FR-08),
+--   with archiving reversible (archived -> draft/published).
 -- Why DB-side: must hold regardless of client (Flutter web/mobile,
 --   psql, Supabase editor). Single source of truth reused by trigger
 --   AND procedure AND backend pre-check (defensive duplicate).
@@ -164,7 +165,9 @@ BEGIN
     IF p_current = 'draft'    AND p_next IN ('approved','archived') THEN RETURN TRUE; END IF;
     IF p_current = 'approved' AND p_next IN ('published','draft')   THEN RETURN TRUE; END IF;
     IF p_current = 'published' AND p_next = 'archived'              THEN RETURN TRUE; END IF;
-    -- archived is terminal (must re-publish via approved flow in API, not direct)
+    -- Archiving is reversible: restore to draft (edit + re-approve) or
+    -- unarchive straight back to published.
+    IF p_current = 'archived' AND p_next IN ('draft','published')   THEN RETURN TRUE; END IF;
     RETURN FALSE;
 END;
 $$;
@@ -341,7 +344,7 @@ BEGIN
     IF OLD.status IS DISTINCT FROM NEW.status THEN
         IF NOT ceit_repo.fn_can_transition_status(OLD.status, NEW.status) THEN
             RAISE EXCEPTION
-                'Invalid thesis status transition from % to %. Allowed: draft->approved/archived; approved->published/draft; published->archived',
+                'Invalid thesis status transition from % to %. Allowed: draft->approved/archived; approved->published/draft; published->archived; archived->draft/published',
                 OLD.status, NEW.status
                 USING ERRCODE = 'P0001';
         END IF;

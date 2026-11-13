@@ -119,7 +119,9 @@ async def upload_pdf(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to update thesis record: {str(e)}")
         try:
-            db.create_thesis_file(
+            # Replace, not append: a re-upload is "this thesis' current file",
+            # so thesis_files keeps one row and file_count stays 1.
+            db.replace_thesis_file(
                 thesis_id=thesis_id,
                 filename=filename,
                 file_path=pdf_url,

@@ -222,9 +222,8 @@ def get_thesis_pdf(
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
         raise HTTPException(status_code=404, detail="Thesis not found")
-    if thesis.get("status") not in ("published", "approved"):
-        if user.get("role") not in ("admin", "faculty"):
-            raise HTTPException(status_code=404, detail="Thesis not found")
+    if thesis.get("status") != "published" and not db.user_can_view_unpublished(thesis, user):
+        raise HTTPException(status_code=404, detail="Thesis not found")
 
     pdf_url = thesis.get("pdf_url")
     if not pdf_url:

@@ -61,10 +61,30 @@ CREATE TABLE theses (
     status           VARCHAR(20) NOT NULL DEFAULT 'draft'
                         CHECK (status IN ('draft', 'approved', 'published', 'archived')),
     creator_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    approved_by      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    approved_at      TIMESTAMP,
+    review_notes     TEXT,
     created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
     pdf_url          VARCHAR(500)
 );
+
+-- 4b. thesis_reviews (audit trail) ----------------------------
+-- One row per lifecycle decision. `theses.review_notes` keeps the latest
+-- return note; this table keeps every decision, so re-approving cannot erase
+-- why a study was previously returned.
+CREATE TABLE thesis_reviews (
+    id          SERIAL PRIMARY KEY,
+    thesis_id   INTEGER NOT NULL REFERENCES theses(id) ON DELETE CASCADE,
+    reviewer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    decision    VARCHAR(20) NOT NULL
+                    CHECK (decision IN ('draft', 'approved', 'published', 'archived')),
+    notes       TEXT,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_thesis_reviews_thesis
+    ON thesis_reviews (thesis_id, created_at DESC);
 
 -- 5. authors --------------------------------------------------
 CREATE TABLE authors (

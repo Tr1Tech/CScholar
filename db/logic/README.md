@@ -27,7 +27,7 @@ The logic script is idempotent (`OR REPLACE`, `IF NOT EXISTS`,
 | 1 | `v_published_thesis_listing` | view | browse/search list (Flutter + `GET /api/theses`) |
 | 2 | `v_thesis_admin_overview` | view | admin completeness dashboard |
 | 3 | `mv_thesis_counts_by_program_year` | materialized view | dashboard counts report |
-| 4 | `fn_can_transition_status(text,text)` | function (scalar, IMMUTABLE) | lifecycle rule `draft→approved→published→archived` |
+| 4 | `fn_can_transition_status(text,text)` | function (scalar, IMMUTABLE) | lifecycle rule `draft→approved→published→archived`, archiving reversible (`archived→draft/published`) |
 | 5 | `fn_get_thesis_full_info(bigint)` | function (set-returning, STABLE) | thesis detail page |
 | 6 | `sp_submit_thesis_with_links(...)` | procedure | atomic thesis + authors + categories submit |
 | 7 | `trg_theses_validate_status` (`tg_validate_thesis_status_transition`) | trigger BEFORE UPDATE | enforce lifecycle, maintain `updated_at` |

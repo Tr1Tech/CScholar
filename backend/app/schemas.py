@@ -124,6 +124,10 @@ class ThesisUpdateRequest(_Base):
     keyword_terms: list[str] | None = None
     pdf_url: str | None = Field(default=None, description="Uploaded PDF URL from /api/upload/pdf")
     status: str | None = Field(default=None, description="draft, approved, published, or archived (admin only)")
+    review_notes: str | None = Field(
+        default=None,
+        description="Admin-only feedback recorded when a study is returned to draft",
+    )
 
 
 # -- Metadata -------------------------------------------------------------

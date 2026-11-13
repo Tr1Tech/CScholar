@@ -19,7 +19,7 @@
 | FR-05 | The system shall manage academic years and mark one as active. | 5 |
 | FR-06 | Users shall be able to create and edit thesis/capstone entries with title and abstract. | 6 |
 | FR-07 | Each entry shall be classified as either a Thesis or a Capstone. | 6 |
-| FR-08 | Each entry shall follow the status lifecycle draft → approved → published → archived. | 6 |
+| FR-08 | Each entry shall follow the status lifecycle draft → approved → published → archived. Archiving is reversible: an archived entry can be restored to draft or published. | 6 |
 | FR-09 | Each entry shall store the location of its PDF document. | 6 |
 | FR-10 | The system shall record file metadata (name, path, size, MIME type) for uploaded files. | 8 |
 | FR-11 | Multiple authors shall be linkable to one thesis, in a meaningful order. | 7 |
