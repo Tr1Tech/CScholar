@@ -72,7 +72,16 @@ void main() {
     expect(find.text('A Semantic Search Model'), findsOneWidget);
     // The status reads as a control: caret present, menu behind the same chip
     // palette as the read-only badge.
-    expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+    // The caret belongs to the row's status control (the page's status filter
+    // carries its own), so scope the finder to that control instead of the
+    // whole screen.
+    expect(
+      find.descendant(
+        of: find.byTooltip('Change status'),
+        matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
+      ),
+      findsOneWidget,
+    );
     expect(find.byTooltip('Change status'), findsOneWidget);
     expect(find.byTooltip('View thesis'), findsOneWidget);
     expect(find.byTooltip('Edit thesis'), findsOneWidget);

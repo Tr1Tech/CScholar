@@ -213,9 +213,9 @@ void main() {
 
   group('tier 3 — the recessed well reacts to state', () {
     test('the well is findable on paper and on a card', () {
-      // With no rim at rest the fill is the ONLY thing marking the field, so it
-      // owes a measurable step away from whatever it sits on. clayDeep
-      // measured 1.04:1 on paper — an empty search bar read as blank space.
+      // The deeper well still carries the controls that cannot rely on a card
+      // behind them (toggle-off track, skeleton base). clayDeep measured
+      // 1.04:1 on paper — those controls read as blank space.
       final onPaper = _contrast(CScholarMaterial.well, CScholarMaterial.canvas);
       final onCard = _contrast(CScholarMaterial.well, CScholarMaterial.clay);
       expect(
@@ -233,9 +233,9 @@ void main() {
       // The step is paid for out of the hint ink's budget: the placeholder is
       // still body text and owes the 4.5:1 floor.
       expect(
-        _contrast(CScholarMaterial.textFaint, CScholarMaterial.well),
+        _contrast(CScholarMaterial.textFaint, CScholarMaterial.clayDeep),
         greaterThanOrEqualTo(4.5),
-        reason: 'hint ink dropped below AA on the deeper well',
+        reason: 'hint ink dropped below AA on the field fill',
       );
     });
 
@@ -306,7 +306,7 @@ void main() {
       );
 
       final well = _wellDecoration(tester);
-      expect(well.color, CScholarMaterial.well);
+      expect(well.color, CScholarMaterial.clayDeep);
       // No drawn outline at rest: the tonal fill IS the affordance, and a rim
       // on every control is exactly what the clay pass removed.
       expect(

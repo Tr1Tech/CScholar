@@ -103,8 +103,8 @@ void main() {
       final well = _decorationOf(tester, find.byType(TextField));
       expect(
         well.color,
-        CScholarMaterial.well,
-        reason: 'the search well lost its recessed input fill',
+        CScholarMaterial.clayDeep,
+        reason: 'the search well lost the house recessed fill',
       );
       expect(
         well.border,

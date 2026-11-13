@@ -157,7 +157,7 @@ void main() {
       );
 
       final well = _wellDecoration(tester);
-      expect(well.color, CScholarMaterial.well);
+      expect(well.color, CScholarMaterial.clayDeep);
       expect(
         well.border,
         isNull,

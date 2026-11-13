@@ -189,6 +189,33 @@ void main() {
     expect(segment, 2);
   });
 
+  testWidgets('toggle state lives in the track fill', (tester) async {
+    await tester.pumpWidget(
+      _host(NeumorphToggle(value: false, onChanged: (_) {})),
+    );
+    final off =
+        tester
+                .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+                .decoration
+            as BoxDecoration;
+    // Off is the deeper well, never clayDeep: on a card clayDeep measures
+    // ~1.04:1 against the surface, and the switch read as blank space.
+    expect(off.color, CScholarMaterial.well);
+    expect(off.color, isNot(CScholarMaterial.clayDeep));
+
+    await tester.pumpWidget(
+      _host(NeumorphToggle(value: true, onChanged: (_) {})),
+    );
+    final on =
+        tester
+                .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+                .decoration
+            as BoxDecoration;
+    expect(on.color, CScholarMaterial.gelTop,
+        reason: 'on floods the track with the brand green');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('identity objects and progress render', (tester) async {
     await tester.pumpWidget(
       _host(

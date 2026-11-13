@@ -48,8 +48,14 @@ Widget _host() {
     overrides: [
       currentUserProvider.overrideWithValue(_user()),
       // Thirty cards make the page tall enough to scroll past the rail.
-      thesisListProvider.overrideWith(
-        (ref, params) async => [for (var i = 1; i <= 30; i++) _thesis(i)],
+      thesisPageProvider.overrideWith(
+        (ref, params) async => ThesisPage(
+          theses: [for (var i = 1; i <= 30; i++) _thesis(i)],
+          total: 30,
+          page: 1,
+          pages: 1,
+          pageSize: 30,
+        ),
       ),
     ],
     child: MaterialApp.router(
