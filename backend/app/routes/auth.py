@@ -6,8 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from .. import models as db
 from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required, bearer_scheme
-from ..models import get_user_by_id
-from ..config import UPLOAD_DIR
+from ..services.uploads import UPLOAD_URL_PREFIX, upload_filename, upload_path
 from ..schemas import (
     RegisterRequest,
     LoginRequest,
@@ -228,17 +227,11 @@ def get_thesis_pdf(
     pdf_url = thesis.get("pdf_url")
     if not pdf_url:
         raise HTTPException(status_code=404, detail="No PDF attached to this thesis")
-    prefix = "/api/uploads/"
-    if not pdf_url.startswith(prefix):
+    if not pdf_url.startswith(UPLOAD_URL_PREFIX):
         raise HTTPException(status_code=500, detail="Invalid pdf_url format")
-    filename = pdf_url[len(prefix):]
-    upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
-    # Actually use config UPLOAD_DIR
-    from ..config import UPLOAD_DIR
-    upload_dir = UPLOAD_DIR
-    if (not filename or ".." in filename or filename.startswith(("/", "\\")) or "/" in filename or "\\" in filename or "%" in filename or ":" in filename):
+    if upload_filename(pdf_url) is None:
         raise HTTPException(status_code=400, detail="Invalid filename")
-    file_path = os.path.join(upload_dir, filename)
-    if not os.path.exists(file_path):
+    file_path = upload_path(pdf_url)
+    if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="PDF file not found on server")
     return FileResponse(file_path, media_type="application/pdf")

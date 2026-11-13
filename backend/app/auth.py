@@ -1,8 +1,6 @@
 """Authentication utilities -- password hashing + JWT tokens (FastAPI)."""
 
 import datetime
-import functools
-import os
 from fastapi import Request, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import bcrypt

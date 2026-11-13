@@ -1,6 +1,5 @@
 """Embedding routes -- generate and store thesis embeddings (full-PDF chunking)."""
 
-import os
 import threading
 
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
@@ -8,7 +7,7 @@ from .. import models as db
 from ..auth import login_required, admin_required
 from ..services.embeddings import embedding_service
 from ..services.chunking import build_thesis_chunks
-from ..config import UPLOAD_DIR
+from ..services.indexing import pdf_text_from_url
 from ..schemas import SemanticSearchRequest
 
 router = APIRouter()
@@ -23,32 +22,6 @@ _bulk_state = {
     "failed": 0,
     "error": None,
 }
-
-
-def _extract_pdf_text_for_thesis(thesis, upload_dir):
-    try:
-        pdf_url = (thesis.get("pdf_url") or "")
-        prefix = "/api/uploads/"
-        if not pdf_url.startswith(prefix):
-            return ""
-        filename = pdf_url[len(prefix):]
-        if (not filename or ".." in filename or "/" in filename
-                or "\\" in filename or filename.startswith((".",))):
-            return ""
-        path = os.path.join(upload_dir, filename)
-        if not os.path.exists(path):
-            return ""
-        import pymupdf
-        text_parts = []
-        with pymupdf.open(path) as doc:
-            for page in doc:
-                try:
-                    text_parts.append(page.get_text())
-                except Exception:
-                    continue
-        return "".join(text_parts)
-    except Exception:
-        return ""
 
 
 def _embed_thesis_chunks(thesis_id, title, abstract, pdf_text=None):
@@ -80,7 +53,7 @@ def _iter_all_theses(statuses, page_size=100):
         page += 1
 
 
-def _bulk_worker(upload_dir, refresh):
+def _bulk_worker(refresh):
     with _bulk_lock:
         _bulk_state.update(running=True, processed=0, embedded=0,
                            skipped=0, failed=0, error=None)
@@ -96,7 +69,7 @@ def _bulk_worker(upload_dir, refresh):
                         _bulk_state["skipped"] += 1
                 else:
                     full = db.get_thesis_by_id(tid)
-                    pdf_text = _extract_pdf_text_for_thesis(full or t, upload_dir)
+                    pdf_text = pdf_text_from_url((full or t).get("pdf_url"))
                     n = _embed_thesis_chunks(
                         tid, t.get("title", ""), t.get("abstract", ""), pdf_text)
                     with _bulk_lock:
@@ -125,8 +98,7 @@ def generate_embedding(thesis_id: int):
         raise HTTPException(status_code=404, detail="Thesis not found")
     if not embedding_service.available:
         raise HTTPException(status_code=503, detail="Embedding service not available. Install sentence-transformers.")
-    upload_dir = UPLOAD_DIR
-    pdf_text = _extract_pdf_text_for_thesis(thesis, upload_dir)
+    pdf_text = pdf_text_from_url(thesis.get("pdf_url"))
     try:
         n = _embed_thesis_chunks(
             thesis_id, thesis.get("title", ""), thesis.get("abstract", ""), pdf_text)
@@ -153,8 +125,7 @@ def generate_bulk_embeddings(request: Request, refresh: str = Query("false")):
         _bulk_state.update(running=True, total=0, processed=0, embedded=0,
                            skipped=0, failed=0, error=None)
     refresh_bool = refresh.lower() == "true"
-    upload_dir = UPLOAD_DIR
-    worker = threading.Thread(target=_bulk_worker, args=(upload_dir, refresh_bool), daemon=True)
+    worker = threading.Thread(target=_bulk_worker, args=(refresh_bool,), daemon=True)
     worker.start()
     return {"message": "Backfill started", "refresh": refresh_bool}
 

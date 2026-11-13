@@ -3,11 +3,11 @@
 import os
 import re
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
-from fastapi import status as http_status
 from .. import models as db
 from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
+from ..services.uploads import upload_path
 from ..schemas import ThesisCreateRequest, ThesisUpdateRequest
 
 router = APIRouter()
@@ -169,14 +169,8 @@ def _require_faculty(request):
 
 
 def _valid_upload_url(pdf_url):
-    prefix = "/api/uploads/"
-    if not pdf_url or not pdf_url.startswith(prefix):
-        return False
-    filename = pdf_url[len(prefix):]
-    if (not filename or ".." in filename or filename.startswith(("/", "\\")) or "/" in filename or "\\" in filename or "%" in filename or ":" in filename):
-        return False
-    upload_dir = UPLOAD_DIR
-    return os.path.exists(os.path.join(upload_dir, filename))
+    path = upload_path(pdf_url)
+    return bool(path) and os.path.isfile(path)
 
 
 def _original_upload_name(pdf_url):

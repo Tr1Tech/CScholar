@@ -219,7 +219,7 @@ def get_all_users():
 
 # ── Theses ─────────────────────────────────────────────────────────────────
 
-def serialize_thesis(row, detailed=False):
+def serialize_thesis(row):
     """Convert a DB row to a thesis dict."""
     data = {
         "id": row[0],
@@ -482,7 +482,7 @@ def get_thesis_by_id(thesis_id):
             row = cur.fetchone()
             if not row:
                 return None
-            data = serialize_thesis(row, detailed=True)
+            data = serialize_thesis(row)
             data.update(_load_thesis_relations(cur, thesis_id))
             data["reviews"] = _load_thesis_reviews(cur, thesis_id)
             return data

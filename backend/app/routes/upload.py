@@ -2,9 +2,7 @@
 
 import os
 import threading
-import uuid
 from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form
-from fastapi import status as http_status
 from ..auth import login_required
 from .. import models as db
 from ..config import UPLOAD_DIR

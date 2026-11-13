@@ -11,8 +11,6 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 
-from .config import Config
-
 load_dotenv()
 
 tags_metadata = [

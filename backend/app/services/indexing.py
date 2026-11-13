@@ -9,33 +9,18 @@ thread so create/update responses are never blocked by model startup.
 import os
 import threading
 
-_UPLOAD_URL_PREFIX = "/api/uploads/"
+from .uploads import upload_path
 
 
-def _pdf_text_from_url(pdf_url):
+def pdf_text_from_url(pdf_url):
     """Return the text of a stored thesis PDF, or "" when unreadable.
 
-    Mirrors the traversal checks used when serving uploads: only a bare
-    filename under UPLOAD_DIR is accepted, never a path.
+    The path rules live in [upload_path], shared with the download and
+    validation routes: only a bare filename under UPLOAD_DIR is accepted.
     """
     try:
-        from ..config import UPLOAD_DIR
-
-        if not pdf_url or not pdf_url.startswith(_UPLOAD_URL_PREFIX):
-            return ""
-        filename = pdf_url[len(_UPLOAD_URL_PREFIX):]
-        if (
-            not filename
-            or filename.startswith(".")
-            or ".." in filename
-            or "/" in filename
-            or "\\" in filename
-            or ":" in filename
-            or "%" in filename
-        ):
-            return ""
-        path = os.path.join(UPLOAD_DIR, filename)
-        if not os.path.isfile(path):
+        path = upload_path(pdf_url)
+        if not path or not os.path.isfile(path):
             return ""
         import pymupdf
 
@@ -64,7 +49,7 @@ def embed_thesis_async(thesis_id, title, abstract, pdf_text=None, pdf_url=None):
                 return
             text = pdf_text
             if not text and pdf_url:
-                text = _pdf_text_from_url(pdf_url)
+                text = pdf_text_from_url(pdf_url)
             chunks = build_thesis_chunks(title or "", abstract or "", text)
             if not chunks:
                 return
