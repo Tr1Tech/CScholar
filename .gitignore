@@ -6,6 +6,9 @@ venv/
 .venv/
 env/
 
+# Runtime uploads (user PDFs; the folder is created on demand)
+backend/app/uploads/
+
 # Secrets — NEVER commit
 .env
 token.json
