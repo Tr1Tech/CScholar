@@ -395,6 +395,7 @@ queries need `ceit_repo.` prefixes or `SET search_path TO ceit_repo;`.
 | `docs/normalization.md` | Normalization notes |
 | `docs/data_dictionary.md` | Column-level reference |
 | `docs/requirements_traceability.md` | Requirements → tables |
+| `docs/pdf_token_check.md` | Why PDF opens in a new tab with `?token=` |
 | `db/logic/README.md` | Views, functions, procedure, triggers |
 
 </details>
