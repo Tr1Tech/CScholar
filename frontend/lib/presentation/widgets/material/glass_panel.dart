@@ -34,8 +34,7 @@ class GlassDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding:
-          const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
       // A Dialog gives its child the whole window; a text field's intrinsic
       // width then stretches every form dialog edge to edge. Cap the surface
       // at a comfortable reading width (AlertDialog's own 560 is close).
@@ -46,20 +45,27 @@ class GlassDialog extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            // Stretch every slot to the panel's full inner width. Call sites
+            // that still wrap their form in a fixed-width SizedBox are clamped
+            // by the tight cross-axis constraint, so no dialog can keep a dead
+            // column of space on the right while the title hugs the left.
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (title != null) ...[
-                title!,
-                const SizedBox(height: 12),
-              ],
+              if (title != null) ...[title!, const SizedBox(height: 12)],
               content,
               if (actions.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // Centre the action group, so the buttons sit on the panel's
+                // axis instead of hugging one edge under full-width content.
+                // Wrap (not Row) keeps two wide buttons from overflowing on a
+                // narrow phone or at 200% text — they stack, still centred.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    for (var i = 0; i < actions.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
+                    for (var i = 0; i < actions.length; i++)
                       // The action row staggers by 30ms (a quarter of the micro
                       // budget, derived from the token) so the buttons land after
                       // the panel does: the dialog opens as one motion.
@@ -68,7 +74,6 @@ class GlassDialog extends StatelessWidget {
                         rise: 6,
                         child: actions[i],
                       ),
-                    ],
                   ],
                 ),
               ],

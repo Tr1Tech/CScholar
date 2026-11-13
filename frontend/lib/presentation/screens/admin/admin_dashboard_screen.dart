@@ -18,11 +18,21 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  /// Current page of the live audit feed. Server-side: the dashboard asks for
+  /// one page at a time instead of pulling every thesis into the card.
+  int _activityPage = 1;
+
+  @override
+  Widget build(BuildContext context) {
     final stats = ref.watch(dashboardStatsProvider);
 
     return CScholarShell(
@@ -273,81 +283,81 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 
   Widget _recentActivityFeed() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final activityAsync = ref.watch(recentActivityProvider);
-        return asyncSlot<List<Map<String, dynamic>>>(
-          activityAsync,
-          skeleton: CScholarCard(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final activityAsync = ref.watch(recentActivityProvider(_activityPage));
+    return asyncSlot<RecentActivityPage>(
+      activityAsync,
+      skeleton: CScholarCard(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Recent Activity',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: CScholarTextStyles.heading(
-                                16,
-                                FontWeight.w700,
-                                CScholarColors.textPrimary,
-                              ),
-                            ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Recent Activity',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CScholarTextStyles.heading(
+                            16,
+                            FontWeight.w700,
+                            CScholarColors.textPrimary,
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: CScholarColors.primaryGreenVeryLight,
-                              borderRadius: BorderRadius.circular(
-                                CScholarRadius.full,
-                              ),
-                            ),
-                            child: Text(
-                              'Live audit',
-                              style: CScholarTextStyles.body(
-                                10.5,
-                                FontWeight.w700,
-                                CScholarColors.primaryGreen,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: CScholarColors.primaryGreenVeryLight,
+                          borderRadius: BorderRadius.circular(
+                            CScholarRadius.full,
+                          ),
+                        ),
+                        child: Text(
+                          'Live audit',
+                          style: CScholarTextStyles.body(
+                            10.5,
+                            FontWeight.w700,
+                            CScholarColors.primaryGreen,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const Divider(color: CScholarMaterial.rim, height: 20),
-                const SkeletonList(count: 4, cardHeight: 56),
               ],
             ),
-          ),
-          error: (_, _) => EmptyState(
-            icon: Icons.error_outline,
-            title: 'Could not load activity',
-            actionLabel: 'Retry',
-            onAction: () => ref.invalidate(recentActivityProvider),
-          ),
-          data: (items) => CScholarCard(
-            padding: const EdgeInsets.all(24),
-            child: _activityList(items),
-          ),
-        );
-      },
+            const Divider(color: CScholarMaterial.rim, height: 20),
+            const SkeletonList(count: 4, cardHeight: 56),
+          ],
+        ),
+      ),
+      error: (_, _) => EmptyState(
+        icon: Icons.error_outline,
+        title: 'Could not load activity',
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(recentActivityProvider(_activityPage)),
+      ),
+      data: (result) => CScholarCard(
+        padding: const EdgeInsets.all(24),
+        child: _activityList(result),
+      ),
     );
   }
 
-  Widget _activityList(List<Map<String, dynamic>> items) {
+  Widget _activityList(RecentActivityPage result) {
+    final items = result.items;
+    final totalPages = result.total == 0
+        ? 1
+        : (result.total + result.limit - 1) ~/ result.limit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -423,6 +433,48 @@ class AdminDashboardScreen extends ConsumerWidget {
             );
             return widgets;
           }),
+        if (items.isNotEmpty) ...[
+          const Divider(color: CScholarMaterial.rim, height: 20),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                Text(
+                  'Page ${result.page} of $totalPages',
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w600,
+                    CScholarColors.textMuted,
+                  ),
+                ),
+                const Spacer(),
+                NeumorphIconButton(
+                  icon: Icons.chevron_left,
+                  size: 36,
+                  tooltip: 'Previous activity page',
+                  color: result.page > 1
+                      ? CScholarMaterial.textPrimary
+                      : CScholarColors.textHint,
+                  onPressed: result.page > 1
+                      ? () => setState(() => _activityPage = result.page - 1)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                NeumorphIconButton(
+                  icon: Icons.chevron_right,
+                  size: 36,
+                  tooltip: 'Next activity page',
+                  color: result.page < totalPages
+                      ? CScholarMaterial.textPrimary
+                      : CScholarColors.textHint,
+                  onPressed: result.page < totalPages
+                      ? () => setState(() => _activityPage = result.page + 1)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -6,6 +6,8 @@ import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/auth_shell.dart';
@@ -68,13 +70,73 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final ok = await auth.register(user);
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
 
     if (ok) {
-      context.go('/student/dashboard');
+      // Dialog only: the form stays where it is, under the scrim. The dialog
+      // is the whole confirmation, so whatever closes it — the CTA, back or
+      // Escape — continues to sign-in; nobody is left on a filled form they
+      // could resubmit into a 409.
+      setState(() => _isLoading = false);
+      _registrationSucceeded(_emailController.text.trim());
     } else {
-      setState(() => _error = 'Registration failed. Email may already be in use.');
+      setState(() {
+        _isLoading = false;
+        _error = 'Registration failed. Email may already be in use.';
+      });
     }
+  }
+
+  String _successCopy(String email) => email.isEmpty
+      ? 'Your account is ready. Sign in to start saving and building your library.'
+      : 'Your account is ready. Sign in as $email to start saving and building your library.';
+
+  void _goToLogin(String email) {
+    if (!mounted) return;
+    context.go(
+      Uri(
+        path: '/login',
+        queryParameters: email.isEmpty ? null : {'email': email},
+      ).toString(),
+    );
+  }
+
+  /// Success dialog — the one acknowledgement of a created account. Barrier
+  /// taps are blocked so a stray click cannot throw it away; a back/Escape
+  /// dismissal still lands on sign-in, because that is the only next step.
+  Future<void> _registrationSucceeded(String email) async {
+    await showClayDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Account created',
+      builder: (ctx) => GlassDialog(
+        title: const Text(
+          'Account created',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Green gel tile, white check: the system's success identity.
+            const ClayIconTile(icon: Icons.check_rounded, size: 56),
+            const SizedBox(height: 16),
+            Text(
+              _successCopy(email),
+              textAlign: TextAlign.center,
+              style: CScholarTextStyles.body(
+                  13.5, FontWeight.w400, CScholarColors.textMuted),
+            ),
+          ],
+        ),
+        actions: [
+          NeumorphButton(
+            label: 'Continue to Sign In',
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
+      ),
+    );
+    // Reached after the CTA pops the dialog AND after a back/Escape dismissal.
+    _goToLogin(email);
   }
 
   @override
@@ -211,8 +273,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   prefixIcon: Icons.lock_outline,
                   obscureText: true,
                   autofillHints: const [AutofillHints.newPassword],
-                  validator: (v) => (v == null || v.length < 4)
-                      ? 'Min 4 characters'
+                  // The register route rejects anything under 6; validating the
+                  // same floor here keeps the user out of a pointless round-trip.
+                  validator: (v) => (v == null || v.length < 6)
+                      ? 'Min 6 characters'
                       : null,
                 );
                 final confirmField = NeumorphField(
@@ -222,7 +286,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   prefixIcon: Icons.lock_outline,
                   obscureText: true,
                   autofillHints: const [AutofillHints.newPassword],
-                  validator: (v) => (v == null || v.length < 4)
+                  validator: (v) => (v == null || v.length < 6)
                       ? 'Confirm password'
                       : null,
                 );

@@ -17,7 +17,11 @@ class LoginScreen extends ConsumerStatefulWidget {
   /// shows the student-only notice.
   final String? reason;
 
-  const LoginScreen({super.key, this.reason});
+  /// Prefills the email field — used by the register success panel so a
+  /// freshly created account only has to type its password (`/login?email=`).
+  final String? initialEmail;
+
+  const LoginScreen({super.key, this.reason, this.initialEmail});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -35,6 +39,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    // Seed from the register hand-off before the first frame, so the field
+    // never flashes empty and then fills itself.
+    final seeded = widget.initialEmail?.trim();
+    if (seeded != null && seeded.isNotEmpty) {
+      _emailController.text = seeded;
+      _emailController.selection =
+          TextSelection.collapsed(offset: seeded.length);
+    }
     if (widget.reason == 'use-web') {
       final user = ref.read(currentUserProvider);
       if (user?.role == 'admin' || user?.role == 'faculty') {

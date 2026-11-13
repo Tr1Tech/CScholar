@@ -119,7 +119,7 @@ class _CScholarAppState extends ConsumerState<CScholarApp> {
           // allow-listed bespoke wells (hero search, topbar).
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: CScholarMaterial.well,
+            fillColor: CScholarMaterial.clayDeep,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CScholarRadius.well),
               borderSide: BorderSide.none,

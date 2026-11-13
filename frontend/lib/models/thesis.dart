@@ -432,6 +432,34 @@ class User {
   };
 }
 
+/// One decision in a thesis's review trail.
+class ThesisReview {
+  final int id;
+  final String decision; // 'draft' | 'approved' | 'published' | 'archived'
+  final String? notes;
+  final int? reviewerId;
+  final String? reviewerName;
+  final DateTime createdAt;
+
+  const ThesisReview({
+    required this.id,
+    required this.decision,
+    this.notes,
+    this.reviewerId,
+    this.reviewerName,
+    required this.createdAt,
+  });
+
+  factory ThesisReview.fromJson(Map<String, dynamic> json) => ThesisReview(
+    id: json['id'] as int,
+    decision: json['decision'] as String? ?? '',
+    notes: json['notes'] as String?,
+    reviewerId: json['reviewer_id'] as int?,
+    reviewerName: json['reviewer_name'] as String?,
+    createdAt: _parseDate(json['created_at']),
+  );
+}
+
 /// Main Thesis model with relations
 class Thesis {
   final int id;
@@ -446,6 +474,20 @@ class Thesis {
   final DateTime updatedAt;
   final DateTime? publishedAt;
   final String? pdfUrl;
+
+  /// Approval trail. Only the detail payload selects these columns, so list
+  /// rows leave them null. `approved` is an internal review state — this trail
+  /// is how the UI explains who released a study and when.
+  final int? approvedBy;
+  final String? approvedByName;
+  final DateTime? approvedAt;
+
+  /// Admin feedback recorded when an approved study is returned to draft.
+  final String? reviewNotes;
+
+  /// Every lifecycle decision, newest first. The detail payload carries this;
+  /// list rows leave it null.
+  final List<ThesisReview>? reviews;
 
   // Relations (optional, loaded when needed)
   final Program? program;
@@ -470,6 +512,11 @@ class Thesis {
     required this.updatedAt,
     this.publishedAt,
     this.pdfUrl,
+    this.approvedBy,
+    this.approvedByName,
+    this.approvedAt,
+    this.reviewNotes,
+    this.reviews,
     this.program,
     this.academicYear,
     this.authors,
@@ -511,6 +558,15 @@ class Thesis {
         ? ThesisEmbedding.fromJson(json['embedding'] as Map<String, dynamic>)
         : null,
     pdfUrl: json['pdf_url'] as String?,
+    approvedBy: json['approved_by'] as int?,
+    approvedByName: json['approved_by_name'] as String?,
+    approvedAt: json['approved_at'] != null
+        ? DateTime.tryParse(json['approved_at'] as String)
+        : null,
+    reviewNotes: json['review_notes'] as String?,
+    reviews: (json['reviews'] as List?)
+        ?.map((e) => ThesisReview.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 
   Map<String, dynamic> toJson() => {

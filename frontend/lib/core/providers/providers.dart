@@ -73,20 +73,20 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
     state = const AsyncValue.data(null);
   }
 
+  /// Creates the account and reports whether it landed.
+  ///
+  /// Registration is NOT a session event, so this deliberately leaves [state]
+  /// alone. Touching it fires the router's refresh, and this call cannot sign
+  /// the user in anyway (the register route never stores the token it returns).
   Future<bool> register(User user) async {
-    state = const AsyncValue.loading();
     try {
       await _authApi.register({
         'username': user.username,
         'email': user.email,
         'password': user.passwordHash,
       });
-      //Registration does not log the user in (no token returned to store),
-      // so reset to logged-out instead of leaving the provider stuck in loading.
-      state = const AsyncValue.data(null);
       return true;
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
       return false;
     }
   }
@@ -199,46 +199,95 @@ final thesisApiProvider = Provider<ThesisApi>(
   (ref) => ThesisApi(ref.read(apiServiceProvider)),
 );
 
+Map<String, String> _thesisQueryParams(ThesisListParams params) {
+  final queryParams = <String, String>{};
+  if (params.query != null && params.query!.isNotEmpty) {
+    queryParams['q'] = params.query!;
+  }
+  if (params.programId != null) {
+    queryParams['program_id'] = params.programId.toString();
+  }
+  if (params.academicYearId != null) {
+    queryParams['year_id'] = params.academicYearId.toString();
+  }
+  if (params.categoryId != null) {
+    queryParams['category_id'] = params.categoryId.toString();
+  }
+  if (params.keyword != null && params.keyword!.isNotEmpty) {
+    queryParams['keyword'] = params.keyword!;
+  }
+  if (params.sortBy != null && params.sortBy!.isNotEmpty) {
+    queryParams['sort_by'] = params.sortBy!;
+  }
+  if (params.researchType != null) {
+    queryParams['research_type'] = params.researchType!;
+  }
+  if (params.status != null) {
+    queryParams['status'] = params.status!;
+  }
+  if (params.showAll) {
+    queryParams['show_all'] = 'true';
+  }
+  return queryParams;
+}
+
+String _encodeQuery(Map<String, String> params) => params.entries
+    .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+    .join('&');
+
 final thesisListProvider = FutureProvider.autoDispose
     .family<List<Thesis>?, ThesisListParams>((ref, params) async {
       final api = ref.read(apiServiceProvider);
-      final queryParams = <String, String>{};
-      if (params.query != null && params.query!.isNotEmpty) {
-        queryParams['q'] = params.query!;
-      }
-      if (params.programId != null) {
-        queryParams['program_id'] = params.programId.toString();
-      }
-      if (params.academicYearId != null) {
-        queryParams['year_id'] = params.academicYearId.toString();
-      }
-      if (params.categoryId != null) {
-        queryParams['category_id'] = params.categoryId.toString();
-      }
-      if (params.keyword != null && params.keyword!.isNotEmpty) {
-        queryParams['keyword'] = params.keyword!;
-      }
-      if (params.sortBy != null && params.sortBy!.isNotEmpty) {
-        queryParams['sort_by'] = params.sortBy!;
-      }
-      if (params.researchType != null) {
-        queryParams['research_type'] = params.researchType!;
-      }
-      if (params.status != null) {
-        queryParams['status'] = params.status!;
-      }
-      if (params.showAll) {
-        queryParams['show_all'] = 'true';
-      }
-      final qs = queryParams.entries
-          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-          .join('&');
+      final qs = _encodeQuery(_thesisQueryParams(params));
       final endpoint = qs.isEmpty ? '/api/theses' : '/api/theses?$qs';
       final data = await api.get(endpoint);
       final List<dynamic> raw = data['theses'] as List<dynamic>;
       return raw
           .map((e) => Thesis.fromJson(e as Map<String, dynamic>))
           .toList();
+    });
+
+/// One server-paged slice of the repository, with the envelope the API already
+/// returns (`total`, `page`, `per_page`, `pages`). Used by the student
+/// repository so its pager counts the whole result set, not just the page.
+class ThesisPage {
+  const ThesisPage({
+    required this.theses,
+    required this.total,
+    required this.page,
+    required this.pages,
+    required this.pageSize,
+  });
+
+  final List<Thesis> theses;
+  final int total;
+  final int page;
+  final int pages;
+  final int pageSize;
+
+  bool get isEmpty => theses.isEmpty;
+}
+
+final thesisPageProvider = FutureProvider.autoDispose
+    .family<ThesisPage, ThesisListParams>((ref, params) async {
+      final api = ref.read(apiServiceProvider);
+      final page = (params.page ?? 1).clamp(1, 1 << 30);
+      final pageSize = (params.pageSize ?? 10).clamp(1, 100);
+      final queryParams = _thesisQueryParams(params)
+        ..['page'] = page.toString()
+        ..['per_page'] = pageSize.toString();
+      final qs = _encodeQuery(queryParams);
+      final data = await api.get('/api/theses?$qs');
+      final List<dynamic> raw = data['theses'] as List<dynamic>;
+      return ThesisPage(
+        theses: raw
+            .map((e) => Thesis.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        total: (data['total'] as num?)?.toInt() ?? raw.length,
+        page: (data['page'] as num?)?.toInt() ?? page,
+        pages: (data['pages'] as num?)?.toInt() ?? 1,
+        pageSize: (data['per_page'] as num?)?.toInt() ?? pageSize,
+      );
     });
 
 /// Phase 9: semantic search result with similarity score.
@@ -420,13 +469,33 @@ final publicStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
   return Map<String, dynamic>.from(data as Map);
 });
 
-final recentActivityProvider =
-    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+/// One page of the admin dashboard's live audit feed.
+typedef RecentActivityPage = ({
+  List<Map<String, dynamic>> items,
+  int total,
+  int page,
+  int limit,
+});
+
+/// Page size for the live audit feed. Kept here so the screen can trust the
+/// `limit` echoed back by the API when it computes the page count.
+const int recentActivityPageSize = 5;
+
+final recentActivityProvider = FutureProvider.autoDispose
+    .family<RecentActivityPage, int>((ref, page) async {
       final data = await ref
           .read(apiServiceProvider)
-          .get('/api/dashboard/recent-activity');
+          .get(
+            '/api/dashboard/recent-activity'
+            '?page=$page&limit=$recentActivityPageSize',
+          );
       final List<dynamic> raw = data['activity'] as List<dynamic>;
-      return raw.cast<Map<String, dynamic>>();
+      return (
+        items: raw.cast<Map<String, dynamic>>(),
+        total: (data['total'] as num?)?.toInt() ?? raw.length,
+        page: (data['page'] as num?)?.toInt() ?? page,
+        limit: (data['limit'] as num?)?.toInt() ?? recentActivityPageSize,
+      );
     });
 
 final facultyStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
@@ -493,8 +562,15 @@ final savedThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
   final api = ref.read(apiServiceProvider);
   final saved = <Thesis>[];
   for (final id in ids) {
-    final data = await api.get('/api/theses/$id');
-    saved.add(Thesis.fromJson(data as Map<String, dynamic>));
+    try {
+      final data = await api.get('/api/theses/$id');
+      saved.add(Thesis.fromJson(data as Map<String, dynamic>));
+    } on Exception {
+      // A saved study can leave the public catalogue (returned to draft,
+      // archived) or be deleted. Skipping it keeps the rest of the list
+      // usable instead of failing the whole provider on one 404.
+      continue;
+    }
   }
   return saved;
 });

@@ -230,7 +230,8 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             duration: animate ? CScholarMotion.micro : Duration.zero,
             curve: CScholarCurves.standard,
             decoration: BoxDecoration(
-              color: CScholarMaterial.well,
+              // Same recessed fill as the segmented track and filter pills.
+              color: CScholarMaterial.clayDeep,
               borderRadius: radius,
               border: borderColor == null
                   ? null

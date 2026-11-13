@@ -422,8 +422,12 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
         children: [
           _swatch('paper · canvas', '#F8F6F0', CScholarMaterial.canvas),
           _swatch('surface · card', '#FFFEFA', CScholarMaterial.clay),
-          _swatch('track · surfaceSoft', '#F1F3ED', CScholarMaterial.clayDeep),
-          _swatch('well · input fill', '#DDE3D6', CScholarMaterial.well),
+          _swatch(
+            'field + track · surfaceSoft',
+            '#F1F3ED',
+            CScholarMaterial.clayDeep,
+          ),
+          _swatch('well · toggle / skeleton', '#DDE3D6', CScholarMaterial.well),
           _swatch('line · hairline', '403E32 9%', CScholarMaterial.rim),
           _swatch('green · primary', '#174F3D', CScholarMaterial.gelTop),
           _swatch('green2 · hover', '#2D7159', CScholarMaterial.gelBottom),

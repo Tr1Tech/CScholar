@@ -135,8 +135,18 @@ class ThesisApi {
     await _api.put('/api/theses/$id', payload.toJson());
   }
 
-  Future<Map<String, dynamic>> updateStatus(int id, String status) async {
-    return await _api.put('/api/theses/$id', {'status': status});
+  /// Change lifecycle status. Returning an approved study to draft carries
+  /// the reviewer's notes, which the server stores as `review_notes`.
+  Future<Map<String, dynamic>> updateStatus(
+    int id,
+    String status, {
+    String? reviewNotes,
+  }) async {
+    final notes = reviewNotes?.trim();
+    return await _api.put('/api/theses/$id', {
+      'status': status,
+      if (notes != null && notes.isNotEmpty) 'review_notes': notes,
+    });
   }
 
   Future<void> delete(int id) async {

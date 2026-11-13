@@ -59,6 +59,29 @@ class ThesisStatusStyle {
   }
 }
 
+/// The lifecycle edges, mirroring the API's `THESIS_STATUS_SOURCES` and the
+/// database's `fn_can_transition_status`. Keyed by current status, the set of
+/// targets the server will accept — so a control can hide transitions it knows
+/// would come back as a 409 instead of offering a dead option.
+///
+/// Archiving is reversible: `archived -> draft/published`.
+class ThesisStatusTransitions {
+  ThesisStatusTransitions._();
+
+  static const Map<String, Set<String>> _targets = {
+    'draft': {'approved', 'archived'},
+    'approved': {'draft', 'published'},
+    'published': {'archived'},
+    'archived': {'draft', 'published'},
+  };
+
+  static bool allows(String from, String to) =>
+      _targets[from.toLowerCase()]?.contains(to.toLowerCase()) ?? false;
+
+  static Set<String> targetsFrom(String from) =>
+      _targets[from.toLowerCase()] ?? const <String>{};
+}
+
 class ThesisStatusChip extends StatelessWidget {
   final String status;
   const ThesisStatusChip(this.status, {super.key});

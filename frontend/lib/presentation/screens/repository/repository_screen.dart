@@ -13,6 +13,7 @@ import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
+import 'package:frontend/presentation/widgets/common/clay_pagination.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -22,6 +23,11 @@ import 'package:frontend/presentation/widgets/mobile/mobile_widgets.dart';
 import 'package:frontend/presentation/widgets/result_card.dart';
 import 'package:frontend/presentation/widgets/rec_rail.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
+
+/// Ten result cards a page on both the web list and the mobile stack — the same
+/// page size the admin tables use, and enough for one comfortable screen of
+/// reading before the pager.
+const int _kRepositoryPageSize = 10;
 
 /// Research repository: light control header (title, search, quick topics,
 /// filters) over the results list with the AI rail.
@@ -52,8 +58,34 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   String? _selectedType;
   String _sortBy = 'Latest';
   Timer? _debounce;
+
+  /// 0-based repository page. Reset to 0 whenever the result-defining filters
+  /// change (see [_lastFilterSignature]) so a new search never starts on
+  /// page 4 of its own results.
+  int _page = 0;
+  String _lastFilterSignature = '';
+
   // The AI rail pins inside this row: the row's bottom is where floating stops.
   final GlobalKey _resultsRowKey = GlobalKey();
+
+  /// Top of the result list. A page change scrolls back to it, so "Next" on
+  /// either shell lands on the first card of the new page, not its footer.
+  final GlobalKey _resultsTopKey = GlobalKey();
+
+  void _goToPage(int page) {
+    setState(() => _page = page);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final target = _resultsTopKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        duration: motionEnabled(context) ? CScholarMotion.swap : Duration.zero,
+        curve: CScholarCurves.standard,
+        alignment: 0.02,
+      );
+    });
+  }
 
   @override
   void initState() {
@@ -157,20 +189,16 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Normalise the page here, before the provider read, so a theses provider
+    // is never queried for a page that the old filter set produced.
+    final filterSignature = _filterSignature;
+    if (_lastFilterSignature != filterSignature) {
+      _lastFilterSignature = filterSignature;
+      _page = 0;
+    }
+
     final useSemantic = _isSemantic && _query.trim().isNotEmpty;
-    final theses = ref.watch(
-      thesisListProvider(
-        ThesisListParams(
-          query: _query.isEmpty ? null : _query,
-          programId: _selectedProgramId,
-          academicYearId: _selectedYearId,
-          categoryId: _selectedCategoryId,
-          keyword: _keyword.isEmpty ? null : _keyword,
-          sortBy: _sortBy,
-          researchType: _selectedType,
-        ),
-      ),
-    );
+    final theses = ref.watch(thesisPageProvider(_pageParams));
     final semantic = useSemantic
         ? ref.watch(semanticSearchProvider(_query.trim()))
         : const AsyncValue<List<SemanticResult>>.data([]);
@@ -241,7 +269,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   Widget _mobileBody(
     BuildContext context, {
     required bool useSemantic,
-    required AsyncValue<List<Thesis>?> theses,
+    required AsyncValue<ThesisPage> theses,
     required AsyncValue<List<SemanticResult>> semantic,
     required Set<int> savedIds,
   }) {
@@ -363,6 +391,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           ),
           const SizedBox(height: 6),
           Row(
+            key: _resultsTopKey,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Count whichever list is on screen: keyword results normally,
@@ -377,7 +406,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                             orElse: () => null,
                           )
                         : theses.maybeWhen(
-                            data: (l) => l?.length ?? 0,
+                            data: (page) => page.total,
                             orElse: () => null,
                           );
                     return Text.rich(
@@ -751,7 +780,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   Widget _mobileResults(
     BuildContext context,
     bool useSemantic,
-    AsyncValue<List<Thesis>?> theses,
+    AsyncValue<ThesisPage> theses,
     AsyncValue<List<SemanticResult>> semantic,
     Set<int> savedIds,
   ) {
@@ -813,7 +842,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         ),
       );
     }
-    return asyncSlot<List<Thesis>?>(
+    return asyncSlot<ThesisPage>(
       theses,
       skeleton: Column(
         children: [
@@ -824,8 +853,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             ),
         ],
       ),
-      data: (list) {
-        if (list == null || list.isEmpty) {
+      data: (page) {
+        final list = page.theses;
+        if (list.isEmpty) {
           return _mobileEmpty(context);
         }
         return Column(
@@ -854,11 +884,74 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   ),
                 ),
               ),
+            _mobilePager(context, page),
           ],
         );
       },
       error: (err, _) =>
           _mobileEmpty(context, message: err.toString(), error: true),
+    );
+  }
+
+  /// Mobile pager in the shell's own material: a count line over two round
+  /// chevrons. Ten cards a page, same as the web list.
+  Widget _mobilePager(BuildContext context, ThesisPage page) {
+    if (page.pages <= 1) return const SizedBox.shrink();
+    final t = CScholarMobileTheme.of(context);
+    final canGoBack = page.page > 1;
+    final canGoForward = page.page < page.pages;
+    final first = (page.page - 1) * page.pageSize + 1;
+    final last = page.page * page.pageSize > page.total
+        ? page.total
+        : page.page * page.pageSize;
+
+    Widget chevron(IconData icon, bool enabled, VoidCallback onTap) {
+      return GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          // tile-exempt: round pager chevron, not an icon tile.
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: enabled ? t.surfaceSoft : t.paper,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: t.line),
+          ),
+          child: Icon(icon, size: 18, color: enabled ? t.ink : t.muted),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 4),
+      child: Column(
+        children: [
+          Text('Showing $first–$last of ${page.total}', style: t.caption),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              chevron(
+                Icons.chevron_left,
+                canGoBack,
+                () => _goToPage(page.page - 2),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'Page ${page.page} of ${page.pages}',
+                  style: t.dmSans(11, FontWeight.w700, t.ink),
+                ),
+              ),
+              chevron(
+                Icons.chevron_right,
+                canGoForward,
+                () => _goToPage(page.page),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -885,41 +978,44 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
               if (semantic) {
                 ref.invalidate(semanticSearchProvider(_query.trim()));
               } else {
-                ref.invalidate(
-                  thesisListProvider(
-                    ThesisListParams(
-                      query: _query.isEmpty ? null : _query,
-                      programId: _selectedProgramId,
-                      academicYearId: _selectedYearId,
-                      categoryId: _selectedCategoryId,
-                      keyword: _keyword.isEmpty ? null : _keyword,
-                      sortBy: _sortBy,
-                      researchType: _selectedType,
-                    ),
-                  ),
-                );
+                ref.invalidate(thesisPageProvider(_pageParams));
               }
             }
           : _clearFilters,
     );
   }
 
-  /// Signature of everything that defines the result set. Keying the result
-  /// columns on it makes a new query (or filter, sort, mode flip) build a
-  /// FRESH subtree, so the result cascade replays and the list reads as
-  /// re-forming instead of popping in place. Same positions reuse state only
-  /// while the signature holds — scrolling never replays.
-  String get _resultSignature =>
+  /// Everything that defines the result set, excluding the page. Changing any
+  /// of it starts a new set, so [_page] resets before the next provider read.
+  String get _filterSignature =>
       '$_query|$_selectedProgramId|'
       '$_selectedYearId|$_selectedCategoryId|$_keyword|$_sortBy|'
       '$_selectedType|$_isSemantic';
+
+  /// Signature of the page on screen. Keying the result columns on it makes a
+  /// new query, filter, sort, mode flip or page build a FRESH subtree, so the
+  /// result cascade replays and the list reads as re-forming instead of
+  /// popping in place.
+  String get _resultSignature => '$_filterSignature|p$_page';
+
+  ThesisListParams get _pageParams => ThesisListParams(
+    query: _query.isEmpty ? null : _query,
+    programId: _selectedProgramId,
+    academicYearId: _selectedYearId,
+    categoryId: _selectedCategoryId,
+    keyword: _keyword.isEmpty ? null : _keyword,
+    sortBy: _sortBy,
+    researchType: _selectedType,
+    page: _page + 1,
+    pageSize: _kRepositoryPageSize,
+  );
 
   /// Results list, with the AI rail beside it on wide screens.
   /// Rail and list scroll together as one column — no nested scroll views.
   Widget _resultsColumn(
     BuildContext context,
     bool useSemantic,
-    AsyncValue<List<Thesis>?> theses,
+    AsyncValue<ThesisPage> theses,
     AsyncValue<List<SemanticResult>> semantic,
     Set<int> savedIds,
   ) {
@@ -928,7 +1024,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       // the result pitch, and the rail glides in from the right.
       pitch: MotionPitch.page,
       children: [
-        _resultsHeader(context, useSemantic, theses),
+        KeyedSubtree(
+          key: _resultsTopKey,
+          child: _resultsHeader(context, useSemantic, theses),
+        ),
         const SizedBox(height: 16),
         if (useSemantic)
           asyncSlot<List<SemanticResult>>(
@@ -998,7 +1097,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             ),
           )
         else
-          asyncSlot<List<Thesis>?>(
+          asyncSlot<ThesisPage>(
             theses,
             // Same silhouette skeletons as the semantic branch.
             skeleton: Column(
@@ -1010,8 +1109,9 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   ),
               ],
             ),
-            data: (list) {
-              if (list == null || list.isEmpty) {
+            data: (page) {
+              final list = page.theses;
+              if (list.isEmpty) {
                 return Column(
                   key: ValueKey(_resultSignature),
                   children: [_noResultsFound()],
@@ -1041,6 +1141,13 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                         ),
                       ),
                     ),
+                  ClayPagination(
+                    page: page.page,
+                    total: page.total,
+                    pageSize: page.pageSize,
+                    padding: const EdgeInsets.only(top: 2),
+                    onPageChanged: (p) => _goToPage(p - 1),
+                  ),
                 ],
               );
             },
@@ -1049,19 +1156,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
               title: 'Could not load studies',
               message: err.toString(),
               actionLabel: 'Retry',
-              onAction: () => ref.invalidate(
-                thesisListProvider(
-                  ThesisListParams(
-                    query: _query.isEmpty ? null : _query,
-                    programId: _selectedProgramId,
-                    academicYearId: _selectedYearId,
-                    categoryId: _selectedCategoryId,
-                    keyword: _keyword.isEmpty ? null : _keyword,
-                    sortBy: _sortBy,
-                    researchType: _selectedType,
-                  ),
-                ),
-              ),
+              onAction: () => ref.invalidate(thesisPageProvider(_pageParams)),
             ),
           ),
       ],
@@ -1125,7 +1220,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   Widget _resultsHeader(
     BuildContext context,
     bool useSemantic,
-    AsyncValue<List<Thesis>?> theses,
+    AsyncValue<ThesisPage> theses,
   ) {
     final size = MediaQuery.of(context).size;
 
@@ -1142,10 +1237,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         ),
         if (!useSemantic)
           theses.maybeWhen(
-            data: (list) => Text(
+            data: (page) => Text(
               _query.isEmpty
-                  ? '${list?.length ?? 0} studies in the repository'
-                  : 'Showing ${list?.length ?? 0} results for "$_query"',
+                  ? '${page.total} studies in the repository'
+                  : '${page.total} results for "$_query"',
               style: CScholarTextStyles.body(
                 12.5,
                 FontWeight.w400,

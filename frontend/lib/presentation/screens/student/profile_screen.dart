@@ -131,6 +131,10 @@ class ProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 106),
       child: StaggerColumn(
         pitch: MotionPitch.page,
+        // Stretch every block to the page width. Without this the identity
+        // block shrink-wraps to the widest line and hugs the left edge while
+        // the stats and menu rows below span the full column.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Column(
             children: [

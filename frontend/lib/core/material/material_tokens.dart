@@ -28,25 +28,27 @@ class CScholarMaterial {
   /// Legacy alias — surfaces are flat now.
   static const Color clayHigh = CScholarMobileColors.surface;
 
-  /// Recessed wells: input fields, tracks, skeleton bases. `#F1F3ED`.
+  /// The house fill for recessed controls: segmented tracks, text fields,
+  /// selects, search bars, checkbox/switch wells, and skeleton bases. `#F1F3ED`.
   static const Color clayDeep = CScholarMobileColors.surfaceSoft;
 
-  /// Input wells only — search bars, fields, selects.
+  /// Deeper well, kept for places where [clayDeep] would disappear against
+  /// paper: the off-state toggle track and the loading skeleton base.
   ///
   /// One full step deeper than [clayDeep], which sits ~1.04:1 against the paper
-  /// canvas: at that distance the well has no edge and an empty search bar
-  /// reads as blank space. With no rim at rest the fill IS the affordance, so
-  /// it has to clear the distance on its own — ~1.21:1 on paper, ~1.29:1 on a
-  /// card, while hint ink still measures 4.6:1 on it.
+  /// canvas: at that distance the control has no edge. With no rim at rest the
+  /// fill IS the affordance, so it has to clear the distance on its own —
+  /// ~1.21:1 on paper, ~1.29:1 on a card, while hint ink still measures 4.6:1
+  /// on it. Inputs and selects intentionally use [clayDeep] now.
   static const Color well = Color(0xFFDDE3D6);
 
   /// Loading skeletons: the block tone and the shimmer highlight that travels
   /// over it.
   ///
-  /// Skeletons used [clayDeep], which measures 1.04:1 on the paper canvas — the
-  /// mobile shell loaded onto what looked like a blank page. This is the same
-  /// step the well takes, so a skeleton is findable on paper and inside a card,
-  /// and the sweep runs up to the card surface.
+  /// Skeletons cannot use [clayDeep], which measures 1.04:1 on the paper
+  /// canvas — the mobile shell loaded onto what looked like a blank page. This
+  /// is the same step the toggle-off well takes, so a skeleton is findable on
+  /// paper and inside a card, and the sweep runs up to the card surface.
   static const Color skeletonBase = well;
   static const Color skeletonHighlight = CScholarMobileColors.surface;
 

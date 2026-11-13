@@ -469,7 +469,8 @@ class _AdminAddEditThesisScreenState
                               const SizedBox(height: 6),
                               NeumorphField(
                                 controller: _keywordsCtrl,
-                                hintText: 'semicolon; separated; keywords',
+                                hintText:
+                                    'comma or semicolon; separated, keywords',
                               ),
                             ],
                           ),

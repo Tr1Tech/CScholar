@@ -65,12 +65,20 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 const bool kEnableDesignLab = !bool.fromEnvironment('dart.vm.product');
 
 final appRouter = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  // The router outlives auth changes: a provider that `ref.watch`es the auth
+  // state rebuilds the whole GoRouter on every login/register/logout, and a
+  // fresh router snaps back to `initialLocation` — which dumped a user on
+  // /login mid-flow (registering an account lost its success state entirely).
+  // Auth changes now just re-run the redirect through refreshListenable.
+  final authTick = ValueNotifier<int>(0);
+  ref.listen(authProvider, (_, _) => authTick.value++);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
+    refreshListenable: authTick,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       // Don't bounce while auth is still restoring (login/loadToken).
       if (authState.isLoading) return null;
       final loc = state.matchedLocation;
@@ -138,6 +146,7 @@ final appRouter = Provider<GoRouter>((ref) {
         path: '/login',
         builder: (context, state) => LoginScreen(
           reason: state.uri.queryParameters['reason'],
+          initialEmail: state.uri.queryParameters['email'],
         ),
       ),
       GoRoute(
@@ -313,4 +322,10 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  ref.onDispose(() {
+    router.dispose();
+    authTick.dispose();
+  });
+  return router;
 });

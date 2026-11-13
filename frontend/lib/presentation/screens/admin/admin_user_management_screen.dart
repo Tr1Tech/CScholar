@@ -10,6 +10,7 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/clay_pagination.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -35,8 +36,21 @@ class _AdminUserManagementScreenState
     extends ConsumerState<AdminUserManagementScreen> {
   String _selectedRole = 'All';
 
+  /// Access status filter. "All" is the absence of a filter, not a value the
+  /// account data knows.
+  static const _statuses = ['All', 'Active', 'Inactive'];
+  String _status = 'All';
+
+  /// 0-based page for the user table (both the desktop table and the mobile
+  /// list share it, so the two layouts never point at different rows).
+  int _page = 0;
+
   @override
   Widget build(BuildContext context) {
+    // A new search starts a new result set: page 1, never "page 7 of 1".
+    ref.listen(adminSearchProvider(AdminSearchSection.users), (_, _) {
+      if (mounted) setState(() => _page = 0);
+    });
     final size = MediaQuery.of(context).size;
     final isWide = size.width > CScholarBreakpoints.mobile;
 
@@ -70,11 +84,33 @@ class _AdminUserManagementScreenState
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  // Role filter: one choice among fixed options — the segmented
-                  // control's exact job (single-select, no wrapping).
+                  // One label-less filter row, matching Thesis Management:
+                  // Role keeps the sliding-pill track, access status folds into
+                  // a compact dropdown with the same pill height and fill.
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: _roleSegment(),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final roleFilter = _roleSegment();
+                        final statusFilter = _statusSelect();
+                        if (constraints.maxWidth < 560) {
+                          return Column(
+                            children: [
+                              roleFilter,
+                              const SizedBox(height: 10),
+                              statusFilter,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: roleFilter),
+                            const SizedBox(width: 12),
+                            SizedBox(width: 214, child: statusFilter),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   const Divider(height: 1),
                   // Table
@@ -122,6 +158,11 @@ class _AdminUserManagementScreenState
             )
             .where(
               (u) =>
+                  _status == 'All' ||
+                  (_status == 'Active' ? u.isActive : !u.isActive),
+            )
+            .where(
+              (u) =>
                   needle.isEmpty ||
                   u.username.toLowerCase().contains(needle) ||
                   u.email.toLowerCase().contains(needle),
@@ -138,7 +179,9 @@ class _AdminUserManagementScreenState
               title: searching ? 'No matches' : 'No users found',
               message: searching
                   ? 'No users match "$query".'
-                  : 'No users matching "$_selectedRole".',
+                  : (_selectedRole != 'All' || _status != 'All')
+                  ? 'No users match the selected filters.'
+                  : 'No accounts in the system yet.',
               actionLabel: searching ? 'Clear search' : null,
               onAction: searching
                   ? () => ref
@@ -154,12 +197,17 @@ class _AdminUserManagementScreenState
         // Card rows, same language as Programs: identity mark, bold name with
         // the email beneath, role and status as chips, actions as round
         // buttons. Rows are widgets now, so hover and press behave like the
-        // rest of the admin shell.
+        // rest of the admin shell. Ten per page, matching every admin table.
+        final pageIndex = clampPageIndex(_page, filteredUsers.length);
+        final visibleUsers = filteredUsers
+            .skip(pageIndex * kAdminTablePageSize)
+            .take(kAdminTablePageSize)
+            .toList();
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              for (final u in filteredUsers)
+              for (final u in visibleUsers)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: CScholarCard(
@@ -230,6 +278,12 @@ class _AdminUserManagementScreenState
                     ),
                   ),
                 ),
+              ClayPagination(
+                page: pageIndex + 1,
+                total: filteredUsers.length,
+                padding: const EdgeInsets.only(top: 8),
+                onPageChanged: (p) => setState(() => _page = p - 1),
+              ),
             ],
           ),
         );
@@ -243,9 +297,69 @@ class _AdminUserManagementScreenState
     return NeumorphSegmented(
       labels: _roles,
       selectedIndex: _roles.indexOf(_selectedRole).clamp(0, _roles.length - 1),
-      onChanged: (i) => setState(() => _selectedRole = _roles[i]),
+      // A role filter changes the set being paged, so it starts at page 1.
+      onChanged: (i) => setState(() {
+        _selectedRole = _roles[i];
+        _page = 0;
+      }),
     );
   }
+
+  /// Shared access-status control, so the desktop row and the mobile stack
+  /// cannot drift in height or fill.
+  NeumorphSelectField<String> _statusSelect() => NeumorphSelectField<String>(
+    value: _status,
+    items: _statusItems,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+    onChanged: (status) {
+      if (status == null) return;
+      setState(() {
+        _status = status;
+        _page = 0;
+      });
+    },
+  );
+
+  /// Access-status options carry the same green/slate cue as [ActiveChip], in
+  /// the menu and on the closed face alike.
+  List<DropdownMenuItem<String>> get _statusItems => [
+    for (final status in _statuses)
+      DropdownMenuItem<String>(
+        value: status,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _statusDotColor(status),
+              ),
+            ),
+            const SizedBox(width: 9),
+            Flexible(
+              child: Text(
+                status == 'All' ? 'All statuses' : status,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.body(
+                  13,
+                  FontWeight.w600,
+                  CScholarColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+  ];
+
+  static Color _statusDotColor(String status) => status == 'Active'
+      // A 7px dot of the deep brand green reads near-black; the hover green
+      // stays legible at this size.
+      ? CScholarColors.primaryGreenHover
+      : CScholarColors.textMuted;
 
   void _showEditUserDialog(BuildContext context, User user) {
     final nameCtrl = TextEditingController(text: user.username);
@@ -540,6 +654,33 @@ class _AdminUserManagementScreenState
       }
       return;
     }
+    // Deactivating locks the account out of the app, so confirm first.
+    // Reactivating is safe and reversible, so it proceeds immediately.
+    if (user.isActive) {
+      final confirmed = await showClayDialog<bool>(
+        context: context,
+        builder: (ctx) => GlassDialog(
+          title: const Text('Deactivate User'),
+          content: Text(
+            'Deactivate ${user.username}? They will be signed out and unable '
+            'to sign in again until an admin reactivates the account.',
+          ),
+          actions: [
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              label: 'Cancel',
+              gel: false,
+            ),
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              label: 'Deactivate',
+              danger: true,
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
     try {
       await ref.read(apiServiceProvider).put('/api/users/${user.id}/active', {
         'is_active': !user.isActive,
@@ -641,46 +782,68 @@ class _AdminUserManagementScreenState
                     ),
                   );
                 }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) {
-                    final u = filtered[i];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: InkWell(
-                        onTap: () => _showEditUserDialog(context, u),
-                        borderRadius: BorderRadius.circular(CScholarRadius.md),
-                        child: CScholarCard(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          borderRadius: CScholarRadius.md,
-                          lift: true,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                final pageIndex = clampPageIndex(_page, filtered.length);
+                final visible = filtered
+                    .skip(pageIndex * kAdminTablePageSize)
+                    .take(kAdminTablePageSize)
+                    .toList();
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: visible.length,
+                        itemBuilder: (ctx, i) {
+                          final u = visible[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: InkWell(
+                              onTap: () => _showEditUserDialog(context, u),
+                              borderRadius: BorderRadius.circular(
+                                CScholarRadius.md,
+                              ),
+                              child: CScholarCard(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                borderRadius: CScholarRadius.md,
+                                lift: true,
+                                child: Row(
                                   children: [
-                                    Text(
-                                      u.username,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            u.username,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(u.email),
+                                        ],
                                       ),
                                     ),
-                                    Text(u.email),
+                                    RoleChip(u.role),
                                   ],
                                 ),
                               ),
-                              RoleChip(u.role),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    // Same ten-row pages as the desktop table: the two layouts
+                    // share [_page], so switching widths keeps your place.
+                    ClayPagination(
+                      page: pageIndex + 1,
+                      total: filtered.length,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      onPageChanged: (p) => setState(() => _page = p - 1),
+                    ),
+                  ],
                 );
               },
             ),

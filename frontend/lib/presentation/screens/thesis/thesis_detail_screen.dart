@@ -11,6 +11,7 @@ import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
@@ -685,12 +686,21 @@ class ThesisDetailScreen extends ConsumerWidget {
                     flex: 3,
                     // Flat solid green pill, like the reference button: the gel
                     // surface (gradient + gloss) read as a chip, not a button.
+                    // With no manuscript the pill falls back to the same
+                    // disabled "No PDF" state as the web action row.
                     child: _MobileActionPill(
                       icon: Icons.remove_red_eye_outlined,
-                      label: 'Read PDF',
-                      fill: CScholarMobileColors.green,
+                      label: thesis.pdfUrl == null ? 'No PDF' : 'Read PDF',
+                      // Same pill shape and white label, but the no-manuscript
+                      // state sits on the lighter green so it reads as
+                      // inactive next to the full "Read PDF" action.
+                      fill: thesis.pdfUrl == null
+                          ? CScholarMobileColors.green2
+                          : CScholarMobileColors.green,
                       ink: CScholarColors.white,
-                      onTap: () => _openPdf(context, ref, thesisId: thesis.id),
+                      onTap: thesis.pdfUrl == null
+                          ? null
+                          : () => _openPdf(context, ref, thesisId: thesis.id),
                     ),
                   ),
                   const SizedBox(width: 9),
@@ -966,6 +976,23 @@ class ThesisDetailScreen extends ConsumerWidget {
     required String yearStr,
     required String adviserStr,
   }) {
+    // Staff see the full approval trail; everyone else who can open the
+    // record only learns that it was approved.
+    final role = ref.watch(currentUserProvider)?.role;
+    final isStaff = role == 'admin' || role == 'faculty';
+
+    // Every return note, newest first. On a current draft the newest note is
+    // already in the banner below, so it is not repeated in the history.
+    final noteHistory = (thesis.reviews ?? [])
+        .where((r) => (r.notes ?? '').trim().isNotEmpty)
+        .toList();
+    final isReturnedDraft =
+        thesis.status == 'draft' &&
+        (thesis.reviewNotes ?? '').trim().isNotEmpty;
+    final earlierNotes = isReturnedDraft && noteHistory.isNotEmpty
+        ? noteHistory.sublist(1)
+        : noteHistory;
+
     // Only fields that exist in the database record are rendered.
     final metaItems = <Widget>[
       if (authorsStr.isNotEmpty)
@@ -985,27 +1012,159 @@ class ThesisDetailScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category / Type Badge
-        if (thesis.researchType.isNotEmpty)
+        // Category / Type Badge + lifecycle state. The status chip is not
+        // decoration: `approved` is internal, so whoever can open this record
+        // needs to see what it currently is.
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (thesis.researchType.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: CScholarColors.primaryGreenVeryLight,
+                  borderRadius: BorderRadius.circular(CScholarRadius.sm),
+                  border: Border.all(
+                    color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Text(
+                  thesis.researchType.toUpperCase(),
+                  style: CScholarTextStyles.body(
+                    11,
+                    FontWeight.w700,
+                    CScholarColors.primaryGreen,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ThesisStatusChip(thesis.status),
+            if (thesis.approvedAt != null)
+              Text(
+                _approvalLine(thesis, isStaff: isStaff),
+                style: CScholarTextStyles.body(
+                  11.5,
+                  FontWeight.w500,
+                  CScholarColors.textMuted,
+                ),
+              ),
+          ],
+        ),
+
+        // A returned study must say why, otherwise the revert is silent.
+        if (isReturnedDraft) ...[
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: CScholarColors.primaryGreenVeryLight,
-              borderRadius: BorderRadius.circular(CScholarRadius.sm),
+              color: CScholarColors.errorLight,
+              borderRadius: BorderRadius.circular(CScholarRadius.md),
               border: Border.all(
-                color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+                color: CScholarColors.warningFg.withValues(alpha: 0.35),
               ),
             ),
-            child: Text(
-              thesis.researchType.toUpperCase(),
-              style: CScholarTextStyles.body(
-                11,
-                FontWeight.w700,
-                CScholarColors.primaryGreen,
-                letterSpacing: 0.5,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.rate_review_outlined,
+                  size: 18,
+                  color: CScholarColors.warningFg,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'RETURNED FOR REVISION',
+                        style: CScholarTextStyles.body(
+                          11,
+                          FontWeight.w700,
+                          CScholarColors.warningFg,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        thesis.reviewNotes!.trim(),
+                        style: CScholarTextStyles.body(
+                          13,
+                          FontWeight.w400,
+                          CScholarColors.warningFg,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
+
+        // Older return notes stay readable after a re-approval, so the reason
+        // for a past return is never lost.
+        if (earlierNotes.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            'REVIEW HISTORY',
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w700,
+              CScholarColors.textSecondary,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final review in earlierNotes)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.history,
+                    size: 16,
+                    color: CScholarColors.warningFg,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_formatDate(review.createdAt)} · '
+                          '${review.reviewerName ?? 'an administrator'}',
+                          style: CScholarTextStyles.body(
+                            11,
+                            FontWeight.w600,
+                            CScholarColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          review.notes!.trim(),
+                          style: CScholarTextStyles.body(
+                            12.5,
+                            FontWeight.w400,
+                            CScholarColors.textPrimary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
 
         const SizedBox(height: 14),
 
@@ -1188,6 +1347,34 @@ class ThesisDetailScreen extends ConsumerWidget {
     );
   }
 
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  String _formatDate(DateTime at) =>
+      '${_months[at.month - 1]} ${at.day}, ${at.year}';
+
+  /// "Approved by X on date" for staff, "Approved on date" for everyone else.
+  String _approvalLine(Thesis thesis, {required bool isStaff}) {
+    final at = thesis.approvedAt;
+    if (at == null) return '';
+    final date = _formatDate(at);
+    if (!isStaff) return 'Approved on $date';
+    final by = (thesis.approvedByName ?? '').trim();
+    return 'Approved by ${by.isEmpty ? 'an administrator' : by} on $date';
+  }
+
   Widget _metaItem(IconData icon, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1338,7 +1525,7 @@ class _MobileActionPill extends StatelessWidget {
   final Color fill;
   final Color ink;
   final Color? border;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

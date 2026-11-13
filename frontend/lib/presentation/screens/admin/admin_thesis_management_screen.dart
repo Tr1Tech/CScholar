@@ -10,9 +10,11 @@ import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
+import 'package:frontend/presentation/widgets/common/clay_pagination.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
@@ -37,7 +39,24 @@ class _AdminThesisManagementScreenState
   static const _types = ['All', 'Thesis', 'Capstone'];
   String _type = 'All';
 
+  /// Status filters map to the lifecycle states the table can show. "All" is
+  /// the absence of a filter, not a value the API knows.
+  static const _statuses = [
+    'All',
+    'Draft',
+    'Approved',
+    'Published',
+    'Archived',
+  ];
+  String _status = 'All';
+
+  /// 0-based page for the record table (ten rows a page, like every admin
+  /// table).
+  int _page = 0;
+
   String? get _researchType => _type == 'All' ? null : _type;
+
+  String? get _statusValue => _status == 'All' ? null : _status.toLowerCase();
 
   /// Params for the watched list: show-all plus the live admin search text.
   /// Mutations refresh through [_params] too, so the table always
@@ -48,11 +67,16 @@ class _AdminThesisManagementScreenState
       showAll: true,
       query: q.isEmpty ? null : q,
       researchType: _researchType,
+      status: _statusValue,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // A new search is a new result set: back to page 1.
+    ref.listen(adminSearchProvider(AdminSearchSection.theses), (_, _) {
+      if (mounted) setState(() => _page = 0);
+    });
     final searchQuery = ref
         .watch(adminSearchProvider(AdminSearchSection.theses))
         .trim();
@@ -60,6 +84,7 @@ class _AdminThesisManagementScreenState
       showAll: true,
       query: searchQuery.isEmpty ? null : searchQuery,
       researchType: _researchType,
+      status: _statusValue,
     );
     final theses = ref.watch(thesisListProvider(params));
 
@@ -90,15 +115,62 @@ class _AdminThesisManagementScreenState
               padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  // Same filter language as Users and Programs: one recessed
-                  // track with a pill that glides. This one is sent with the
-                  // request, not applied client-side.
+                  // One label-less filter row: Type keeps the sliding-pill
+                  // track, while Status folds into a compact dropdown. Both
+                  // are sent with the request, not applied client-side.
                   Padding(
                     padding: const EdgeInsets.all(16),
-                    child: NeumorphSegmented(
-                      labels: _types,
-                      selectedIndex: _types.indexOf(_type),
-                      onChanged: (i) => setState(() => _type = _types[i]),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final typeFilter = NeumorphSegmented(
+                          labels: _types,
+                          selectedIndex: _types.indexOf(_type),
+                          // Different type = different result set = page 1.
+                          onChanged: (i) => setState(() {
+                            _type = _types[i];
+                            _page = 0;
+                          }),
+                        );
+                        final statusFilter = NeumorphSelectField<String>(
+                          value: _status,
+                          items: _statusItems,
+                          // The dense dropdown face is 24px; 11px padding on
+                          // each side makes the well 46px, exactly the height
+                          // of the Type segmented track. The default
+                          // clayDeep fill matches that track too, so the two
+                          // read as one material.
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 11,
+                          ),
+                          onChanged: (status) {
+                            if (status == null) return;
+                            // Different status = different result set = page 1.
+                            setState(() {
+                              _status = status;
+                              _page = 0;
+                            });
+                          },
+                        );
+                        // Below this width the two controls together would
+                        // squeeze the segment labels, so they stack instead.
+                        if (constraints.maxWidth < 560) {
+                          return Column(
+                            children: [
+                              typeFilter,
+                              const SizedBox(height: 10),
+                              statusFilter,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: typeFilter),
+                            const SizedBox(width: 12),
+                            SizedBox(width: 214, child: statusFilter),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   const Divider(height: 1),
@@ -119,6 +191,8 @@ class _AdminThesisManagementScreenState
                             title: searching ? 'No matches' : 'No theses found',
                             message: searching
                                 ? 'No theses match "$searchQuery".'
+                                : (_type != 'All' || _status != 'All')
+                                ? 'No theses match the selected filters.'
                                 : 'Add the first record to start the repository.',
                             actionLabel: searching ? 'Clear search' : null,
                             onAction: searching
@@ -137,16 +211,28 @@ class _AdminThesisManagementScreenState
                       // record's identity mark, a bold title with its context
                       // beneath, and its actions as raised round buttons. A
                       // DataTable cannot carry the hover and press life the
-                      // rest of the admin shell has.
+                      // rest of the admin shell has. Ten rows a page.
+                      final pageIndex = clampPageIndex(_page, list.length);
+                      final visible = list
+                          .skip(pageIndex * kAdminTablePageSize)
+                          .take(kAdminTablePageSize)
+                          .toList();
                       return Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            for (final t in list)
+                            for (final t in visible)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: _row(context, t),
                               ),
+                            ClayPagination(
+                              page: pageIndex + 1,
+                              total: list.length,
+                              padding: const EdgeInsets.only(top: 8),
+                              onPageChanged: (p) =>
+                                  setState(() => _page = p - 1),
+                            ),
                           ],
                         ),
                       );
@@ -171,6 +257,60 @@ class _AdminThesisManagementScreenState
         ),
       ),
     );
+  }
+
+  /// Status options carry the same dot colour as the table's status badge, so
+  /// the cues survive the compressed dropdown — in the menu and on the closed
+  /// face, since DropdownButton renders the selected item itself.
+  List<DropdownMenuItem<String>> get _statusItems => [
+    for (final status in _statuses)
+      DropdownMenuItem<String>(
+        value: status,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _statusDotColor(status),
+              ),
+            ),
+            const SizedBox(width: 9),
+            Flexible(
+              child: Text(
+                _statusLabel(status),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.body(
+                  13,
+                  FontWeight.w600,
+                  CScholarColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+  ];
+
+  static String _statusLabel(String status) =>
+      status == 'All' ? 'All statuses' : status;
+
+  static Color _statusDotColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'draft':
+        return CScholarColors.adminColor;
+      case 'approved':
+        return CScholarColors.facultyColor;
+      case 'published':
+        // The deep brand green (#174F3D) reads almost black in a 7px dot;
+        // the hover green keeps the cue legible at this size.
+        return CScholarColors.primaryGreenHover;
+      default:
+        return CScholarColors.textMuted;
+    }
   }
 
   /// One record, drawn like a Programs row: mark, title, context, actions.
@@ -255,17 +395,41 @@ class _AdminThesisManagementScreenState
     Thesis thesis,
     String newStatus,
   ) async {
+    // Approving is a review decision: returning it to draft needs the notes
+    // the authors will act on, instead of a silent revert.
+    final returningForRevision =
+        thesis.status == 'approved' && newStatus == 'draft';
+    String? reviewNotes;
+    if (returningForRevision) {
+      reviewNotes = await _askForReviewNotes(context, thesis);
+      if (reviewNotes == null || !context.mounted) return;
+    }
+
     try {
-      await ref.read(thesisApiProvider).updateStatus(thesis.id, newStatus);
+      await ref
+          .read(thesisApiProvider)
+          .updateStatus(thesis.id, newStatus, reviewNotes: reviewNotes);
       // Await the refetch (not just invalidate) so the table rebuilds with
       // fresh rows before we confirm — and drop the cached detail view too.
       ref.invalidate(thesisDetailProvider(thesis.id));
       final fresh = await ref.refresh(thesisListProvider(_params()).future);
       final row = (fresh ?? []).where((t) => t.id == thesis.id).toList();
+      // A status filter can hide the row that just moved out of it — that is
+      // still a successful update, not a stale list.
+      final movedOutOfFilter =
+          row.isEmpty && _statusValue != null && _statusValue != newStatus;
       if (context.mounted) {
-        if (row.isNotEmpty && row.first.status == newStatus) {
+        if ((row.isNotEmpty && row.first.status == newStatus) ||
+            movedOutOfFilter) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Thesis status changed to $newStatus')),
+            SnackBar(
+              content: Text(
+                _statusMessage(
+                  newStatus,
+                  returningForRevision: returningForRevision,
+                ),
+              ),
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -282,6 +446,85 @@ class _AdminThesisManagementScreenState
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
+    }
+  }
+
+  /// Collects the required review notes for an approved -> draft return.
+  /// Returns null when the admin cancels, so no status change happens.
+  Future<String?> _askForReviewNotes(BuildContext context, Thesis thesis) {
+    final notesCtrl = TextEditingController();
+    String? error;
+    return showClayDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => GlassDialog(
+          title: const Text('Return for Revision'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Explain what needs to change in "${thesis.title}". '
+                'These notes stay on the record for the authors.',
+                style: CScholarTextStyles.body(
+                  12.5,
+                  FontWeight.w400,
+                  CScholarColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              NeumorphField(
+                controller: notesCtrl,
+                label: 'Review notes *',
+                hintText: 'What should the authors revise?',
+                minLines: 3,
+                maxLines: 4,
+                errorText: error,
+              ),
+            ],
+          ),
+          actions: [
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx),
+              label: 'Cancel',
+              gel: false,
+            ),
+            NeumorphButton(
+              onPressed: () {
+                final notes = notesCtrl.text.trim();
+                if (notes.isEmpty) {
+                  setDialog(() => error = 'Review notes are required');
+                  return;
+                }
+                Navigator.pop(ctx, notes);
+              },
+              label: 'Return for Revision',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Confirmation copy that states the consequence for students, not just the
+  /// database value — `approved` is invisible to them until it is published.
+  static String _statusMessage(
+    String status, {
+    required bool returningForRevision,
+  }) {
+    switch (status) {
+      case 'approved':
+        return 'Approved — hidden from students until published';
+      case 'published':
+        return 'Published — now visible to students';
+      case 'draft':
+        return returningForRevision
+            ? 'Returned for revision — review notes saved'
+            : 'Moved back to draft — hidden from students';
+      case 'archived':
+        return 'Archived — removed from the public repository';
+      default:
+        return 'Thesis status changed to $status';
     }
   }
 
@@ -363,12 +606,26 @@ class _StatusMenuState extends State<_StatusMenu> {
       position: PopupMenuPosition.under,
       padding: EdgeInsets.zero,
       onSelected: widget.onSelected,
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: 'draft', child: Text('Set Draft')),
-        PopupMenuItem(value: 'approved', child: Text('Approve')),
-        PopupMenuItem(value: 'published', child: Text('Publish')),
-        PopupMenuItem(value: 'archived', child: Text('Archive')),
-      ],
+      // Only the targets the server accepts from the current status: an
+      // archived thesis can be restored to draft or published but not
+      // approved, so that option is dropped instead of returning a 409.
+      itemBuilder: (_) {
+        // From approved, going back to draft is a review decision with notes,
+        // so it is named for what it does instead of "Set Draft".
+        final draftLabel = widget.status == 'approved'
+            ? 'Return for Revision'
+            : 'Set Draft';
+        return [
+          for (final item in [
+            ('draft', draftLabel),
+            ('approved', 'Approve'),
+            ('published', 'Publish'),
+            ('archived', 'Archive'),
+          ])
+            if (ThesisStatusTransitions.allows(widget.status, item.$1))
+              PopupMenuItem(value: item.$1, child: Text(item.$2)),
+        ];
+      },
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() => _hover = true),

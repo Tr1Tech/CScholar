@@ -134,7 +134,8 @@ class TopbarSearchField extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Container(
           decoration: BoxDecoration(
-            color: CScholarMaterial.well,
+            // Match the field/select fill used across the rest of the shell.
+            color: CScholarMaterial.clayDeep,
             borderRadius: radius,
             // No outline at rest — the tonal fill is the field. High contrast
             // keeps a strong rim as its fallback.

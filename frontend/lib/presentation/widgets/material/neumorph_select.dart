@@ -7,6 +7,10 @@ import 'package:frontend/presentation/widgets/material/neumorph_controls.dart'
 
 /// Recessed track + gel ball. The ball settles with a slight overshoot so the
 /// toggle feels sprung rather than stepped.
+///
+/// The track itself carries the state: off is the recessed well (one step
+/// deeper than the card, so it has a visible edge), on floods it with the
+/// brand green. The ball keeps its clay fill and simply sits on the track.
 class NeumorphToggle extends StatelessWidget {
   const NeumorphToggle({
     super.key,
@@ -41,7 +45,13 @@ class NeumorphToggle extends StatelessWidget {
           height: 30,
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: CScholarMaterial.clayDeep,
+            // Off is a recessed well one step deeper than the card, so the
+            // track has an edge to see (clayDeep measured ~1.04:1 on the auth
+            // card — the switch vanished). On floods the whole track with the
+            // brand green so the state is legible without reading the ball's
+            // rim. (White on green measures 9.45:1 — the ball still stands out
+            // at 2.4:1 as an object, same as any knob on a fill.)
+            color: on ? CScholarMaterial.gelTop : CScholarMaterial.well,
             borderRadius: radius,
           ),
           child: AnimatedAlign(
@@ -54,10 +64,10 @@ class NeumorphToggle extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: CScholarMaterial.clay,
-                border: Border.all(
-                  color: on ? CScholarMaterial.gelTop : CScholarMaterial.rim,
-                  width: on ? 2 : 1,
-                ),
+                // The rim is the off-state hairline only; on the green track
+                // the ball's own fill is the edge, so a ring would just read
+                // as a second, competing outline.
+                border: on ? null : Border.all(color: CScholarMaterial.rim),
                 boxShadow: CScholarMaterial.softShadow(depth: 0.4),
               ),
             ),
@@ -227,6 +237,7 @@ class NeumorphSelect<T> extends FormField<T> {
     super.validator,
     AutovalidateMode? autovalidateMode,
     Color? dropdownColor,
+    Color? backgroundColor,
     EdgeInsetsGeometry? contentPadding,
   }) : super(
          autovalidateMode:
@@ -252,6 +263,7 @@ class NeumorphSelect<T> extends FormField<T> {
              enabled: enabled,
              focusNode: focusNode,
              dropdownColor: dropdownColor,
+             backgroundColor: backgroundColor,
              contentPadding: contentPadding,
            );
          },
@@ -275,6 +287,7 @@ class NeumorphSelectField<T> extends StatefulWidget {
     this.enabled = true,
     this.focusNode,
     this.dropdownColor,
+    this.backgroundColor,
     this.contentPadding,
   });
 
@@ -290,6 +303,11 @@ class NeumorphSelectField<T> extends StatefulWidget {
   final bool enabled;
   final FocusNode? focusNode;
   final Color? dropdownColor;
+
+  /// Closed-face fill. Defaults to `clayDeep`, the house recessed fill shared
+  /// with fields and segmented tracks; pass another tone only for a deliberate
+  /// exception.
+  final Color? backgroundColor;
   final EdgeInsetsGeometry? contentPadding;
 
   @override
@@ -378,7 +396,7 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
           ],
           DecoratedBox(
             decoration: BoxDecoration(
-              color: CScholarMaterial.well,
+              color: widget.backgroundColor ?? CScholarMaterial.clayDeep,
               borderRadius: radius,
               border: borderColor == null
                   ? null

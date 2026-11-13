@@ -31,7 +31,6 @@ class AuthShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highContrast = MediaQuery.highContrastOf(context);
     final mark = CSUMark(size: 56);
 
     return Scaffold(
@@ -63,22 +62,11 @@ class AuthShell extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Brand identity, centered: the ONE prestige
-                            // element on the screen carries the soft gold
-                            // halo (decoration — dropped under high contrast).
-                            Center(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(56 * 0.24),
-                                  boxShadow: highContrast
-                                      ? null
-                                      : CScholarMaterial.goldGlow(
-                                          strength: 0.55),
-                                ),
-                                child: mark,
-                              ),
-                            ),
+                            // Brand identity, centered. The mark carries no
+                            // halo: on the auth card the coral glow read as a
+                            // red bloom around the logo, so the emblem stands
+                            // on its own fill.
+                            Center(child: mark),
                             const SizedBox(height: 18),
                             Text(
                               'CScholar',

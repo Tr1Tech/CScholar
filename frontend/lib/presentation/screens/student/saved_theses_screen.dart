@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
-import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/core/providers/providers.dart';
@@ -17,6 +16,7 @@ import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_widgets.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
+import 'package:frontend/presentation/widgets/thesis_cover.dart';
 
 class SavedThesesScreen extends ConsumerStatefulWidget {
   const SavedThesesScreen({super.key});
@@ -110,7 +110,6 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final thesis = filtered[i];
-                        final isTeal = i % 2 == 0;
 
                         // Saved studies step on the result pitch, same walk as
                         // every thesis result list.
@@ -125,19 +124,17 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                             padding: const EdgeInsets.all(18),
                             child: Row(
                               children: [
-                                // Thumbnail device illustration icon
-                                ClayIconTile(
-                                  icon: isTeal
-                                      ? Icons.smartphone_outlined
-                                      : Icons.laptop_chromebook_outlined,
-                                  size: 60,
-                                  gel: false,
-                                  background: isTeal
-                                      ? CScholarColors.tealTint
-                                      : CScholarColors.cyanTint,
-                                  tint: isTeal
-                                      ? CScholarColors.tealInk
-                                      : CScholarColors.cyanInk,
+                                // tile-exempt: ThesisCover paints its own
+                                // illustration, so it is not an icon tile.
+                                // Same thesis cover as the research page: green
+                                // gel tile with the article glyph, scaled down
+                                // to this row's 60px slot.
+                                ThesisCover(
+                                  seed: thesis.id,
+                                  width: 60,
+                                  height: 60,
+                                  borderRadius: 16,
+                                  iconSize: 26,
                                 ),
                                 const SizedBox(width: 18),
 
