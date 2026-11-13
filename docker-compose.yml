@@ -1,0 +1,29 @@
+# PostgreSQL + pgvector for CScholar.
+# Start with:  docker compose up -d
+# The SQL files are applied automatically on first start (empty volume).
+# If a local PostgreSQL already uses port 5432, change the host port below to
+# "5433:5432" and use 5433 in backend/.env's DATABASE_URL.
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: cscholar-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cscholar
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./db/logic/cscholar_lab5_logic.sql:/docker-entrypoint-initdb.d/03-logic.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cscholar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
