@@ -131,6 +131,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       backRoute: '/admin/dashboard',
       maxWidth: 860,
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         // Form sections cascade on the page rhythm, header first.
         child: StaggerColumn(
           pitch: MotionPitch.page,

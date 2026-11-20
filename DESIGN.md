@@ -117,6 +117,7 @@ PDF flow: pick → `uploadApi.uploadPdf(bytes, name, thesisId?)` → `pdfUrl` st
 - Recommendations are live semantic matches for the current query/thesis — never fake, never interest-tracked.
 - Every async slot keeps layout height across loading → data → error (skeleton matches content box; refresh keeps rows, no skeleton flash).
 - `DataTable` rows are not widgets: tables enter with their card, never row-staggered.
+- Page scroll views carry a 20px horizontal gutter inside the viewport. Shell padding sits outside the scrollable, so only the inner gutter keeps card shadows and the scrollbar off the content edge.
 - One entrance language everywhere: fade + rise from below, no side/top slides. (Motion tokens, not style — keep the rule, pick your own duration.)
 - Text scale to 200% + 400px phones must not overflow: header actions shrink (`Flexible`), filter clusters wrap, tables scroll horizontally.
 

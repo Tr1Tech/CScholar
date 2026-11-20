@@ -29,6 +29,7 @@ class FacultySettingsScreen extends ConsumerWidget {
       backRoute: '/faculty/dashboard',
       maxWidth: 720,
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         // Header-first on the page rhythm; info rows below are static text.
         child: StaggerColumn(
           pitch: MotionPitch.page,

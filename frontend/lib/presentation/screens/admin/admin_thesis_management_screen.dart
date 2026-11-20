@@ -106,6 +106,7 @@ class _AdminThesisManagementScreenState
       mobileTitle: 'Thesis Management',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         // Header-first on the page rhythm. Rows rebuild on every filter and
         // search change, so they enter with the card instead of re-cascading
         // each time a keystroke lands.

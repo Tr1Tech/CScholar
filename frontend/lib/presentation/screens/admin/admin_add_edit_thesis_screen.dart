@@ -189,6 +189,7 @@ class _AdminAddEditThesisScreenState
       backRoute: '/admin/thesis/management',
       maxWidth: 1040,
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Form(
           key: _formKey,
           child: Column(

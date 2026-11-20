@@ -32,6 +32,7 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
       child: RefreshIndicator(
         onRefresh: () => ref.refresh(facultyAnalyticsProvider.future),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
             // Header-first on the page rhythm; each chart group below draws

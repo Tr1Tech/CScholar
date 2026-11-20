@@ -31,6 +31,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
       mobileTitle: 'Faculty Dashboard',
       backRoute: '/faculty/dashboard',
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
                               StaggerColumn(

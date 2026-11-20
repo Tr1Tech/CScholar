@@ -40,6 +40,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       topbar: const AdminTopbar(),
       mobileTitle: 'Admin Dashboard',
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         // PART 7 delay map: header-first on the page rhythm, the KPI strip
         // cascading diagonally on feature, then the analytics card at +120
         // and the content row at +180. The two explicit blocks leave the

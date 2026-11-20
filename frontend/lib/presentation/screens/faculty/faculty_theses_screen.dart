@@ -48,6 +48,7 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
       child: RefreshIndicator(
         onRefresh: () => ref.refresh(facultyThesesProvider.future),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
             // Header-first on the page rhythm; chips step tight, thesis cards

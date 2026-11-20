@@ -298,6 +298,7 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
       backRoute: '/admin/thesis/management',
       maxWidth: 1120,
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

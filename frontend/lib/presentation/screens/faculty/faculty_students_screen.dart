@@ -64,6 +64,9 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
           return ref.refresh(facultyAdviseesProvider.future);
         },
         child: SingleChildScrollView(
+          // The card shadow needs a gutter inside the viewport, or the clip
+          // cuts it into a hard vertical line at the content edge.
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
             pitch: MotionPitch.page,

@@ -102,6 +102,7 @@ class _FacultyThesisFormScreenState
             (loaded.creatorId != null && loaded.creatorId != me?.id));
 
     final body = SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

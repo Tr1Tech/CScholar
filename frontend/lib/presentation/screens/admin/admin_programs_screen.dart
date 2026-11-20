@@ -81,6 +81,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       mobileTitle: 'Programs & Categories',
       backRoute: '/admin/dashboard',
       child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         // Header-first on the page rhythm; tab content below is interactive
         // (TabBarView), so it must never cascade per-row.
         child: StaggerColumn(
