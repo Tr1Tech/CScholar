@@ -113,9 +113,7 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
             final studies = byAuthor[a['id']] ?? const <Thesis>[];
             return _name(a).toLowerCase().contains(needle) ||
                 studies.any(
-                  (t) =>
-                      t.title.toLowerCase().contains(needle) ||
-                      (t.program?.code ?? '').toLowerCase().contains(needle),
+                  (t) => (t.program?.code ?? '').toLowerCase().contains(needle),
                 );
           }).toList();
 
@@ -141,7 +139,7 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               constraints: const BoxConstraints(maxWidth: 340),
               child: NeumorphField(
                 controller: _searchController,
-                hintText: 'Search name or study',
+                hintText: 'Search name or program',
                 prefixIcon: Icons.search,
                 onChanged: (value) => setState(() => _query = value),
               ),
@@ -177,22 +175,29 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
 
   Widget _adviseeRow(Map<String, dynamic> advisee, List<Thesis> studies) {
     final name = _name(advisee);
-    final study = studies.isEmpty ? null : studies.first;
     final count = (advisee['thesis_count'] as num?)?.toInt() ?? studies.length;
+    final programs = studies
+        .map((t) => t.program?.code)
+        .whereType<String>()
+        .where((code) => code.isNotEmpty)
+        .toSet();
+    final programLabel = programs.isEmpty
+        ? null
+        : programs.length == 1
+        ? programs.first
+        : '${programs.length} programs';
     final meta = [
-      if (study?.program?.code != null && study!.program!.code.isNotEmpty) study.program!.code,
-      if (study?.academicYear?.label != null) study!.academicYear!.label,
+      ?programLabel,
       '$count ${count == 1 ? 'study' : 'studies'}',
     ].join(' · ');
 
     return InkWell(
-      onTap: () => _openAdvisee(advisee, name, studies),
+      onTap: () => _showAdviseeTheses(context, advisee['id'] as int, name, count),
       borderRadius: BorderRadius.circular(CScholarRadius.xl),
       child: CScholarCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         lift: true,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 19,
@@ -207,34 +212,17 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        name.isEmpty ? 'Unnamed student' : name,
-                        style: CScholarTextStyles.body(
-                          13.5,
-                          FontWeight.w700,
-                          CScholarColors.textPrimary,
-                        ),
-                      ),
-                      if (study != null) ThesisStatusChip(study.status),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
                   Text(
-                    study?.title ?? 'No supervised study linked yet',
-                    maxLines: 2,
+                    name.isEmpty ? 'Unnamed student' : name,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: CScholarTextStyles.body(
-                      12.5,
-                      FontWeight.w400,
-                      CScholarColors.textSecondary,
+                      13.5,
+                      FontWeight.w700,
+                      CScholarColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     meta,
                     style: CScholarTextStyles.body(11.5, FontWeight.w500, CScholarColors.textMuted),
@@ -243,10 +231,7 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
-            ),
+            const Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
           ],
         ),
       ),
@@ -267,56 +252,93 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
     );
   }
 
-  void _openAdvisee(Map<String, dynamic> advisee, String name, List<Thesis> studies) {
-    // One study is the common case; skip the dialog and open it.
-    if (studies.length == 1) {
-      context.go('/thesis/${studies.first.id}');
-      return;
-    }
-    _showAdviseeTheses(context, advisee['id'] as int, name);
-  }
-
-  void _showAdviseeTheses(BuildContext context, int authorId, String name) {
+  void _showAdviseeTheses(BuildContext context, int authorId, String name, int count) {
     final theses = ref.read(facultyThesesProvider).value ?? [];
     final mine = theses.where((t) => (t.authors ?? []).any((a) => a.id == authorId)).toList();
+    final total = mine.isEmpty ? count : mine.length;
+
     showClayDialog(
       context: context,
       builder: (ctx) => GlassDialog(
         title: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: SizedBox(
-          width: 420,
-          child: mine.isEmpty
-              ? const Text('No supervised studies found for this advisee.')
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: mine
-                      .map(
-                        (t) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            t.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: ThesisStatusChip(t.status),
+          width: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$total supervised ${total == 1 ? 'study' : 'studies'}',
+                style: CScholarTextStyles.body(11.5, FontWeight.w500, CScholarColors.textMuted),
+              ),
+              const SizedBox(height: 10),
+              if (mine.isEmpty)
+                const Text('No supervised studies found for this advisee.')
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: mine.length,
+                    separatorBuilder: (_, _) => const Divider(height: 18),
+                    itemBuilder: (_, index) {
+                      final study = mine[index];
+                      final meta = [
+                        study.program?.code ?? '',
+                        study.academicYear?.label ?? '',
+                      ].where((part) => part.isNotEmpty).join(' · ');
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  study.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.body(
+                                    12.5,
+                                    FontWeight.w600,
+                                    CScholarColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    ThesisStatusChip(study.status),
+                                    if (meta.isNotEmpty)
+                                      Text(
+                                        meta,
+                                        style: CScholarTextStyles.body(
+                                          11,
+                                          FontWeight.w500,
+                                          CScholarColors.textMuted,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          trailing: TextButton(
+                          TextButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              context.go('/thesis/${t.id}');
+                              context.go('/thesis/${study.id}');
                             },
                             child: const Text('View', style: TextStyle(fontSize: 12)),
                           ),
-                        ),
-                      )
-                      .toList(),
+                        ],
+                      );
+                    },
+                  ),
                 ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),

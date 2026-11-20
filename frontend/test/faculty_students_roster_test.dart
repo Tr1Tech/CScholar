@@ -7,7 +7,6 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
-import 'package:frontend/presentation/widgets/common/motion.dart';
 
 void main() {
   setUp(() => CScholarMotion.ambientEnabled = false);
@@ -15,11 +14,19 @@ void main() {
 
   final now = DateTime(2026, 11, 20);
 
-  final theses = <Thesis>[
-    Thesis(
-      id: 59,
-      title: 'LIBRARY MONITORING AND BORROWING INFORMATION SYSTEM',
-      abstract: 'A library system.',
+  Thesis study({
+    required int id,
+    required String title,
+    required String year,
+    required int authorId,
+    required String firstName,
+    String? middleName,
+    required String lastName,
+  }) {
+    return Thesis(
+      id: id,
+      title: title,
+      abstract: 'Abstract.',
       researchType: 'Thesis',
       status: 'published',
       programId: 1,
@@ -29,38 +36,50 @@ void main() {
       program: Program(id: 1, code: 'BSIT', name: 'BS Information Technology', createdAt: now),
       academicYear: AcademicYear(
         id: 1,
-        label: '2022-2023',
+        label: year,
         startYear: 2022,
         endYear: 2023,
         isActive: false,
         createdAt: now,
       ),
       authors: [
-        Author(id: 1, firstName: 'Glen', middleName: 'D.', lastName: 'Cruz', createdAt: now),
+        Author(
+          id: authorId,
+          firstName: firstName,
+          middleName: middleName,
+          lastName: lastName,
+          createdAt: now,
+        ),
       ],
+    );
+  }
+
+  final theses = <Thesis>[
+    study(
+      id: 59,
+      title: 'LIBRARY MONITORING AND BORROWING INFORMATION SYSTEM',
+      year: '2022-2023',
+      authorId: 1,
+      firstName: 'Glen',
+      middleName: 'D.',
+      lastName: 'Cruz',
     ),
-    Thesis(
+    study(
       id: 41,
       title: 'HOMETEL RESERVATION SYSTEM',
-      abstract: 'A booking system.',
-      researchType: 'Thesis',
-      status: 'published',
-      programId: 1,
-      academicYearId: 1,
-      createdAt: now,
-      updatedAt: now,
-      program: Program(id: 1, code: 'BSIT', name: 'BS Information Technology', createdAt: now),
-      academicYear: AcademicYear(
-        id: 1,
-        label: '2023-2024',
-        startYear: 2023,
-        endYear: 2024,
-        isActive: true,
-        createdAt: now,
-      ),
-      authors: [
-        Author(id: 2, firstName: 'Maria', lastName: 'Santos', createdAt: now),
-      ],
+      year: '2023-2024',
+      authorId: 2,
+      firstName: 'Maria',
+      lastName: 'Santos',
+    ),
+    study(
+      id: 50,
+      title: 'SUPPLY OFFICE WITHDRAWAL MONITORING SYSTEM',
+      year: '2022-2023',
+      authorId: 1,
+      firstName: 'Glen',
+      middleName: 'D.',
+      lastName: 'Cruz',
     ),
   ];
 
@@ -71,7 +90,7 @@ void main() {
       'middle_name': 'D.',
       'last_name': 'Cruz',
       'email': null,
-      'thesis_count': 1,
+      'thesis_count': 2,
       'last_activity': '2026-11-20T00:57:43',
     },
     {
@@ -124,7 +143,7 @@ void main() {
     );
   }
 
-  testWidgets('roster shows the study behind each advisee', (tester) async {
+  testWidgets('rows stay short: name, program, study count only', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1440, 1000);
     addTearDown(tester.view.reset);
@@ -134,14 +153,17 @@ void main() {
 
     expect(find.text('Glen D. Cruz'), findsOneWidget);
     expect(find.text('Maria Santos'), findsOneWidget);
-    expect(find.text('LIBRARY MONITORING AND BORROWING INFORMATION SYSTEM'), findsOneWidget);
-    expect(find.text('HOMETEL RESERVATION SYSTEM'), findsOneWidget);
-    expect(find.text('BSIT · 2022-2023 · 1 study'), findsOneWidget);
+    expect(find.text('BSIT · 2 studies'), findsOneWidget);
+    expect(find.text('BSIT · 1 study'), findsOneWidget);
     expect(find.text('2 advisees'), findsOneWidget);
-    expect(find.text('2 studies'), findsOneWidget);
+    expect(find.text('3 studies'), findsOneWidget);
+
+    // Titles belong to the dialog, not the row.
+    expect(find.text('LIBRARY MONITORING AND BORROWING INFORMATION SYSTEM'), findsNothing);
+    expect(find.text('SUPPLY OFFICE WITHDRAWAL MONITORING SYSTEM'), findsNothing);
   });
 
-  testWidgets('search filters by name and by study title', (tester) async {
+  testWidgets('search filters by name and program', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1440, 1000);
     addTearDown(tester.view.reset);
@@ -154,17 +176,17 @@ void main() {
     expect(find.text('Maria Santos'), findsOneWidget);
     expect(find.text('Glen D. Cruz'), findsNothing);
 
-    await tester.enterText(find.byType(TextField).first, 'library');
+    await tester.enterText(find.byType(TextField).first, 'bsit');
     await tester.pumpAndSettle();
     expect(find.text('Glen D. Cruz'), findsOneWidget);
-    expect(find.text('Maria Santos'), findsNothing);
+    expect(find.text('Maria Santos'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, 'nobody');
     await tester.pumpAndSettle();
     expect(find.text('No matching advisees'), findsOneWidget);
   });
 
-  testWidgets('a single-study advisee opens the study', (tester) async {
+  testWidgets('tapping a student lists their studies, then opens one', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1440, 1000);
     addTearDown(tester.view.reset);
@@ -175,10 +197,32 @@ void main() {
     await tester.tap(find.text('Maria Santos'));
     await tester.pumpAndSettle();
 
+    expect(find.text('1 supervised study'), findsOneWidget);
+    expect(find.text('HOMETEL RESERVATION SYSTEM'), findsOneWidget);
+
+    await tester.tap(find.text('View'));
+    await tester.pumpAndSettle();
     expect(find.text('study-detail'), findsOneWidget);
   });
 
-  testWidgets('roster survives phone width at 200% text', (tester) async {
+  testWidgets('a two-study student lists both studies in the dialog', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 1000);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Glen D. Cruz'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 supervised studies'), findsOneWidget);
+    expect(find.text('LIBRARY MONITORING AND BORROWING INFORMATION SYSTEM'), findsOneWidget);
+    expect(find.text('SUPPLY OFFICE WITHDRAWAL MONITORING SYSTEM'), findsOneWidget);
+    expect(find.text('View'), findsNWidgets(2));
+  });
+
+  testWidgets('roster and dialog survive phone width at 200% text', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(400, 860);
     addTearDown(tester.view.reset);
@@ -188,5 +232,10 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Glen D. Cruz'), findsOneWidget);
+
+    await tester.tap(find.text('Glen D. Cruz'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('2 supervised studies'), findsOneWidget);
   });
 }
