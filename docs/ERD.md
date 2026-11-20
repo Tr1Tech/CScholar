@@ -53,6 +53,7 @@ erDiagram
         timestamp    created_at
         timestamp    updated_at
         varchar_500  pdf_url
+        varchar_50   accession_no     UK
     }
 
     authors {
@@ -201,7 +202,7 @@ erDiagram
 
 - Entities: **16** (12 regular + 4 junction)
 - Foreign keys: **18**
-- Unique constraints: 6 (users.username, users.email, programs.code, academic_years.name, categories.name, keywords.term)
+- Unique constraints: 7 (users.username, users.email, programs.code, academic_years.name, categories.name, keywords.term, theses.accession_no)
 - CHECK constraints: 3 (users.role, theses.research_type, theses.status)
 - Indexes: 6 (4 B-tree + 1 HNSW vector index + FK index on thesis_embeddings)
 
@@ -210,3 +211,4 @@ erDiagram
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-10-09 | Final ERD released for Lab Activity 4; verified against `db/schema.sql` |
+| 1.1 | 2026-11-19 | Added `theses.accession_no` (nullable UNIQUE) for library accession numbers |

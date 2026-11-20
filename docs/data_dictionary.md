@@ -60,6 +60,10 @@ Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = colu
 | 29 | updated_at | TIMESTAMP | — | No | DEFAULT NOW() | Last modification time |
 | 30 | pdf_url | VARCHAR(500) | — | Yes | — | Location of the PDF document |
 
+> **Addendum 2026-11-19:** `theses.accession_no VARCHAR(50) UNIQUE` (nullable) was added for library accession numbers (`docs/real_data_plan.md` §8, applied before the pilot import). It is attribute 85; the running total below becomes **85 attributes** until the document is renumbered.
+>
+> **Addendum 2026-11-19:** `import_jobs` was added as operational metadata for the admin Bulk Import screen (preview rows, progress, report). It is not part of the thesis corpus and is intentionally excluded from the 85-attribute total.
+
 ## 5. authors (6 attributes)
 
 | # | Column | Type | Key | Null | Default / Constraint | Description |

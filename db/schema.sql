@@ -66,7 +66,8 @@ CREATE TABLE theses (
     review_notes     TEXT,
     created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-    pdf_url          VARCHAR(500)
+    pdf_url          VARCHAR(500),
+    accession_no     VARCHAR(50) UNIQUE   -- library accession number (nullable, real corpus)
 );
 
 -- 4b. thesis_reviews (audit trail) ----------------------------
@@ -193,6 +194,32 @@ CREATE TABLE recommendation_logs (
     similarity_score      REAL,
     created_at            TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- 17. import_jobs (admin bulk import) --------------------------
+-- A preview is stored here too: the CSV/PDF files live in a staging folder
+-- until the admin confirms, then a background worker updates this row.
+CREATE TABLE import_jobs (
+    id             SERIAL PRIMARY KEY,
+    status         VARCHAR(20) NOT NULL DEFAULT 'previewed'
+                       CHECK (status IN ('previewed', 'queued', 'running',
+                                         'completed', 'failed', 'cancelled')),
+    created_by     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    csv_filename   VARCHAR(255),
+    total_rows     INTEGER NOT NULL DEFAULT 0,
+    processed_rows INTEGER NOT NULL DEFAULT 0,
+    created_count  INTEGER NOT NULL DEFAULT 0,
+    updated_count  INTEGER NOT NULL DEFAULT 0,
+    skipped_count  INTEGER NOT NULL DEFAULT 0,
+    error_count    INTEGER NOT NULL DEFAULT 0,
+    indexed_count  INTEGER NOT NULL DEFAULT 0,
+    message        TEXT,
+    rows           JSONB,
+    created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+    started_at     TIMESTAMP,
+    finished_at    TIMESTAMP
+);
+
+CREATE INDEX idx_import_jobs_status ON import_jobs (status, created_at DESC);
 
 -- ===================== INDEXES =====================
 CREATE INDEX idx_theses_program       ON theses(program_id);

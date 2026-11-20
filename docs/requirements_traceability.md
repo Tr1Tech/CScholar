@@ -15,7 +15,7 @@
 | FR-01 | The system shall allow students, faculty, and admins to log in with their institutional email and password. | 4 |
 | FR-02 | The system shall restrict features by user role (student, faculty, admin). | 4 |
 | FR-03 | Admins shall be able to activate or deactivate user accounts. | 4 |
-| FR-04 | The system shall manage CEIT programs (BSIT, BSCS, BSIS). | 5 |
+| FR-04 | The system shall manage CEIT programs (BSIT, BSEE, BSCpE). | 5 |
 | FR-05 | The system shall manage academic years and mark one as active. | 5 |
 | FR-06 | Users shall be able to create and edit thesis/capstone entries with title and abstract. | 6 |
 | FR-07 | Each entry shall be classified as either a Thesis or a Capstone. | 6 |
@@ -40,7 +40,7 @@
 | FR-01 | users | email, password_hash | UNIQUE email; bcrypt hash column (see `db/seed.sql` sample hashes) |
 | FR-02 | users | role | `CHECK (role IN ('student','faculty','admin'))` |
 | FR-03 | users | is_active | `DEFAULT TRUE`; soft-deactivate without row removal |
-| FR-04 | programs | name, code | `code UNIQUE`; seeded with BSIT/BSCS/BSIS |
+| FR-04 | programs | name, code | `code UNIQUE`; seeded with BSIT/BSEE/BSCpE |
 | FR-05 | academic_years | name, start_year, end_year, is_active | `name UNIQUE`; `is_active DEFAULT FALSE` |
 | FR-06 | theses | title, abstract | `title VARCHAR(300) NOT NULL`, `abstract TEXT NOT NULL` |
 | FR-07 | theses | research_type | `CHECK (research_type IN ('Thesis','Capstone'))` |
