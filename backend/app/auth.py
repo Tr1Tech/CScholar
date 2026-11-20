@@ -85,6 +85,22 @@ def login_required(
     return _resolve_user(request)
 
 
+def optional_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+):
+    """Return the caller when a token is present, or None for anonymous.
+
+    Public read endpoints use this to widen their payload for admins (adviser
+    and author email). Only the absence of credentials is anonymous; a token
+    that is present but invalid still fails, so a broken client cannot silently
+    downgrade to the public shape.
+    """
+    if credentials is None and not request.headers.get("Authorization"):
+        return None
+    return _resolve_user(request)
+
+
 def admin_required(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Security(bearer_scheme),

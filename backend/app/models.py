@@ -531,11 +531,12 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                     "("
                     "t.title ILIKE %s OR t.abstract ILIKE %s "
                     "OR EXISTS (SELECT 1 FROM thesis_keywords tk2 JOIN keywords k2 ON tk2.keyword_id = k2.id WHERE tk2.thesis_id = t.id AND k2.term ILIKE %s) "
-                    "OR EXISTS (SELECT 1 FROM thesis_authors ta2 JOIN authors a2 ON ta2.author_id = a2.id WHERE ta2.thesis_id = t.id AND (a2.first_name ILIKE %s OR a2.last_name ILIKE %s))"
+                    "OR EXISTS (SELECT 1 FROM thesis_authors ta2 JOIN authors a2 ON ta2.author_id = a2.id WHERE ta2.thesis_id = t.id AND (a2.first_name ILIKE %s OR a2.last_name ILIKE %s)) "
+                    "OR EXISTS (SELECT 1 FROM thesis_advisers tadv2 JOIN advisers adv2 ON tadv2.adviser_id = adv2.id WHERE tadv2.thesis_id = t.id AND (adv2.first_name ILIKE %s OR adv2.last_name ILIKE %s))"
                     ")"
                 )
                 pattern = f"%{q}%"
-                params.extend([pattern, pattern, pattern, pattern, pattern])
+                params.extend([pattern, pattern, pattern, pattern, pattern, pattern, pattern])
             if program_id:
                 conditions.append("t.program_id = %s")
                 params.append(program_id)
@@ -880,7 +881,14 @@ def list_keywords():
         put_conn(conn)
 
 
-def list_authors():
+def list_authors(include_email=True):
+    """List authors. Email is omitted unless the caller is an admin.
+
+    The route is public because the repository and both thesis forms need the
+    name list. Student addresses are personal data and used to be served to
+    anonymous visitors; ``include_email`` keeps them for the admin screens
+    that actually edit them.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -888,22 +896,29 @@ def list_authors():
                 "SELECT id, first_name, middle_name, last_name, email, created_at "
                 "FROM authors ORDER BY last_name, first_name"
             )
-            return [
-                {
+            rows = []
+            for r in cur.fetchall():
+                row = {
                     "id": r[0],
                     "first_name": r[1],
                     "middle_name": r[2],
                     "last_name": r[3],
-                    "email": r[4],
                     "created_at": r[5].isoformat() if r[5] else None,
                 }
-                for r in cur.fetchall()
-            ]
+                if include_email:
+                    row["email"] = r[4]
+                rows.append(row)
+            return rows
     finally:
         put_conn(conn)
 
 
-def list_advisers():
+def list_advisers(include_email=True):
+    """List advisers. Email is omitted unless the caller is an admin.
+
+    Adviser email is not just contact data here: it is the key that links a
+    faculty login to advised theses, so it stays out of the anonymous payload.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -911,17 +926,19 @@ def list_advisers():
                 "SELECT id, first_name, middle_name, last_name, email, created_at "
                 "FROM advisers ORDER BY last_name, first_name"
             )
-            return [
-                {
+            rows = []
+            for r in cur.fetchall():
+                row = {
                     "id": r[0],
                     "first_name": r[1],
                     "middle_name": r[2],
                     "last_name": r[3],
-                    "email": r[4],
                     "created_at": r[5].isoformat() if r[5] else None,
                 }
-                for r in cur.fetchall()
-            ]
+                if include_email:
+                    row["email"] = r[4]
+                rows.append(row)
+            return rows
     finally:
         put_conn(conn)
 

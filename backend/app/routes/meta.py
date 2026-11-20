@@ -1,7 +1,7 @@
 """Meta routes -- programs, academic years, categories, keywords, authors, advisers."""
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, Response
-from ..auth import admin_required, login_required
+from ..auth import admin_required, login_required, optional_user
 from .. import models as db
 from ..schemas import (
     AuthorCreateRequest,
@@ -40,13 +40,17 @@ def list_keywords():
 
 
 @router.get("/api/authors")
-def list_authors():
-    return db.list_authors()
+def list_authors(request: Request, user=Depends(optional_user)):
+    # Names are public (they appear on published studies); email is admin-only.
+    can_see_email = bool(user and user.get("role") == "admin")
+    return db.list_authors(include_email=can_see_email)
 
 
 @router.get("/api/advisers")
-def list_advisers():
-    return db.list_advisers()
+def list_advisers(request: Request, user=Depends(optional_user)):
+    # The email is the faculty-link key; only admin screens edit it.
+    can_see_email = bool(user and user.get("role") == "admin")
+    return db.list_advisers(include_email=can_see_email)
 
 
 @router.get("/api/research-types")
