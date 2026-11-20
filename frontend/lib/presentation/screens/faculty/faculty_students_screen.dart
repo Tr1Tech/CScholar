@@ -2,25 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
+import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 
 /// Faculty: authors (advisees) linked to this faculty member's advised theses.
-class FacultyStudentsScreen extends ConsumerWidget {
+///
+/// A roster, not a card wall: every row carries the study the student worked
+/// on, so the page answers "who are they and what did they do" at a glance.
+class FacultyStudentsScreen extends ConsumerStatefulWidget {
   const FacultyStudentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FacultyStudentsScreen> createState() => _FacultyStudentsScreenState();
+}
+
+class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final adviseesAsync = ref.watch(facultyAdviseesProvider);
+    final theses = ref.watch(facultyThesesProvider).value ?? const <Thesis>[];
+
+    // Author id -> studies. One fetch of "my theses" is enough to give every
+    // row its title, program, year, and status without a second endpoint.
+    final byAuthor = <int, List<Thesis>>{};
+    for (final thesis in theses) {
+      for (final author in thesis.authors ?? const <Author>[]) {
+        byAuthor.putIfAbsent(author.id, () => <Thesis>[]).add(thesis);
+      }
+    }
 
     return CScholarShell(
       sidebar: const FacultySidebar(currentPath: '/faculty/students'),
@@ -28,22 +59,23 @@ class FacultyStudentsScreen extends ConsumerWidget {
       mobileTitle: 'My Students',
       backRoute: '/faculty/dashboard',
       child: RefreshIndicator(
-        onRefresh: () => ref.refresh(facultyAdviseesProvider.future),
+        onRefresh: () {
+          ref.invalidate(facultyThesesProvider);
+          return ref.refresh(facultyAdviseesProvider.future);
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: StaggerColumn(
-            // Header-first on the page rhythm; the advisee grid below steps
-            // dense on tight.
             pitch: MotionPitch.page,
             children: [
               const PageHeader(
                 title: 'My Students',
                 subtitle: 'Advisees across your supervised studies.',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               asyncSlot<List<Map<String, dynamic>>>(
                 adviseesAsync,
-                skeleton: const SkeletonList(count: 6, cardHeight: 96),
+                skeleton: const SkeletonList(count: 7, cardHeight: 92),
                 data: (list) {
                   if (list.isEmpty) {
                     return const EmptyState(
@@ -52,30 +84,7 @@ class FacultyStudentsScreen extends ConsumerWidget {
                       message: 'Authors of studies you submit or advise will appear here.',
                     );
                   }
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final count = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 560 ? 2 : 1);
-                      return GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: count,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 2.6,
-                        // Dense card grid steps tight — one gesture.
-                        children: list.asMap().entries.map((entry) {
-                          final a = entry.value;
-                          return Stagger(
-                            index: entry.key,
-                            step: MotionPitch.tight.step,
-                            max: MotionPitch.tight.max,
-                            rise: MotionPitch.tight.rise,
-                            child: _adviseeCard(context, ref, a),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  );
+                  return _roster(list, byAuthor, theses);
                 },
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
@@ -92,49 +101,151 @@ class FacultyStudentsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _adviseeCard(BuildContext context, WidgetRef ref, Map<String, dynamic> a) {
-    final name = [
-      a['first_name'],
-      a['middle_name'],
-      a['last_name'],
-    ].where((p) => (p as String?)?.isNotEmpty == true).join(' ');
-    final count = (a['thesis_count'] as num?)?.toInt() ?? 0;
+  Widget _roster(
+    List<Map<String, dynamic>> list,
+    Map<int, List<Thesis>> byAuthor,
+    List<Thesis> theses,
+  ) {
+    final needle = _query.trim().toLowerCase();
+    final filtered = needle.isEmpty
+        ? list
+        : list.where((a) {
+            final studies = byAuthor[a['id']] ?? const <Thesis>[];
+            return _name(a).toLowerCase().contains(needle) ||
+                studies.any(
+                  (t) =>
+                      t.title.toLowerCase().contains(needle) ||
+                      (t.program?.code ?? '').toLowerCase().contains(needle),
+                );
+          }).toList();
+
+    final programs = theses
+        .map((t) => t.program?.code)
+        .whereType<String>()
+        .where((code) => code.isNotEmpty)
+        .toSet();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _metaPill('${list.length} ${list.length == 1 ? 'advisee' : 'advisees'}'),
+            _metaPill('${theses.length} ${theses.length == 1 ? 'study' : 'studies'}'),
+            _metaPill('${programs.length} ${programs.length == 1 ? 'program' : 'programs'}'),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 340),
+              child: NeumorphField(
+                controller: _searchController,
+                hintText: 'Search name or study',
+                prefixIcon: Icons.search,
+                onChanged: (value) => setState(() => _query = value),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (filtered.isEmpty)
+          EmptyState(
+            icon: Icons.search_off,
+            title: 'No matching advisees',
+            message: 'Nobody matches "$_query". Try a name, a program, or a study title.',
+            actionLabel: 'Clear search',
+            onAction: () {
+              _searchController.clear();
+              setState(() => _query = '');
+            },
+          )
+        else
+          for (final entry in filtered.asMap().entries) ...[
+            Stagger(
+              index: entry.key,
+              step: MotionPitch.tight.step,
+              max: MotionPitch.tight.max,
+              rise: MotionPitch.tight.rise,
+              child: _adviseeRow(entry.value, byAuthor[entry.value['id']] ?? const <Thesis>[]),
+            ),
+            if (entry.key != filtered.length - 1) const SizedBox(height: 10),
+          ],
+      ],
+    );
+  }
+
+  Widget _adviseeRow(Map<String, dynamic> advisee, List<Thesis> studies) {
+    final name = _name(advisee);
+    final study = studies.isEmpty ? null : studies.first;
+    final count = (advisee['thesis_count'] as num?)?.toInt() ?? studies.length;
+    final meta = [
+      if (study?.program?.code != null && study!.program!.code.isNotEmpty) study.program!.code,
+      if (study?.academicYear?.label != null) study!.academicYear!.label,
+      '$count ${count == 1 ? 'study' : 'studies'}',
+    ].join(' · ');
+
     return InkWell(
-      onTap: () => _showAdviseeTheses(context, ref, a['id'] as int, name.isEmpty ? 'Advisee' : name),
+      onTap: () => _openAdvisee(advisee, name, studies),
       borderRadius: BorderRadius.circular(CScholarRadius.xl),
       child: CScholarCard(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         lift: true,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: 22,
+              radius: 19,
               backgroundColor: CScholarColors.thesisChipBg,
               child: Text(
                 _initials(name),
-                style: CScholarTextStyles.body(13, FontWeight.w700, CScholarColors.primaryGreen),
+                style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.primaryGreen),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(name.isEmpty ? 'Unnamed' : name,
-                      style: CScholarTextStyles.body(13.5, FontWeight.w700, CScholarColors.textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text((a['email'] as String?) ?? '',
-                      style: CScholarTextStyles.body(11.5, FontWeight.w400, CScholarColors.textMuted),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        name.isEmpty ? 'Unnamed student' : name,
+                        style: CScholarTextStyles.body(
+                          13.5,
+                          FontWeight.w700,
+                          CScholarColors.textPrimary,
+                        ),
+                      ),
+                      if (study != null) ThesisStatusChip(study.status),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    study?.title ?? 'No supervised study linked yet',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.body(
+                      12.5,
+                      FontWeight.w400,
+                      CScholarColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$count ${count == 1 ? 'study' : 'studies'}',
-                      style: CScholarTextStyles.body(11.5, FontWeight.w600, CScholarColors.primaryGreen)),
+                  Text(
+                    meta,
+                    style: CScholarTextStyles.body(11.5, FontWeight.w500, CScholarColors.textMuted),
+                  ),
                 ],
               ),
+            ),
+            const SizedBox(width: 8),
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
             ),
           ],
         ),
@@ -142,7 +253,30 @@ class FacultyStudentsScreen extends ConsumerWidget {
     );
   }
 
-  void _showAdviseeTheses(BuildContext context, WidgetRef ref, int authorId, String name) {
+  Widget _metaPill(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: CScholarMaterial.chipNeutral,
+        borderRadius: BorderRadius.circular(CScholarRadius.full),
+      ),
+      child: Text(
+        label,
+        style: CScholarTextStyles.body(11.5, FontWeight.w600, CScholarColors.textSecondary),
+      ),
+    );
+  }
+
+  void _openAdvisee(Map<String, dynamic> advisee, String name, List<Thesis> studies) {
+    // One study is the common case; skip the dialog and open it.
+    if (studies.length == 1) {
+      context.go('/thesis/${studies.first.id}');
+      return;
+    }
+    _showAdviseeTheses(context, advisee['id'] as int, name);
+  }
+
+  void _showAdviseeTheses(BuildContext context, int authorId, String name) {
     final theses = ref.read(facultyThesesProvider).value ?? [];
     final mine = theses.where((t) => (t.authors ?? []).any((a) => a.id == authorId)).toList();
     showClayDialog(
@@ -156,20 +290,31 @@ class FacultyStudentsScreen extends ConsumerWidget {
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: mine
-                      .map((t) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                            subtitle: Text(t.status.toUpperCase(),
-                                style: const TextStyle(fontSize: 11, color: CScholarColors.textMuted)),
-                            trailing: TextButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                context.go('/thesis/${t.id}');
-                              },
-                              child: const Text('View', style: TextStyle(fontSize: 12)),
+                      .map(
+                        (t) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            t.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ThesisStatusChip(t.status),
                             ),
-                          ))
+                          ),
+                          trailing: TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              context.go('/thesis/${t.id}');
+                            },
+                            child: const Text('View', style: TextStyle(fontSize: 12)),
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
         ),
@@ -178,6 +323,14 @@ class FacultyStudentsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _name(Map<String, dynamic> advisee) {
+    return [
+      advisee['first_name'],
+      advisee['middle_name'],
+      advisee['last_name'],
+    ].where((part) => (part as String?)?.isNotEmpty == true).join(' ');
   }
 
   String _initials(String name) {

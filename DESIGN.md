@@ -53,7 +53,7 @@
 | `/faculty/theses` | `screens/faculty/faculty_theses_screen.dart` | Own advised theses. `ClayChip` status filter (All/Draft/Approved/Published/Archived). Row: title + program/year/authors + status chip + View (+ Edit/Delete if own draft). Delete confirm dialog. `RefreshIndicator` on `facultyThesesProvider`. |
 | `/faculty/thesis/new` | `screens/faculty/faculty_thesis_form_screen.dart` | Submit draft (backend forces `draft` regardless). Same fields as admin form minus adviser picker (submitter = adviser, locked row). Authors + categories via multi-pick dialogs. PDF attach (create: carried into payload; edit: server-linked immediately). |
 | `/faculty/thesis/:id/edit` | same file (`thesisId`) | Edit own draft only. Non-editable (non-draft or others') → `EmptyState` lock message. |
-| `/faculty/students` | `screens/faculty/faculty_students_screen.dart` | Advisee grid (3/2/1 cols, `childAspectRatio 2.6`) derived from advised theses' authors. Card: initials avatar + name + email + study count. Tap → dialog listing their supervised studies. |
+| `/faculty/students` | `screens/faculty/faculty_students_screen.dart` | Advisee roster (search + counts). One row per advisee: initials avatar, name, study title, program/year/status, study count. Tap opens the study when there is one; several open a dialog. |
 | `/faculty/analytics` | `screens/faculty/faculty_analytics_screen.dart` | Supervised breakdown: By Status bars (uses `statusFill`, chart draws 120ms after card), By Program counts, By Academic Year counts. |
 | `/faculty/settings` | `screens/faculty/faculty_settings_screen.dart` | Profile card (avatar + username + email + role badge + info rows) + Session card (Copy session token for API debugging + Log Out → `/login`). |
 
