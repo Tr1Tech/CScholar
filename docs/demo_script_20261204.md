@@ -24,11 +24,13 @@ defense. Do not open **Users** while presenting; the account is not the point.
 
 ## 2. Pre-flight (T-15 minutes)
 
-From `backend/`, with the database running:
+From `backend/`, with the database running, in its own terminal:
 
 ```powershell
 venv\Scripts\python.exe run.py
 ```
+
+Keep that terminal open for the whole session; closing it stops the API.
 
 Then, in a second terminal:
 
