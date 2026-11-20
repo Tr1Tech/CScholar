@@ -76,9 +76,12 @@ class FacultyDashboardScreen extends ConsumerWidget {
                                       iconColor: CScholarColors.goldDeep,
                                     ),
                                     (
-                                      label: 'REVIEWS',
+                                      // Faculty do not review their own
+                                      // advisees; these are drafts waiting on
+                                      // an admin to publish them.
+                                      label: 'FOR PUBLICATION',
                                       value: '${stats.value?['pending_reviews'] ?? 0}',
-                                      trend: '${stats.value?['completed_reviews'] ?? 0} completed',
+                                      trend: '${stats.value?['completed_reviews'] ?? 0} published',
                                       icon: Icons.rate_review_outlined,
                                       iconBg: CScholarColors.infoLight,
                                       iconColor: CScholarColors.info,
@@ -205,7 +208,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   compact: true,
                   icon: Icons.history,
                   title: 'No recent activity',
-                  message: 'Supervised studies and reviews will show up here.',
+                  message: 'Supervised studies and their status will show up here.',
                 );
               }
               return Column(

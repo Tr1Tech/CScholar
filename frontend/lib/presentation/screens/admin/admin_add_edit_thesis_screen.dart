@@ -16,6 +16,7 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/common/duplicate_dialog.dart';
+import 'package:frontend/presentation/widgets/common/new_author_dialog.dart';
 import 'package:file_picker/file_picker.dart';
 
 class AdminAddEditThesisScreen extends ConsumerStatefulWidget {
@@ -438,10 +439,31 @@ class _AdminAddEditThesisScreenState
                     const SizedBox(height: 20),
 
                     // Authors (selected from the database)
-                    const SizedBox(height: 20),
-
-                    // Authors (selected from the database)
-                    _fieldLabel('AUTHORS', isRequired: true),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _fieldLabel('AUTHORS', isRequired: true),
+                        ),
+                        // Flexible: at phone width with 200% text the button
+                        // would otherwise widen the row past its parent.
+                        Flexible(
+                          child: TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: CScholarColors.primaryGreen,
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            onPressed: _addAuthor,
+                            icon: const Icon(Icons.person_add_alt_1, size: 16),
+                            label: const Text(
+                              'New author',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 6),
                     _authorsPicker(),
 
@@ -866,6 +888,14 @@ class _AdminAddEditThesisScreenState
         );
       },
     );
+  }
+
+  Future<void> _addAuthor() async {
+    final author = await showNewAuthorDialog(context);
+    if (author == null || !mounted) return;
+    // Select the new (or reused) author immediately: the reason the librarian
+    // opened the dialog is that this study needs them.
+    setState(() => _authorIds.add(author.id));
   }
 
   Widget _authorsPicker() {

@@ -54,6 +54,12 @@ class _AdminThesisManagementScreenState
   /// table).
   int _page = 0;
 
+  /// Selected record ids for the bulk Approve/Publish actions. Kept across
+  /// pages so a librarian can select from more than one screenful; the bar
+  /// shows the running count and a Clear action.
+  final Set<int> _selected = {};
+  bool _bulkRunning = false;
+
   String? get _researchType => _type == 'All' ? null : _type;
 
   String? get _statusValue => _status == 'All' ? null : _status.toLowerCase();
@@ -75,7 +81,13 @@ class _AdminThesisManagementScreenState
   Widget build(BuildContext context) {
     // A new search is a new result set: back to page 1.
     ref.listen(adminSearchProvider(AdminSearchSection.theses), (_, _) {
-      if (mounted) setState(() => _page = 0);
+      if (mounted) {
+        setState(() {
+          _page = 0;
+          // A new result set changes which records the bar applies to.
+          _selected.clear();
+        });
+      }
     });
     final searchQuery = ref
         .watch(adminSearchProvider(AdminSearchSection.theses))
@@ -104,11 +116,23 @@ class _AdminThesisManagementScreenState
               title: 'Thesis Management',
               subtitle:
                   'Review statuses, edit records, and curate the repository.',
-              action: NeumorphButton(
-                onPressed: () => context.go('/admin/thesis/new'),
-                icon: Icons.add,
-                label: 'Add Thesis',
-              ),
+              actions: [
+                // Library staff arrive here to add studies, whether one at a
+                // time or a whole batch. Keeping both entry points on the
+                // collection puts the task where the records live, instead
+                // of making "Bulk Import" a separate destination.
+                NeumorphButton(
+                  onPressed: () => context.go('/admin/import'),
+                  icon: Icons.upload_file_outlined,
+                  label: 'Bulk Import',
+                  gel: false,
+                ),
+                NeumorphButton(
+                  onPressed: () => context.go('/admin/thesis/new'),
+                  icon: Icons.add,
+                  label: 'Add Thesis',
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             CScholarCard(
@@ -129,6 +153,7 @@ class _AdminThesisManagementScreenState
                           onChanged: (i) => setState(() {
                             _type = _types[i];
                             _page = 0;
+                            _selected.clear();
                           }),
                         );
                         final statusFilter = NeumorphSelectField<String>(
@@ -149,6 +174,7 @@ class _AdminThesisManagementScreenState
                             setState(() {
                               _status = status;
                               _page = 0;
+                              _selected.clear();
                             });
                           },
                         );
@@ -193,7 +219,7 @@ class _AdminThesisManagementScreenState
                                 ? 'No theses match "$searchQuery".'
                                 : (_type != 'All' || _status != 'All')
                                 ? 'No theses match the selected filters.'
-                                : 'Add the first record to start the repository.',
+                                : 'Add the first record, or import a spreadsheet with Bulk Import above.',
                             actionLabel: searching ? 'Clear search' : null,
                             onAction: searching
                                 ? () => ref
@@ -221,6 +247,10 @@ class _AdminThesisManagementScreenState
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
+                            if (_selected.isNotEmpty) ...[
+                              _bulkBar(context, list),
+                              const SizedBox(height: 8),
+                            ],
                             for (final t in visible)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
@@ -320,6 +350,23 @@ class _AdminThesisManagementScreenState
       borderRadius: CScholarRadius.xl,
       child: Row(
         children: [
+          // control-exempt: per-row selection box for batch approve/publish;
+          // the design system has no multi-select table control, and the native
+          // box provides the selection semantics screen readers expect.
+          Checkbox(
+            value: _selected.contains(t.id),
+            activeColor: CScholarColors.primaryGreen,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onChanged: (checked) => setState(() {
+              if (checked == true) {
+                _selected.add(t.id);
+              } else {
+                _selected.remove(t.id);
+              }
+            }),
+          ),
+          const SizedBox(width: 4),
           ThesisCover(
             seed: t.id,
             width: 34,
@@ -446,6 +493,153 @@ class _AdminThesisManagementScreenState
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Failed: $e')));
       }
+    }
+  }
+
+  Widget _bulkBar(BuildContext context, List<Thesis> list) {
+    final allSelected =
+        list.isNotEmpty && list.every((t) => _selected.contains(t.id));
+    final summary = Row(
+      children: [
+        Text(
+          '${_selected.length} selected',
+          style: CScholarTextStyles.body(
+            12.5,
+            FontWeight.w700,
+            CScholarColors.textPrimary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: () => setState(() {
+            if (allSelected) {
+              _selected.clear();
+            } else {
+              _selected.addAll(list.map((t) => t.id));
+            }
+          }),
+          child: Text(
+            allSelected ? 'Clear selection' : 'Select all on this list',
+          ),
+        ),
+      ],
+    );
+
+    final actions = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        NeumorphButton(
+          label: 'Approve selected',
+          gel: false,
+          onPressed: _bulkRunning ? null : () => _bulkStatus('approved'),
+        ),
+        NeumorphButton(
+          label: 'Publish selected',
+          gel: false,
+          onPressed: _bulkRunning ? null : () => _bulkStatus('published'),
+        ),
+      ],
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: CScholarColors.primaryGreenVeryLight,
+        borderRadius: BorderRadius.circular(CScholarRadius.lg),
+        border: Border.all(
+          color: CScholarColors.primaryGreen.withValues(alpha: 0.18),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 680) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [summary, const SizedBox(height: 8), actions],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: summary),
+              const SizedBox(width: 12),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _bulkStatus(String status) async {
+    if (_selected.isEmpty || _bulkRunning) return;
+    if (status != 'approved' && status != 'published') return;
+    final ids = _selected.toList();
+    final verb = status == 'approved' ? 'approve' : 'publish';
+    final past = status == 'approved' ? 'approved' : 'published';
+
+    final confirmed = await showClayDialog<bool>(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: Text(status == 'approved' ? 'Approve selected?' : 'Publish selected?'),
+        content: Text(
+          'You are about to $verb ${ids.length} studies. '
+          '${status == 'approved' ? 'Approved studies are still internal until published.' : 'Published studies become visible in the public repository.'}',
+        ),
+        actions: [
+          NeumorphButton(
+            label: 'Cancel',
+            gel: false,
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          NeumorphButton(
+            label: status == 'approved' ? 'Approve' : 'Publish',
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _bulkRunning = true);
+    try {
+      final result = await ref
+          .read(thesisApiProvider)
+          .bulkStatus(ids, status);
+      final updated = (result['updated'] as List?)?.length ?? 0;
+      final skipped = (result['skipped'] as List?)?.length ?? 0;
+      for (final id in ids) {
+        ref.invalidate(thesisDetailProvider(id));
+      }
+      setState(() {
+        _selected.clear();
+        // Follow the rows the librarian just moved, so the next step
+        // (publish after approve) is on screen instead of hidden by a filter.
+        if (status == 'approved' && _statusValue == 'draft') {
+          _status = 'Approved';
+          _page = 0;
+        } else if (status == 'published' && _statusValue == 'approved') {
+          _status = 'Published';
+          _page = 0;
+        }
+      });
+      final _ = await ref.refresh(thesisListProvider(_params()).future);
+      if (!mounted) return;
+      final skipNote = skipped > 0
+          ? ' $skipped skipped — only a draft can be approved, and only '
+                'an approved study can be published.'
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$updated $past.$skipNote')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bulk update failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _bulkRunning = false);
     }
   }
 

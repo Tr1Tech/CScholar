@@ -3,6 +3,8 @@
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:frontend/core/config.dart';
 
 class ApiException implements Exception {
@@ -153,6 +155,19 @@ class ThesisApi {
     await _api.delete('/api/theses/$id');
   }
 
+  /// Move many studies through the lifecycle in one admin action.
+  /// The server applies the same per-row transition guard as the single row
+  /// control and returns which ids were updated or skipped.
+  Future<Map<String, dynamic>> bulkStatus(
+    List<int> ids,
+    String status,
+  ) async {
+    return await _api.post('/api/theses/bulk-status', {
+      'ids': ids,
+      'status': status,
+    }) as Map<String, dynamic>;
+  }
+
   Future<List<dynamic>> recommend(int thesisId) async {
     final data = await _api.get('/api/theses/$thesisId/recommend');
     return data['theses'] as List<dynamic>;
@@ -278,4 +293,225 @@ class MetaApi {
   Future<List<dynamic>> researchTypes() async => (await _api.get('/api/research-types')) as List<dynamic>;
   Future<List<dynamic>> authors() async => (await _api.get('/api/authors')) as List<dynamic>;
   Future<List<dynamic>> advisers() async => (await _api.get('/api/advisers')) as List<dynamic>;
+}
+
+// --- Admin bulk import ----------------------------------------------------
+
+class ImportRow {
+  final int row;
+  final String action;
+  final int? thesisId;
+  final String pdfFilename;
+  final String title;
+  final String programCode;
+  final String academicYear;
+  final String authors;
+  final String adviser;
+  final int? pages;
+  final int? chunks;
+  final bool indexed;
+  final List<String> warnings;
+  final List<String> errors;
+  final String sourceNotes;
+
+  ImportRow({
+    required this.row,
+    required this.action,
+    this.thesisId,
+    required this.pdfFilename,
+    required this.title,
+    required this.programCode,
+    required this.academicYear,
+    required this.authors,
+    required this.adviser,
+    this.pages,
+    this.chunks,
+    required this.indexed,
+    required this.warnings,
+    required this.errors,
+    required this.sourceNotes,
+  });
+
+  factory ImportRow.fromJson(Map<String, dynamic> json) => ImportRow(
+    row: (json['row'] as num?)?.toInt() ?? 0,
+    action: json['action'] as String? ?? '',
+    thesisId: (json['thesis_id'] as num?)?.toInt(),
+    pdfFilename: json['pdf_filename'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    programCode: json['program_code'] as String? ?? '',
+    academicYear: json['academic_year'] as String? ?? '',
+    authors: json['authors'] as String? ?? '',
+    adviser: json['adviser'] as String? ?? '',
+    pages: (json['pages'] as num?)?.toInt(),
+    chunks: (json['chunks'] as num?)?.toInt(),
+    indexed: json['indexed'] as bool? ?? false,
+    warnings: (json['warnings'] as List?)?.cast<String>() ?? const [],
+    errors: (json['errors'] as List?)?.cast<String>() ?? const [],
+    sourceNotes: json['source_notes'] as String? ?? '',
+  );
+
+  bool get hasError => errors.isNotEmpty || action == 'error';
+
+  String get statusLabel {
+    switch (action) {
+      case 'would_create':
+        return 'Ready';
+      case 'would_update':
+        return 'Will update';
+      case 'would_skip':
+        return 'Already imported';
+      case 'created':
+        return 'Created';
+      case 'updated':
+        return 'Updated';
+      case 'skipped':
+        return 'Skipped';
+      case 'error':
+        return 'Error';
+      default:
+        return action.isEmpty ? 'Unknown' : action;
+    }
+  }
+
+  String get message {
+    if (errors.isNotEmpty) return errors.join(' | ');
+    if (warnings.isNotEmpty) return warnings.join(' | ');
+    return '';
+  }
+}
+
+class ImportJob {
+  final int id;
+  final String status;
+  final String? csvFilename;
+  final int totalRows;
+  final int processedRows;
+  final int createdCount;
+  final int updatedCount;
+  final int skippedCount;
+  final int errorCount;
+  final int indexedCount;
+  final String? message;
+  final List<ImportRow> rows;
+  final String? createdAt;
+  final String? startedAt;
+  final String? finishedAt;
+
+  ImportJob({
+    required this.id,
+    required this.status,
+    this.csvFilename,
+    required this.totalRows,
+    required this.processedRows,
+    required this.createdCount,
+    required this.updatedCount,
+    required this.skippedCount,
+    required this.errorCount,
+    required this.indexedCount,
+    this.message,
+    required this.rows,
+    this.createdAt,
+    this.startedAt,
+    this.finishedAt,
+  });
+
+  factory ImportJob.fromJson(Map<String, dynamic> json) => ImportJob(
+    id: (json['id'] as num?)?.toInt() ?? 0,
+    status: json['status'] as String? ?? 'previewed',
+    csvFilename: json['csv_filename'] as String?,
+    totalRows: (json['total_rows'] as num?)?.toInt() ?? 0,
+    processedRows: (json['processed_rows'] as num?)?.toInt() ?? 0,
+    createdCount: (json['created_count'] as num?)?.toInt() ?? 0,
+    updatedCount: (json['updated_count'] as num?)?.toInt() ?? 0,
+    skippedCount: (json['skipped_count'] as num?)?.toInt() ?? 0,
+    errorCount: (json['error_count'] as num?)?.toInt() ?? 0,
+    indexedCount: (json['indexed_count'] as num?)?.toInt() ?? 0,
+    message: json['message'] as String?,
+    rows: (json['rows'] as List?)
+            ?.map((e) => ImportRow.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [],
+    createdAt: json['created_at'] as String?,
+    startedAt: json['started_at'] as String?,
+    finishedAt: json['finished_at'] as String?,
+  );
+
+  bool get isPreview => status == 'previewed';
+  bool get isRunning => status == 'queued' || status == 'running';
+  bool get isFinished => status == 'completed' || status == 'failed';
+
+  int get readyCount =>
+      rows.where((r) => r.action == 'would_create').length;
+  int get updateCount =>
+      rows.where((r) => r.action == 'would_update').length;
+  int get alreadyCount =>
+      rows.where((r) => r.action == 'would_skip').length;
+  int get invalidCount => rows.where((r) => r.hasError).length;
+
+  double get progress =>
+      totalRows == 0 ? 0 : (processedRows / totalRows).clamp(0, 1).toDouble();
+}
+
+class ImportApi {
+  final ApiService _api;
+  ImportApi(this._api);
+
+  Future<ImportJob> preview(PlatformFile csv, List<PlatformFile> pdfs) async {
+    final uri = Uri.parse('${_api.baseUrl}/api/import/preview');
+    final request = http.MultipartRequest('POST', uri);
+    if (_api._token != null) {
+      request.headers['Authorization'] = 'Bearer ${_api._token}';
+    }
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'csv_file',
+        await csv.readAsBytes(),
+        filename: csv.name,
+      ),
+    );
+    for (final pdf in pdfs) {
+      final length = await pdf.length();
+      request.files.add(
+        http.MultipartFile(
+          'pdf_files',
+          pdf.readAsByteStream(),
+          length ?? 0,
+          filename: pdf.name,
+        ),
+      );
+    }
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    _api._checkError(res);
+    return ImportJob.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<ImportJob> run(int id) async {
+    final data = await _api.post('/api/import/$id/run', {});
+    return ImportJob.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<ImportJob> status(int id) async {
+    final data = await _api.get('/api/import/$id');
+    return ImportJob.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> discard(int id) async {
+    await _api.delete('/api/import/$id');
+  }
+
+  Future<Uint8List> reportBytes(int id) => _download('/api/import/$id/report');
+
+  Future<Uint8List> templateBytes() => _download('/api/import/template');
+
+  Future<Uint8List> _download(String endpoint) async {
+    final res = await http.get(
+      Uri.parse('${_api.baseUrl}$endpoint'),
+      headers: {
+        if (_api._token != null) 'Authorization': 'Bearer ${_api._token}',
+      },
+    );
+    _api._checkError(res);
+    return res.bodyBytes;
+  }
 }

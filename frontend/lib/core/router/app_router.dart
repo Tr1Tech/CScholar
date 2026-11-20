@@ -15,6 +15,7 @@ import 'package:frontend/presentation/screens/student/profile_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_thesis_management_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_bulk_import_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
@@ -235,6 +236,10 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/thesis/new',
         builder: (context, state) => const AdminAddEditThesisScreen(),
+      ),
+      GoRoute(
+        path: '/admin/import',
+        builder: (context, state) => const AdminBulkImportScreen(),
       ),
       GoRoute(
         path: '/admin/thesis/:id/edit',

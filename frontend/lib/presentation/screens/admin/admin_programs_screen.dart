@@ -36,17 +36,23 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
   late TabController _tabCtrl;
   int _tabIndex = 0;
 
-  static const _tabs = ['Programs', 'Academic Years', 'Categories'];
+  static const _tabs = [
+    'Programs',
+    'Academic Years',
+    'Categories',
+    'Advisers',
+  ];
   static const _addLabels = [
     'Add Program',
     'Add Academic Year',
     'Add Category',
+    'Add Adviser',
   ];
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 4, vsync: this);
     _tabCtrl.addListener(() {
       if (_tabIndex != _tabCtrl.index && mounted) {
         setState(() => _tabIndex = _tabCtrl.index);
@@ -82,7 +88,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           children: [
             PageHeader(
               title: 'Programs & Categories',
-              subtitle: 'Curate programs, academic years, and categories.',
+              subtitle: 'Curate programs, academic years, categories, and adviser accounts.',
               action: NeumorphButton(
                 onPressed: () => _addForTab(context),
                 icon: Icons.add,
@@ -117,6 +123,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                         _programsTab(context, ref),
                         _academicYearsTab(context, ref),
                         _categoriesTab(context, ref),
+                        _advisersTab(context, ref),
                       ],
                     ),
                   ),
@@ -137,6 +144,157 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
     title: 'No matches',
     message: 'No $what match "$query".',
   );
+
+  /// Adviser records double as faculty identity: the backend maps a faculty
+  /// login to theses through `LOWER(advisers.email) = LOWER(user.email)`. An
+  /// imported adviser starts with no email, so this tab is where the admin
+  /// completes the link instead of the importer inventing an address.
+  Widget _advisersTab(BuildContext context, WidgetRef ref) {
+    final advisers = ref.watch(advisersProvider);
+    final query = ref
+        .watch(adminSearchProvider(AdminSearchSection.programs))
+        .trim();
+    final needle = query.toLowerCase();
+    return asyncSlot(
+      advisers,
+      skeleton: const SkeletonList(count: 4, cardHeight: 64),
+      data: (all) {
+        final list = needle.isEmpty
+            ? all
+            : all
+                  .where(
+                    (a) =>
+                        a.fullName.toLowerCase().contains(needle) ||
+                        (a.email ?? '').toLowerCase().contains(needle),
+                  )
+                  .toList();
+        if (all.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: EmptyState(
+              icon: Icons.badge_outlined,
+              compact: true,
+              title: 'No advisers yet',
+              message:
+                  'Add an adviser, then set their CSU email to link their '
+                  'faculty account and their theses.',
+            ),
+          );
+        }
+        if (list.isEmpty) {
+          return _noMatches(Icons.badge_outlined, 'advisers', query);
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(
+                "Set an adviser's CSU email to match their CScholar login. "
+                'Their My Theses, My Students, and Analytics pages then fill '
+                'in automatically. Advisers imported from a spreadsheet start '
+                'without an email.',
+                style: CScholarTextStyles.body(
+                  11.5,
+                  FontWeight.w400,
+                  CScholarColors.textMuted,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: list.length,
+                itemBuilder: (ctx, i) {
+                  final a = list[i];
+                  final email = (a.email ?? '').trim();
+                  final linked = email.isNotEmpty;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: CScholarCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      borderRadius: CScholarRadius.xl,
+                      child: Row(
+                        children: [
+                          GelAvatar(name: a.fullName, size: 40),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  a.fullName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.body(
+                                    13.5,
+                                    FontWeight.w700,
+                                    CScholarColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  linked
+                                      ? email
+                                      : 'No email — not linked to a faculty account',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.body(
+                                    11.5,
+                                    FontWeight.w400,
+                                    CScholarColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: linked
+                                  ? CScholarColors.primaryGreenVeryLight
+                                  : CScholarColors.textSecondary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              linked ? 'LINKED' : 'NO ACCOUNT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: linked
+                                    ? CScholarColors.primaryGreen
+                                    : CScholarColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          NeumorphIconButton(
+                            icon: Icons.edit_outlined,
+                            tooltip: 'Edit adviser / link faculty account',
+                            color: CScholarColors.violetInk,
+                            onPressed: () =>
+                                _showAdviserDialog(context, ref, existing: a),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+      error: (_, _) => const Center(child: Text('Could not load advisers')),
+    );
+  }
 
   Widget _programsTab(BuildContext context, WidgetRef ref) {
     final programs = ref.watch(programsProvider);
@@ -513,6 +671,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       _showYearDialog(context, ref);
     } else if (_tabIndex == 2) {
       _showCategoryDialog(context, ref);
+    } else if (_tabIndex == 3) {
+      _showAdviserDialog(context, ref);
     } else {
       _showProgramDialog(context, ref);
     }
@@ -780,6 +940,99 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
     );
   }
 
+  void _showAdviserDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    Adviser? existing,
+  }) {
+    final firstCtrl = TextEditingController(text: existing?.firstName ?? '');
+    final middleCtrl = TextEditingController(text: existing?.middleName ?? '');
+    final lastCtrl = TextEditingController(text: existing?.lastName ?? '');
+    final emailCtrl = TextEditingController(text: existing?.email ?? '');
+    showClayDialog(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: Text(existing == null ? 'Add Adviser' : 'Edit Adviser'),
+        content: SizedBox(
+          width: 380,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "The email must match the faculty member's CScholar login. "
+                  'Their My Theses, My Students, and Analytics pages populate '
+                  'from this link. Leave it blank to keep the adviser unlinked.',
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w400,
+                    CScholarColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                NeumorphField(controller: firstCtrl, label: 'First name *'),
+                const SizedBox(height: 12),
+                NeumorphField(controller: middleCtrl, label: 'Middle name'),
+                const SizedBox(height: 12),
+                NeumorphField(controller: lastCtrl, label: 'Last name *'),
+                const SizedBox(height: 12),
+                NeumorphField(
+                  controller: emailCtrl,
+                  label: 'CSU email (faculty login)',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx),
+            label: 'Cancel',
+            gel: false,
+          ),
+          NeumorphButton(
+            onPressed: () {
+              final first = firstCtrl.text.trim();
+              final last = lastCtrl.text.trim();
+              final middle = middleCtrl.text.trim();
+              final email = emailCtrl.text.trim();
+              if (first.isEmpty || last.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('First and last name are required'),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              _saveMeta(
+                context,
+                ref,
+                endpoint: '/api/advisers',
+                id: existing?.id,
+                body: {
+                  'first_name': first,
+                  'last_name': last,
+                  'middle_name': middle.isEmpty ? null : middle,
+                  'email': email.isEmpty ? null : email,
+                },
+                refresher: () => ref.invalidate(advisersProvider),
+                successMessage: existing == null
+                    ? 'Adviser added'
+                    : (email.isEmpty
+                          ? 'Adviser unlinked'
+                          : 'Adviser linked to $email'),
+              );
+            },
+            label: 'Save',
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _mobileLayout(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: CScholarColors.backgroundLight,
@@ -810,6 +1063,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
             Tab(text: 'Programs'),
             Tab(text: 'Years'),
             Tab(text: 'Categories'),
+            Tab(text: 'Advisers'),
           ],
         ),
       ),
@@ -819,6 +1073,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           _programsTab(context, ref),
           _academicYearsTab(context, ref),
           _categoriesTab(context, ref),
+          _advisersTab(context, ref),
         ],
       ),
       floatingActionButton: FloatingActionButton(

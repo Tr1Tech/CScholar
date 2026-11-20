@@ -585,6 +585,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             onTap: () => context.go('/admin/thesis/new'),
           ),
           const SizedBox(height: 10),
+          // Same destination as the button on Thesis Management: staff who
+          // start from the dashboard should not have to hunt for the batch
+          // flow behind the collection first.
+          _managementTile(
+            context,
+            icon: Icons.upload_file_outlined,
+            iconColor: CScholarColors.violetInk,
+            iconBg: CScholarColors.violetTint,
+            title: 'Bulk Import',
+            subtitle: 'Add a batch from a spreadsheet',
+            onTap: () => context.go('/admin/import'),
+          ),
+          const SizedBox(height: 10),
           _managementTile(
             context,
             icon: Icons.people_alt_outlined,

@@ -16,6 +16,7 @@ import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/new_author_dialog.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 import 'package:frontend/presentation/widgets/common/duplicate_dialog.dart';
@@ -362,12 +363,40 @@ class _FacultyThesisFormScreenState
     );
   }
 
+  Future<void> _addAuthor() async {
+    final author = await showNewAuthorDialog(context);
+    if (author == null || !mounted) return;
+    setState(() => _authorIds.add(author.id));
+  }
+
   Widget _authorsField() {
     final authors = ref.watch(authorsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Authors (${_authorIds.length} selected)'),
+        Row(
+          children: [
+            Expanded(
+              child: _label('Authors (${_authorIds.length} selected)'),
+            ),
+            Flexible(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: CScholarColors.primaryGreen,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed: _addAuthor,
+                icon: const Icon(Icons.person_add_alt_1, size: 16),
+                label: const Text(
+                  'New author',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
         authors.when(
           data: (list) => NeumorphButton(
             onPressed: () => _pickMany(

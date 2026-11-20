@@ -199,6 +199,11 @@ final thesisApiProvider = Provider<ThesisApi>(
   (ref) => ThesisApi(ref.read(apiServiceProvider)),
 );
 
+// ─── Bulk import API provider ───────────────────────────────────────────────
+final importApiProvider = Provider<ImportApi>(
+  (ref) => ImportApi(ref.read(apiServiceProvider)),
+);
+
 Map<String, String> _thesisQueryParams(ThesisListParams params) {
   final queryParams = <String, String>{};
   if (params.query != null && params.query!.isNotEmpty) {
@@ -227,6 +232,10 @@ Map<String, String> _thesisQueryParams(ThesisListParams params) {
   }
   if (params.showAll) {
     queryParams['show_all'] = 'true';
+    // The admin screen paginates client-side over this one response. The API
+    // caps per_page at 100; asking for the cap keeps the visible list (and
+    // bulk selection) from silently stopping at the first 20 records.
+    queryParams['per_page'] = '100';
   }
   return queryParams;
 }
