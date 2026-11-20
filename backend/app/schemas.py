@@ -130,6 +130,16 @@ class ThesisUpdateRequest(_Base):
     )
 
 
+class BulkStatusRequest(_Base):
+    model_config = ConfigDict(extra="ignore", json_schema_extra={
+        "example": {"ids": [41, 42, 43], "status": "approved"}
+    })
+    ids: list[int] | None = Field(default=None, description="Thesis ids to move")
+    status: str | None = Field(
+        default=None, description="Target status: approved or published"
+    )
+
+
 # -- Metadata -------------------------------------------------------------
 
 class AuthorCreateRequest(_Base):

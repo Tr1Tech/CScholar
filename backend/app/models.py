@@ -418,6 +418,16 @@ def _load_thesis_relations_batch(cur, thesis_ids):
     return grouped
 
 
+def normalize_keyword(term):
+    """Canonical keyword form: collapsed whitespace, lowercase.
+
+    ``keywords.term`` is UNIQUE and case-sensitive, so without this "IoT",
+    "iot", and " IoT " become three separate vocabulary rows. Filtering still
+    works (it uses ILIKE), but the list fragments and users see duplicates.
+    """
+    return re.sub(r"\s+", " ", str(term or "")).strip().lower()
+
+
 def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, category_ids=None, keyword_terms=None):
     """Replace author/adviser/category/keyword links for a thesis."""
     if author_ids is not None:
@@ -448,10 +458,12 @@ def _persist_thesis_relations(cur, thesis_id, author_ids=None, adviser_id=None, 
 
     if keyword_terms is not None:
         cur.execute("DELETE FROM thesis_keywords WHERE thesis_id = %s", (thesis_id,))
-        for term in keyword_terms:
-            term = str(term).strip()
-            if not term:
+        seen = set()
+        for raw in keyword_terms:
+            term = normalize_keyword(raw)
+            if not term or term in seen:
                 continue
+            seen.add(term)
             cur.execute("INSERT INTO keywords (term) VALUES (%s) ON CONFLICT (term) DO NOTHING", (term,))
             cur.execute("SELECT id FROM keywords WHERE term = %s", (term,))
             kid = cur.fetchone()[0]
@@ -872,8 +884,21 @@ def list_authors():
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, first_name, last_name, email FROM authors ORDER BY last_name")
-            return [{"id": r[0], "first_name": r[1], "last_name": r[2], "email": r[3]} for r in cur.fetchall()]
+            cur.execute(
+                "SELECT id, first_name, middle_name, last_name, email, created_at "
+                "FROM authors ORDER BY last_name, first_name"
+            )
+            return [
+                {
+                    "id": r[0],
+                    "first_name": r[1],
+                    "middle_name": r[2],
+                    "last_name": r[3],
+                    "email": r[4],
+                    "created_at": r[5].isoformat() if r[5] else None,
+                }
+                for r in cur.fetchall()
+            ]
     finally:
         put_conn(conn)
 
@@ -882,8 +907,21 @@ def list_advisers():
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, first_name, last_name, email FROM advisers ORDER BY last_name")
-            return [{"id": r[0], "first_name": r[1], "last_name": r[2], "email": r[3]} for r in cur.fetchall()]
+            cur.execute(
+                "SELECT id, first_name, middle_name, last_name, email, created_at "
+                "FROM advisers ORDER BY last_name, first_name"
+            )
+            return [
+                {
+                    "id": r[0],
+                    "first_name": r[1],
+                    "middle_name": r[2],
+                    "last_name": r[3],
+                    "email": r[4],
+                    "created_at": r[5].isoformat() if r[5] else None,
+                }
+                for r in cur.fetchall()
+            ]
     finally:
         put_conn(conn)
 
@@ -931,6 +969,45 @@ def create_author(first_name, last_name, email, middle_name=None):
         raise
     finally:
         put_conn(conn)
+
+
+def find_author_match(first_name, middle_name, last_name, email=None):
+    """Return an author describing the same person, or None.
+
+    The admin/faculty forms can now create a student without leaving the page,
+    so a double submit or two staff entering the same student must not split
+    that student's history across duplicate rows. Email is the strongest
+    signal; otherwise compare normalized names.
+    """
+    author_id = None
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            if email:
+                cur.execute(
+                    "SELECT id FROM authors "
+                    "WHERE LOWER(COALESCE(email, '')) = LOWER(%s) "
+                    "ORDER BY id LIMIT 1",
+                    (email,),
+                )
+                row = cur.fetchone()
+                if row:
+                    author_id = row[0]
+            if author_id is None:
+                cur.execute(
+                    "SELECT id FROM authors "
+                    "WHERE LOWER(first_name) = LOWER(%s) "
+                    "AND LOWER(last_name) = LOWER(%s) "
+                    "AND LOWER(COALESCE(middle_name, '')) = LOWER(COALESCE(%s, '')) "
+                    "ORDER BY id LIMIT 1",
+                    (first_name, last_name, middle_name or ""),
+                )
+                row = cur.fetchone()
+                if row:
+                    author_id = row[0]
+    finally:
+        put_conn(conn)
+    return get_author_by_id(author_id) if author_id else None
 
 
 def update_author(author_id, **kwargs):
@@ -1060,7 +1137,9 @@ def create_adviser(first_name, last_name, email, middle_name=None):
 
 def update_adviser(adviser_id, **kwargs):
     allowed = {"first_name", "middle_name", "last_name", "email"}
-    fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
+    # Keep explicit nulls: clearing an adviser's email is how an admin unlinks
+    # a faculty account again.
+    fields = {k: v for k, v in kwargs.items() if k in allowed}
     if not fields:
         return get_adviser_by_id(adviser_id)
 
@@ -1117,17 +1196,53 @@ def get_category_by_id(category_id):
         put_conn(conn)
 
 
+def normalize_label(value):
+    """Collapse whitespace and trim, preserving capitalization.
+
+    Category names are shown in the UI, so forcing lowercase would read badly.
+    Uniqueness is enforced case-insensitively instead (see create_category).
+    """
+    return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def _category_dict(row):
+    return {
+        "id": row[0],
+        "name": row[1],
+        "description": row[2],
+        "created_at": row[3].isoformat() if row[3] else None,
+    }
+
+
 def create_category(name, description=None):
+    """Create a category, reusing one whose name differs only by case.
+
+    ``categories.name`` is UNIQUE and case-sensitive, so without this lookup
+    "Machine Learning" and "machine learning" become two entries in every
+    dropdown. The first spelling wins and is kept for display.
+    """
+    name = normalize_label(name)
+    if not name:
+        raise ValueError("Category name is required")
+
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO categories (name, description) VALUES (%s, %s) RETURNING id",
-                (name, description),
+                "SELECT id, name, description, created_at FROM categories "
+                "WHERE lower(name) = lower(%s)",
+                (name,),
             )
-            category_id = cur.fetchone()[0]
-        conn.commit()
-        return get_category_by_id(category_id)
+            row = cur.fetchone()
+            if row is None:
+                cur.execute(
+                    "INSERT INTO categories (name, description) VALUES (%s, %s) "
+                    "RETURNING id, name, description, created_at",
+                    (name, description),
+                )
+                row = cur.fetchone()
+                conn.commit()
+        return _category_dict(row)
     except Exception:
         conn.rollback()
         raise
@@ -1140,10 +1255,21 @@ def update_category(category_id, **kwargs):
     fields = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
     if not fields:
         return get_category_by_id(category_id)
+    if "name" in fields:
+        fields["name"] = normalize_label(fields["name"])
+        if not fields["name"]:
+            raise ValueError("Category name cannot be empty")
 
     conn = get_conn()
     try:
         with conn.cursor() as cur:
+            if "name" in fields:
+                cur.execute(
+                    "SELECT id FROM categories WHERE lower(name) = lower(%s) AND id <> %s",
+                    (fields["name"], category_id),
+                )
+                if cur.fetchone():
+                    raise ValueError("A category with that name already exists")
             set_clause = ", ".join(f"{k} = %s" for k in fields)
             params = list(fields.values()) + [category_id]
             cur.execute(f"UPDATE categories SET {set_clause} WHERE id = %s", params)
@@ -1834,6 +1960,174 @@ def get_faculty_analytics(email):
                 "by_program": by_program,
                 "by_year": by_year,
             }
+    finally:
+        put_conn(conn)
+
+
+# ── Import jobs (admin bulk import) ────────────────────────────────────────
+
+_IMPORT_JOB_FIELDS = {
+    "status",
+    "csv_filename",
+    "total_rows",
+    "processed_rows",
+    "created_count",
+    "updated_count",
+    "skipped_count",
+    "error_count",
+    "indexed_count",
+    "message",
+    "rows",
+    "started_at",
+    "finished_at",
+}
+
+
+def _import_job_dict(row):
+    return {
+        "id": row[0],
+        "status": row[1],
+        "created_by": row[2],
+        "csv_filename": row[3],
+        "total_rows": row[4],
+        "processed_rows": row[5],
+        "created_count": row[6],
+        "updated_count": row[7],
+        "skipped_count": row[8],
+        "error_count": row[9],
+        "indexed_count": row[10],
+        "message": row[11],
+        "rows": row[12] or [],
+        "created_at": row[13].isoformat() if row[13] else None,
+        "started_at": row[14].isoformat() if row[14] else None,
+        "finished_at": row[15].isoformat() if row[15] else None,
+    }
+
+
+def create_import_job(created_by=None, csv_filename=None):
+    """Create a previewed import job and return its id."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO import_jobs (status, created_by, csv_filename) "
+                "VALUES ('previewed', %s, %s) RETURNING id",
+                (created_by, csv_filename),
+            )
+            job_id = cur.fetchone()[0]
+        conn.commit()
+        return job_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def get_import_job(job_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, status, created_by, csv_filename, total_rows, "
+                "       processed_rows, created_count, updated_count, skipped_count, "
+                "       error_count, indexed_count, message, rows, created_at, "
+                "       started_at, finished_at "
+                "FROM import_jobs WHERE id = %s",
+                (job_id,),
+            )
+            row = cur.fetchone()
+            return _import_job_dict(row) if row else None
+    finally:
+        put_conn(conn)
+
+
+def update_import_job(job_id, **fields):
+    """Update any subset of the job's progress/report columns."""
+    import json
+
+    fields = {k: v for k, v in fields.items() if k in _IMPORT_JOB_FIELDS}
+    if not fields:
+        return get_import_job(job_id)
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            set_parts = []
+            params = []
+            for key, value in fields.items():
+                if key == "rows":
+                    set_parts.append("rows = %s::jsonb")
+                    params.append(json.dumps(value or []))
+                else:
+                    set_parts.append(f"{key} = %s")
+                    params.append(value)
+            params.append(job_id)
+            cur.execute(
+                f"UPDATE import_jobs SET {', '.join(set_parts)} WHERE id = %s",
+                params,
+            )
+        conn.commit()
+        return get_import_job(job_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def delete_import_job(job_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM import_jobs WHERE id = %s", (job_id,))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def active_import_job_count(exclude_id=None):
+    """Jobs queued/running right now. One batch at a time avoids fighting
+    over the embedding model and OCR lock."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            if exclude_id is None:
+                cur.execute(
+                    "SELECT COUNT(*) FROM import_jobs "
+                    "WHERE status IN ('queued', 'running')"
+                )
+            else:
+                cur.execute(
+                    "SELECT COUNT(*) FROM import_jobs "
+                    "WHERE status IN ('queued', 'running') AND id <> %s",
+                    (exclude_id,),
+                )
+            return cur.fetchone()[0]
+    finally:
+        put_conn(conn)
+
+
+def mark_stale_import_jobs():
+    """Called at startup: a job left running by a previous process is dead."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE import_jobs SET status = 'failed', "
+                "       message = 'Server restarted while the import was running', "
+                "       finished_at = NOW() "
+                "WHERE status IN ('queued', 'running')"
+            )
+            count = cur.rowcount
+        conn.commit()
+        return count
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         put_conn(conn)
 

@@ -8,7 +8,7 @@ from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
 from ..services.uploads import upload_path
-from ..schemas import ThesisCreateRequest, ThesisUpdateRequest
+from ..schemas import BulkStatusRequest, ThesisCreateRequest, ThesisUpdateRequest
 
 router = APIRouter()
 
@@ -217,6 +217,18 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
         if not data.get(field):
             raise HTTPException(status_code=400, detail=f"{field} is required")
 
+    # Validate foreign keys before insert. Without this, a missing program or
+    # academic year (easy to hit on a fresh database with empty dropdowns)
+    # surfaces as a ForeignKeyViolation and a 500 instead of a usable error.
+    if not db.get_program_by_id(data["program_id"]):
+        raise HTTPException(status_code=400, detail="program_id does not exist")
+    if not db.get_academic_year_by_id(data["academic_year_id"]):
+        raise HTTPException(status_code=400, detail="academic_year_id does not exist")
+    if data["research_type"] not in ("Thesis", "Capstone"):
+        raise HTTPException(
+            status_code=400, detail="research_type must be 'Thesis' or 'Capstone'"
+        )
+
     status = data.get("status", "draft")
     if role == "faculty":
         status = "draft"
@@ -411,6 +423,68 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
         except Exception:
             pass
     return thesis
+
+
+@router.post(
+    "/api/theses/bulk-status",
+    dependencies=[Depends(admin_required)],
+    tags=["Theses"],
+    openapi_extra={"x-required-roles": ["admin"]},
+)
+def bulk_status(request: Request, data: BulkStatusRequest = Body(default=None)):
+    """Move many studies through the same guarded lifecycle, row by row.
+
+    The per-row guard is shared with the single-record route: a draft can be
+    approved, an approved study can be published, and anything else is
+    reported as skipped instead of failing the whole batch.
+    """
+    if not data or not data.ids:
+        raise HTTPException(status_code=400, detail="ids is required")
+    target = (data.status or "").strip().lower()
+    if target not in ("approved", "published"):
+        raise HTTPException(
+            status_code=400, detail="status must be 'approved' or 'published'"
+        )
+
+    ids = list(dict.fromkeys(int(i) for i in data.ids))[:100]
+    allowed = db.THESIS_STATUS_SOURCES.get(target, ())
+    verb = "approve" if target == "approved" else "publish"
+    actor_id = request.state.current_user["id"]
+    updated = []
+    skipped = []
+
+    for thesis_id in ids:
+        thesis = db.get_thesis_by_id(thesis_id)
+        if not thesis:
+            skipped.append({"id": thesis_id, "reason": "not found"})
+            continue
+        if thesis.get("status") not in allowed:
+            skipped.append(
+                {
+                    "id": thesis_id,
+                    "reason": f"cannot {verb} from status '{thesis.get('status')}'",
+                }
+            )
+            continue
+        changes = {"status": target, "actor_id": actor_id}
+        if target == "approved":
+            changes["approved_by"] = actor_id
+        try:
+            db.update_thesis(thesis_id, **changes)
+            updated.append(thesis_id)
+        except ThesisStatusConflict:
+            skipped.append(
+                {"id": thesis_id, "reason": "changed by another reviewer"}
+            )
+        except Exception as exc:
+            skipped.append({"id": thesis_id, "reason": str(exc)[:200]})
+
+    return {
+        "requested": len(ids),
+        "status": target,
+        "updated": updated,
+        "skipped": skipped,
+    }
 
 
 @router.delete("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"],

@@ -9,7 +9,7 @@ import re
 
 DEFAULT_CHUNK_WORDS = 200
 DEFAULT_OVERLAP_WORDS = 50
-DEFAULT_MAX_CHUNKS = 120
+DEFAULT_MAX_CHUNKS = 200
 
 
 def _clean(text: str) -> str:

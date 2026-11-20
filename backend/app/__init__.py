@@ -30,6 +30,15 @@ tags_metadata = [
 async def _lifespan(_app):
     """Warm the embedding model in the background at startup."""
     try:
+        from . import models as _db
+
+        # A batch import is a daemon thread. If the process was restarted
+        # mid-import, that job can never finish; mark it failed instead of
+        # leaving the UI polling a "running" row forever.
+        _db.mark_stale_import_jobs()
+    except Exception:
+        pass
+    try:
         from .services.embeddings import embedding_service
 
         embedding_service.warm_up()
@@ -305,7 +314,18 @@ async def internal_error(request: Request, exc):
 
 
 # -- Routers ---------------------------------------------------------------
-from .routes import health, db_test, auth, thesis, meta, upload, ocr, embedding, swagger
+from .routes import (
+    health,
+    db_test,
+    auth,
+    thesis,
+    meta,
+    upload,
+    ocr,
+    embedding,
+    swagger,
+    import_batch,
+)
 
 app.include_router(health.router)
 app.include_router(db_test.router)
@@ -315,6 +335,7 @@ app.include_router(meta.router)
 app.include_router(upload.router)
 app.include_router(ocr.router)
 app.include_router(embedding.router)
+app.include_router(import_batch.router)
 app.include_router(swagger.router)
 
 

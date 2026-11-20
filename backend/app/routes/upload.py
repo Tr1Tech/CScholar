@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
 from ..auth import login_required
 from .. import models as db
 from ..config import UPLOAD_DIR
+from ..services.uploads import secure_filename
 
 router = APIRouter(tags=["Upload"])
 
@@ -17,16 +18,20 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def _reembed_thesis_async(thesis_id, pdf_text):
+def _reembed_thesis_async(thesis_id, pdf_url):
     def _work():
         try:
             from ..services.chunking import build_thesis_chunks
             from ..services.embeddings import embedding_service
+            from ..services.indexing import pdf_text_from_url
             if not embedding_service.available:
                 return
             thesis = db.get_thesis_by_id(thesis_id)
             if not thesis:
                 return
+            # OCR happens inside pdf_text_from_url for scans, so a replaced
+            # manuscript re-indexes on its full text, not just the abstract.
+            pdf_text = pdf_text_from_url(pdf_url)
             chunks = build_thesis_chunks(
                 thesis.get("title", ""), thesis.get("abstract", ""), pdf_text)
             if not chunks:
@@ -92,16 +97,13 @@ async def upload_pdf(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to parse PDF: {str(e)}")
 
-    if not text.strip():
-        raise HTTPException(status_code=400, detail="No text could be extracted from the PDF")
+    # A scan has no text layer. That is not an error: the file is accepted and
+    # the indexing worker OCRs it in the background. Rejecting it here blocked
+    # every photographed manuscript from entering the system.
+    ocr_pending = not text.strip()
 
     import uuid as _uuid
-    import re as _re
-    def _secure_filename(name):
-        name = name.rsplit("/", 1)[-1].rsplit(chr(92), 1)[-1]
-        name = _re.sub(r"[^A-Za-z0-9._-]", "_", name)
-        return name.strip("._") or "upload.pdf"
-    filename = _secure_filename(file.filename)
+    filename = secure_filename(file.filename)
     unique_name = f"{_uuid.uuid4().hex}_{filename}"
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -130,7 +132,7 @@ async def upload_pdf(
         except Exception:
             pass
         try:
-            _reembed_thesis_async(thesis_id, text)
+            _reembed_thesis_async(thesis_id, pdf_url)
         except Exception:
             pass
 
@@ -140,6 +142,7 @@ async def upload_pdf(
         "saved_as": unique_name,
         "file_size": len(file_bytes),
         "page_count": page_count,
+        "ocr_pending": ocr_pending,
         "extracted_text": text[:5000],
         "text_length": len(text),
         "pdf_url": pdf_url,

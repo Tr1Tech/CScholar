@@ -8,10 +8,24 @@ the validator (thesis create) cannot drift into accepting different paths.
 """
 
 import os
+import re
 
 from ..config import UPLOAD_DIR
 
 UPLOAD_URL_PREFIX = "/api/uploads/"
+
+
+def secure_filename(name):
+    """Basename-only, storage-safe filename.
+
+    Mirrors the rule used by ``/api/upload/pdf``: strip any directory part and
+    replace everything outside ``[A-Za-z0-9._-]`` with ``_``. Kept here so the
+    batch importer and the upload route cannot store different names for the
+    same file.
+    """
+    name = (name or "").rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    name = re.sub(r"[^A-Za-z0-9._-]", "_", name)
+    return name.strip("._") or "upload.pdf"
 
 
 def upload_filename(pdf_url):

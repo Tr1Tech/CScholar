@@ -1,7 +1,7 @@
 """Meta routes -- programs, academic years, categories, keywords, authors, advisers."""
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from ..auth import admin_required
+from fastapi import APIRouter, Depends, HTTPException, Body, Request, Response
+from ..auth import admin_required, login_required
 from .. import models as db
 from ..schemas import (
     AuthorCreateRequest,
@@ -56,20 +56,49 @@ def list_research_types():
 
 # -- Authors CRUD --
 
-@router.post("/api/authors", status_code=201, dependencies=[Depends(admin_required)])
-def create_author(data: AuthorCreateRequest = Body(default=None)):
+@router.post(
+    "/api/authors",
+    status_code=201,
+    dependencies=[Depends(login_required)],
+    openapi_extra={"x-required-roles": ["admin", "faculty"]},
+)
+def create_author(
+    request: Request,
+    response: Response,
+    data: AuthorCreateRequest = Body(default=None),
+):
+    """Create a student author, or return the existing row.
+
+    Faculty need this to credit a student who is not in the repository yet;
+    without it the thesis form could only pick authors an admin had created
+    first. The lookup keeps retries and parallel submissions idempotent. A
+    matched row answers 200 instead of 201, with ``reused: true``.
+    """
+    role = request.state.current_user["role"]
+    if role not in ("admin", "faculty"):
+        raise HTTPException(status_code=403, detail="Admin or faculty access required")
+
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Request body required")
-    first_name = data.get("first_name")
-    last_name = data.get("last_name")
+    first_name = (data.get("first_name") or "").strip()
+    last_name = (data.get("last_name") or "").strip()
+    middle_name = (data.get("middle_name") or "").strip() or None
+    email = (data.get("email") or "").strip() or None
     if not first_name or not last_name:
         raise HTTPException(status_code=400, detail="first_name and last_name are required")
+
+    existing = db.find_author_match(first_name, middle_name, last_name, email)
+    if existing:
+        response.status_code = 200
+        existing["reused"] = True
+        return existing
+
     author = db.create_author(
         first_name=first_name,
         last_name=last_name,
-        email=data.get("email"),
-        middle_name=data.get("middle_name"),
+        email=email,
+        middle_name=middle_name,
     )
     return author
 
@@ -150,10 +179,13 @@ def create_category(data: CategoryCreateRequest = Body(default=None)):
     name = data.get("name")
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
-    category = db.create_category(
-        name=name,
-        description=data.get("description"),
-    )
+    try:
+        category = db.create_category(
+            name=name,
+            description=data.get("description"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return category
 
 
@@ -167,7 +199,10 @@ def update_category(category_id: int, data: CategoryUpdateRequest = Body(default
         raise HTTPException(status_code=400, detail="Request body required")
     allowed = {"name", "description"}
     updates = {k: v for k, v in data.items() if k in allowed}
-    category = db.update_category(category_id, **updates)
+    try:
+        category = db.update_category(category_id, **updates)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     return category
 
 
