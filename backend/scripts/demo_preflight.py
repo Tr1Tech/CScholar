@@ -20,6 +20,7 @@ BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 
 from app import models as db  # noqa: E402
+from app.auth import create_token  # noqa: E402
 from app.config import UPLOAD_DIR  # noqa: E402
 
 BASE = os.getenv("CSCHOLAR_API", "http://127.0.0.1:5000").rstrip("/")
@@ -95,7 +96,30 @@ def main():
             missing_pdfs.append(row["id"])
     check("every record has a PDF on disk", not missing_pdfs, str(missing_pdfs))
 
-    # 4. Adviser-aware search (P0 3.5).
+    # 4. Published PDFs actually open through the API with a student token.
+    student = db.get_user_by_username("demostudent")
+    if not student:
+        check("demostudent exists for the PDF check", False)
+    else:
+        sample = [rows[0]["id"], rows[len(rows) // 2]["id"], rows[-1]["id"]]
+        opened = []
+        token = create_token(student)
+        for thesis_id in sample:
+            request = urllib.request.Request(
+                f"{BASE}/api/theses/{thesis_id}/pdf",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                opened.append(
+                    (thesis_id, response.status, response.read(5).startswith(b"%PDF-"))
+                )
+        check(
+            "published PDFs open with a student token",
+            all(status == 200 and is_pdf for _, status, is_pdf in opened),
+            str(opened),
+        )
+
+    # 5. Adviser-aware search (P0 3.5).
     vistal = get("/api/theses?q=Vistal&per_page=50")
     found = {row["id"] for row in vistal["theses"]}
     check(
@@ -108,7 +132,7 @@ def main():
         all(row["status"] == "published" for row in vistal["theses"]),
     )
 
-    # 5. The demo faculty login resolves to the seeded advisee set.
+    # 6. The demo faculty login resolves to the seeded advisee set.
     conn = db.get_conn()
     try:
         with conn.cursor() as cur:
