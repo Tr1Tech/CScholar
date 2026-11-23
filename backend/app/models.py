@@ -4,6 +4,7 @@ Functions return plain dicts or None.
 """
 
 from .extensions import get_conn, put_conn
+import json
 import re
 
 
@@ -2203,5 +2204,170 @@ def recommend_for_thesis(thesis_id, limit=5):
                 }
                 for r in rows
             ]
+    finally:
+        put_conn(conn)
+
+
+# ── Profile-based ranking (no extra tables) ────────────────────────────────
+# The student's history lives on their device; this module only turns the
+# thesis ids they send into a centroid and ranks against it. Impressions are
+# written to the existing `recommendation_logs` table.
+
+
+def _vector_list(value):
+    """pgvector returns '[0.1,0.2,...]'; normalise it to a list of floats.
+
+    Kept dependency-free so MMR never depends on a pgvector adapter being
+    registered. Returns None when the value cannot be parsed.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return [float(x) for x in value]
+    try:
+        text = str(value).strip().strip("[]")
+        return [float(part) for part in text.split(",")] if text else None
+    except (TypeError, ValueError):
+        return None
+
+
+def recommend_for_profile(thesis_ids, weights, exclude_ids=None, limit=4):
+    """Rank published theses by similarity to a weighted centroid.
+
+    `thesis_ids` and `weights` are parallel lists; repeating an id simply
+    increases its weight. Each thesis contributes its lead chunk (lowest id),
+    the same convention as recommend_for_thesis, so one long PDF cannot
+    dominate the profile.
+
+    The centroid is averaged in Python: pgvector has no `vector * scalar`
+    operator on every install, and a handful of 384-d vectors is trivial to
+    combine here.
+
+    Returns dicts ordered by descending `similarity`.
+    """
+    if not thesis_ids or len(thesis_ids) != len(weights):
+        return []
+    excluded = list(dict.fromkeys(exclude_ids or thesis_ids))
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT ON (thesis_id) thesis_id, embedding "
+                "FROM thesis_embeddings WHERE thesis_id = ANY(%s) "
+                "ORDER BY thesis_id, id",
+                (thesis_ids,),
+            )
+            vectors = {}
+            for thesis_id, embedding in cur.fetchall():
+                vec = _vector_list(embedding)
+                if vec:
+                    vectors[thesis_id] = vec
+
+            dimension = len(next(iter(vectors.values()))) if vectors else 0
+            if not dimension:
+                return []
+
+            acc = [0.0] * dimension
+            total_weight = 0.0
+            for thesis_id, weight in zip(thesis_ids, weights):
+                vec = vectors.get(thesis_id)
+                if not vec or len(vec) != dimension:
+                    continue
+                for index, value in enumerate(vec):
+                    acc[index] += value * weight
+                total_weight += weight
+            if not total_weight:
+                return []
+            centroid = [value / total_weight for value in acc]
+
+            try:
+                cur.execute("SET LOCAL hnsw.ef_search = 100")
+            except Exception:
+                pass
+            cur.execute(
+                "SELECT * FROM ("
+                "  SELECT DISTINCT ON (t.id) t.id, t.title, t.abstract, t.research_type, "
+                "         t.program_id, t.status, "
+                "         1 - (e.embedding <=> %s::vector) AS similarity "
+                "  FROM thesis_embeddings e "
+                "  JOIN theses t ON e.thesis_id = t.id "
+                "  WHERE t.status = 'published' AND NOT (t.id = ANY(%s)) "
+                "  ORDER BY t.id, e.embedding <=> %s::vector"
+                ") s ORDER BY similarity DESC "
+                "LIMIT %s",
+                (centroid, excluded, centroid, limit),
+            )
+            rows = cur.fetchall()
+            if not rows or rows[0][6] is None:
+                return []
+            return [
+                {
+                    "id": r[0],
+                    "title": r[1],
+                    "abstract": r[2],
+                    "research_type": r[3],
+                    "program_id": r[4],
+                    "status": r[5],
+                    "similarity": float(r[6]),
+                }
+                for r in rows
+            ]
+    finally:
+        put_conn(conn)
+
+
+def log_recommendations(user_id, source_thesis_id, items):
+    """Write one `recommendation_logs` row per thesis shown.
+
+    This is the only write the recommender performs, and it uses the table
+    exactly as the manuscript describes it (FR-17).
+    """
+    if not items:
+        return 0
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO recommendation_logs "
+                "(user_id, source_thesis_id, recommended_thesis_id, similarity_score) "
+                "VALUES (%s, %s, %s, %s)",
+                [
+                    (user_id, source_thesis_id, item["thesis"]["id"], item["score"])
+                    for item in items
+                ],
+            )
+        conn.commit()
+        return len(items)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
+def log_search(user_id, query, result_count, filters=None):
+    """Persist one search call in the existing `search_logs` table.
+
+    `filters` is stored as JSONB; the column already exists and stays NULL
+    when no filter was applied. Callers treat logging as diagnostics, so this
+    never decides whether a search succeeds.
+    """
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO search_logs (user_id, query, filters, result_count) "
+                "VALUES (%s, %s, %s::jsonb, %s)",
+                (
+                    user_id,
+                    query,
+                    json.dumps(filters) if filters else None,
+                    result_count,
+                ),
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         put_conn(conn)

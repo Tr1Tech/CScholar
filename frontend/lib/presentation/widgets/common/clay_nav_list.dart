@@ -84,6 +84,11 @@ class _ClayNavListState extends State<ClayNavList> {
   late List<FocusNode> _nodes = _buildNodes(widget.links.length);
   int _focused = -1;
 
+  /// True when the focused row got focus from a click/tap. Rows keep the ring
+  /// for keyboard navigation only; a pointer click should not leave an outline
+  /// behind on the row it just selected.
+  bool _focusFromPointer = false;
+
   /// Row the pill is currently drawn on. It starts on the row the same rail
   /// had on the previous page, then glides to this page's selection.
   late int _pillIndex = _initialPillIndex();
@@ -124,6 +129,7 @@ class _ClayNavListState extends State<ClayNavList> {
   void _onFocusChange() {
     if (!mounted) return;
     final index = _nodes.indexWhere((node) => node.hasFocus);
+    if (index == -1) _focusFromPointer = false;
     if (index != _focused) setState(() => _focused = index);
   }
 
@@ -158,6 +164,11 @@ class _ClayNavListState extends State<ClayNavList> {
 
   KeyEventResult _onKey(int index, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    // A key press means the focus ring is being used for navigation again.
+    if (_focusFromPointer) {
+      _focusFromPointer = false;
+      if (mounted) setState(() {});
+    }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
       widget.links[index].onTap();
@@ -264,6 +275,8 @@ class _ClayNavListState extends State<ClayNavList> {
         sink: 1.5,
         scale: 0.99,
         onTap: () {
+          _focusFromPointer = true;
+          setState(() {});
           _nodes[index].requestFocus();
           link.onTap();
         },
@@ -284,7 +297,9 @@ class _ClayNavListState extends State<ClayNavList> {
                     borderRadius: radius,
                     border: Border.all(
                       color: CScholarMaterial.gelTop.withValues(
-                        alpha: _focused == index ? 0.45 : 0,
+                        alpha: _focused == index && !_focusFromPointer
+                            ? 0.45
+                            : 0,
                       ),
                       width: 2,
                     ),

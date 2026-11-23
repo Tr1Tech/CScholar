@@ -29,6 +29,12 @@ tags_metadata = [
 @asynccontextmanager
 async def _lifespan(_app):
     """Warm the embedding model in the background at startup."""
+    # The documented endpoint list is frozen in backend/api_contract.json. A
+    # drifted route set must fail loudly here instead of quietly publishing a
+    # different Swagger UI. See scripts/check_api_contract.py.
+    from .api_lock import assert_surface_locked
+
+    assert_surface_locked(_app)
     try:
         from . import models as _db
 

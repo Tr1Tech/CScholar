@@ -59,6 +59,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   String _sortBy = 'Latest';
   Timer? _debounce;
 
+  /// Records the query only after the reader has stopped typing, so "machine"
+  /// is not saved three times on the way to "machine learning".
+  Timer? _recentTimer;
+
   /// 0-based repository page. Reset to 0 whenever the result-defining filters
   /// change (see [_lastFilterSignature]) so a new search never starts on
   /// page 4 of its own results.
@@ -101,6 +105,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _recentTimer?.cancel();
     _searchController.dispose();
     _heroController.dispose();
     _keywordController.dispose();
@@ -118,6 +123,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   }
 
   void _clearFilters() {
+    _recentTimer?.cancel();
     setState(() {
       _selectedProgramId = null;
       _selectedYearId = null;
@@ -167,6 +173,25 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     );
   }
 
+  /// Adds [q] to the device's recent searches. Called immediately on submit
+  /// and from the typing timer below, so a live search still counts even when
+  /// the reader never presses Enter.
+  void _recordSearch(String q) {
+    _recentTimer?.cancel();
+    final trimmed = q.trim();
+    if (trimmed.isEmpty) return;
+    ref.read(recentSearchesProvider.notifier).record(trimmed);
+  }
+
+  void _scheduleSearchRecord(String q) {
+    _recentTimer?.cancel();
+    if (q.trim().isEmpty) return;
+    _recentTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      _recordSearch(q);
+    });
+  }
+
   void _submitHero() {
     _debounce?.cancel();
     final q = _heroController.text.trim();
@@ -174,6 +199,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       _query = q;
       _searchController.text = q;
     });
+    _recordSearch(q);
   }
 
   /// Live search: results filter while typing (debounced so we don't
@@ -184,6 +210,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       if (!mounted) return;
       final q = v.trim();
       if (q != _query) setState(() => _query = q);
+      _scheduleSearchRecord(q);
     });
   }
 
@@ -310,6 +337,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                         if (q != _query) {
                           setState(() => _query = q);
                         }
+                        _scheduleSearchRecord(q);
                       });
                     },
                     decoration: InputDecoration(
@@ -325,10 +353,13 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 ),
                 if (_query.isNotEmpty)
                   GestureDetector(
-                    onTap: () => setState(() {
-                      _query = '';
-                      _searchController.clear();
-                    }),
+                    onTap: () {
+                      _recentTimer?.cancel();
+                      setState(() {
+                        _query = '';
+                        _searchController.clear();
+                      });
+                    },
                     child: Icon(Icons.close, size: 17, color: t.muted),
                   ),
               ],
@@ -365,10 +396,13 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   Padding(
                     padding: const EdgeInsets.only(right: 7),
                     child: GestureDetector(
-                      onTap: () => setState(() {
-                        _query = topic;
-                        _searchController.text = topic;
-                      }),
+                      onTap: () {
+                        setState(() {
+                          _query = topic;
+                          _searchController.text = topic;
+                        });
+                        _recordSearch(topic);
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 11,
@@ -1432,7 +1466,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         children: [
           // Eyebrow — scope at a glance, same language as the dashboard.
           Text(
-            'CEIT REPOSITORY • AI-POWERED SEARCH',
+            'CEIT REPOSITORY • SEMANTIC SEARCH',
             style: CScholarTextStyles.body(
               11,
               FontWeight.w800,
@@ -2032,7 +2066,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Semantic index unavailable — showing no AI matches.',
+              'Semantic index unavailable — showing no semantic matches.',
               style: CScholarTextStyles.body(
                 12,
                 FontWeight.w500,

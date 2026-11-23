@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Requirements and Requirements-to-Tables Traceability Matrix |
-| Version | 1.0 (Final) |
-| Date | 2026-10-09 |
+| Version | 1.1 |
+| Date | 2026-11-21 |
 | Source of truth | `README.md` development phases + `db/schema.sql` |
-| Totals | **20 functional requirements → 16/16 tables traced (100% coverage)** |
+| Totals | **20 functional requirements → 16/16 domain tables traced (100%); 2 operational tables documented separately** |
 
 ## 1. Functional requirements
 
@@ -17,7 +17,7 @@
 | FR-03 | Admins shall be able to activate or deactivate user accounts. | 4 |
 | FR-04 | The system shall manage CEIT programs (BSIT, BSEE, BSCpE). | 5 |
 | FR-05 | The system shall manage academic years and mark one as active. | 5 |
-| FR-06 | Users shall be able to create and edit thesis/capstone entries with title and abstract. | 6 |
+| FR-06 | Faculty and admin users shall be able to create and edit thesis/capstone entries with title and abstract (students are read-only). | 6 |
 | FR-07 | Each entry shall be classified as either a Thesis or a Capstone. | 6 |
 | FR-08 | Each entry shall follow the status lifecycle draft → approved → published → archived. Archiving is reversible: an archived entry can be restored to draft or published. | 6 |
 | FR-09 | Each entry shall store the location of its PDF document. | 6 |
@@ -64,10 +64,17 @@
 |---|---|
 | Functional requirements defined | 20 |
 | Requirements traced to ≥ 1 table | 20 (100%) |
-| Database tables traced | 16 of 16 |
+| Database tables traced | 16 of 16 domain tables |
+| Operational tables (not requirement-derived) | 2 (`thesis_reviews`, `import_jobs`) |
 | Requirements with a column-level constraint implementing them | 12 |
 | Untraced tables | 0 |
 
+The two operational tables are infrastructure, not domain entities.
+`thesis_reviews` keeps the FR-08 lifecycle audit trail (one row per decision),
+and `import_jobs` keeps bulk-import job state for the admin import path that
+creates FR-06 entries. No functional requirement is implemented by their
+columns alone, so they are excluded from the 16/16 domain total.
+
 ## 4. Requirement ↔ normalized ERD linkage
 
-Every requirement above maps to entities in the final ERD (see `ERD.md`, v1.0). The four many-to-many requirements (FR-11 to FR-14) correspond exactly to the four junction tables verified at 3NF/BCNF (see `normalization.md`); attribute-level meanings are defined in `data_dictionary.md` (84 attributes).
+Every requirement above maps to entities in the final ERD (see `ERD.md`). The four many-to-many requirements (FR-11 to FR-14) correspond exactly to the four junction tables verified at 3NF/BCNF (see `normalization.md`); attribute-level meanings are defined in `data_dictionary.md` (85 attributes: 84 domain + `theses.accession_no`). The two operational tables are documented in the ERD's operational-tables section and in `data_dictionary.md` §17–§18.

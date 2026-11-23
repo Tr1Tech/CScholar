@@ -129,12 +129,6 @@ class AdminSidebar extends ConsumerWidget {
       selectedIcon: Icons.school,
       path: '/admin/programs',
     ),
-    (
-      label: 'Settings',
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-      path: '/admin/settings',
-    ),
   ];
 
   Widget _nav(BuildContext context) {

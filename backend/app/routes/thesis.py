@@ -8,7 +8,12 @@ from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
 from ..services.uploads import upload_path
-from ..schemas import BulkStatusRequest, ThesisCreateRequest, ThesisUpdateRequest
+from ..schemas import (
+    BulkStatusRequest,
+    RecommendationRequest,
+    ThesisCreateRequest,
+    ThesisUpdateRequest,
+)
 
 router = APIRouter()
 
@@ -19,6 +24,79 @@ def _pagination_args(page, per_page):
     if per_page is None or not 1 <= per_page <= 100:
         raise HTTPException(status_code=400, detail="per_page must be between 1 and 100")
     return page, per_page
+
+
+def _clean_ids(raw, cap=50):
+    """Keep positive integers, drop anything else, de-duplicate, cap length.
+
+    The client sends its own on-device history; treat it as untrusted input.
+    """
+    out = []
+    for value in raw or []:
+        try:
+            num = int(value)
+        except (TypeError, ValueError):
+            continue
+        if num > 0 and num not in out:
+            out.append(num)
+    return out[:cap]
+
+
+def _public_thesis(thesis):
+    """Strip internal review data before a thesis leaves the API."""
+    thesis.pop("review_notes", None)
+    thesis["reviews"] = []
+    return thesis
+
+
+def _newest_items(limit, exclude=None):
+    """Fallback feed: newest published studies, honestly labelled."""
+    exclude = set(exclude or ())
+    fetch = min(100, max(limit + len(exclude), limit))
+    result = db.list_theses(status="published", page=1, per_page=fetch)
+    items = []
+    for thesis in result.get("theses", []):
+        if thesis["id"] in exclude:
+            continue
+        items.append(
+            {
+                "thesis": _public_thesis(thesis),
+                "score": None,
+                "reason": "new",
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
+def _log_impressions(user_id, items, source_thesis_id=None):
+    """Best-effort FR-17 logging; never fails the feed."""
+    if not items:
+        return
+    source = source_thesis_id or items[0]["thesis"]["id"]
+    try:
+        db.log_recommendations(user_id, source, items)
+    except Exception:
+        pass
+
+
+def _optional_user(request):
+    """Return the caller when a valid, active bearer token is present.
+
+    Search is public, so a missing or stale token is anonymous, not an error.
+    """
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+    try:
+        payload = decode_token(auth.split(" ", 1)[1])
+        user = get_user_by_id(int(payload.get("sub")))
+    except Exception:
+        return None
+    if not user or not user.get("is_active"):
+        return None
+    return user
 
 
 @router.get("/api/theses", tags=["Theses"])
@@ -72,6 +150,43 @@ def list_theses(
         # for a published record that was once returned.
         for item in result["theses"]:
             item.pop("review_notes", None)
+
+    # FR-18: normal (keyword/filter) search activity is logged in the existing
+    # search_logs table. A bare browse, pagination or sort-only request is not
+    # a search, so it writes nothing; logging never fails the search itself.
+    text_query = (q or "").strip() or (keyword or "").strip()
+    active_filters = {
+        key: value
+        for key, value in (
+            ("q", (q or "").strip() or None),
+            ("keyword", (keyword or "").strip() or None),
+            ("program_id", program_id),
+            ("year_id", year_id),
+            ("category_id", category_id),
+            ("research_type", research_type),
+            ("sort_by", sort_by),
+        )
+        if value is not None
+    }
+    is_search = bool(
+        text_query
+        or program_id is not None
+        or year_id is not None
+        or category_id is not None
+        or research_type is not None
+    )
+    if is_search:
+        try:
+            user = _optional_user(request)
+            db.log_search(
+                user["id"] if user else None,
+                text_query or None,
+                len(result["theses"]),
+                {**active_filters, "mode": "keyword"},
+            )
+        except Exception:
+            pass
+
     return result
 
 
@@ -118,6 +233,87 @@ def recommend_theses(id: int, limit: int = Query(5)):
         raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
     theses = db.recommend_for_thesis(id, limit=limit)
     return {"thesis_id": id, "theses": theses, "count": len(theses)}
+
+
+@router.post(
+    "/api/recommendations",
+    dependencies=[Depends(login_required)],
+    tags=["Search"],
+)
+def recommendations(
+    request: Request, payload: RecommendationRequest = Body(default=None)
+):
+    """Personalized feed for the signed-in student.
+
+    The profile is built from thesis ids the client already holds on the
+    device (`saved_ids` weighted x2, `viewed_ids` x1). Nothing about the
+    student's history is stored here; only the resulting impressions are
+    written to `recommendation_logs` (FR-17). No new table is involved.
+    """
+    user = request.state.current_user
+    saved = _clean_ids(payload.saved_ids if payload else None)
+    viewed = _clean_ids(payload.viewed_ids if payload else None)
+    raw_limit = payload.limit if payload and payload.limit else 4
+    try:
+        limit = max(1, min(10, int(raw_limit)))
+    except (TypeError, ValueError):
+        limit = 4
+
+    source_ids = saved + viewed
+    weights = [2.0] * len(saved) + [1.0] * len(viewed)
+
+    if not source_ids:
+        items = _newest_items(limit)
+        _log_impressions(user["id"], items)
+        return {
+            "personalized": False,
+            "basis": "New in the repository",
+            "items": items,
+            "count": len(items),
+        }
+
+    # Straight similarity order. The card must agree with the detail rail, and
+    # "these are the four closest" is easier to defend than a diversity pass
+    # that can skip a 54% match because a 55% one was already picked.
+    rows = db.recommend_for_profile(
+        source_ids, weights, exclude_ids=source_ids, limit=max(12, limit + 4)
+    )
+    picked = [row for row in rows if row["similarity"] >= 0.35][:limit]
+
+    items = []
+    for row in picked:
+        thesis = db.get_thesis_by_id(row["id"])
+        if not thesis:
+            continue
+        items.append(
+            {
+                "thesis": _public_thesis(thesis),
+                # Full precision: the card and the detail rail must round the
+                # same number, or a 0.545 study shows 54% here and 55% there.
+                "score": row["similarity"],
+                "reason": "similar",
+            }
+        )
+
+    if len(items) < limit:
+        already = set(source_ids) | {item["thesis"]["id"] for item in items}
+        items.extend(_newest_items(limit - len(items), exclude=already))
+
+    unique_sources = list(dict.fromkeys(source_ids))
+    basis = "Based on your recent activity"
+    if len(unique_sources) == 1:
+        source = db.get_thesis_by_id(unique_sources[0])
+        if source:
+            verb = "saved" if saved else "viewed"
+            basis = f'Because you {verb} "{source["title"]}"'
+
+    _log_impressions(user["id"], items, source_thesis_id=unique_sources[0])
+    return {
+        "personalized": True,
+        "basis": basis,
+        "items": items,
+        "count": len(items),
+    }
 
 
 @router.get("/api/dashboard/stats", dependencies=[Depends(admin_required)], tags=["Dashboard"])

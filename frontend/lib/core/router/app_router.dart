@@ -18,7 +18,6 @@ import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen
 import 'package:frontend/presentation/screens/admin/admin_bulk_import_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
-import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_thesis_form_screen.dart';
@@ -119,7 +118,9 @@ final appRouter = Provider<GoRouter>((ref) {
       }
 
       // Student trying to access admin/faculty routes
-      if (role != 'admin' && role != 'faculty' && (loc.startsWith('/admin') || loc.startsWith('/faculty'))) {
+      if (role != 'admin' &&
+          role != 'faculty' &&
+          (loc.startsWith('/admin') || loc.startsWith('/faculty'))) {
         return '/student/dashboard';
       }
 
@@ -130,12 +131,22 @@ final appRouter = Provider<GoRouter>((ref) {
 
       // Faculty trying to access student-only routes (/thesis/:id is shared
       // and role-aware, so it stays accessible)
-      if (role == 'faculty' && (loc.startsWith('/student') || loc == '/repository' || loc == '/saved' || loc == '/profile' || loc == '/recommendations')) {
+      if (role == 'faculty' &&
+          (loc.startsWith('/student') ||
+              loc == '/repository' ||
+              loc == '/saved' ||
+              loc == '/profile' ||
+              loc == '/recommendations')) {
         return '/faculty/dashboard';
       }
 
       // Admin trying to access student/faculty routes
-      if (role == 'admin' && (loc.startsWith('/student') || loc.startsWith('/faculty') || loc == '/repository' || loc == '/saved' || loc == '/profile')) {
+      if (role == 'admin' &&
+          (loc.startsWith('/student') ||
+              loc.startsWith('/faculty') ||
+              loc == '/repository' ||
+              loc == '/saved' ||
+              loc == '/profile')) {
         return '/admin/dashboard';
       }
 
@@ -176,8 +187,7 @@ final appRouter = Provider<GoRouter>((ref) {
             path: '/repository',
             builder: (context, state) => RepositoryScreen(
               initialQuery: state.uri.queryParameters['q'],
-              initialSemantic:
-                  state.uri.queryParameters['mode'] == 'semantic',
+              initialSemantic: state.uri.queryParameters['mode'] == 'semantic',
             ),
           ),
           GoRoute(
@@ -190,9 +200,15 @@ final appRouter = Provider<GoRouter>((ref) {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(height: 16),
-                        Text('Invalid thesis id: ${state.pathParameters['id']}'),
+                        Text(
+                          'Invalid thesis id: ${state.pathParameters['id']}',
+                        ),
                         const SizedBox(height: 16),
                         NeumorphButton(
                           onPressed: () => context.go('/repository'),
@@ -247,7 +263,9 @@ final appRouter = Provider<GoRouter>((ref) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
             return Scaffold(
-              body: Center(child: Text('Invalid thesis id: ${state.pathParameters['id']}')),
+              body: Center(
+                child: Text('Invalid thesis id: ${state.pathParameters['id']}'),
+              ),
             );
           }
           return AdminAddEditThesisScreen(thesisId: id);
@@ -260,10 +278,6 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/users',
         builder: (context, state) => const AdminUserManagementScreen(),
-      ),
-      GoRoute(
-        path: '/admin/settings',
-        builder: (context, state) => const AdminSettingsScreen(),
       ),
 
       // Faculty routes
@@ -285,7 +299,9 @@ final appRouter = Provider<GoRouter>((ref) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
             return Scaffold(
-              body: Center(child: Text('Invalid thesis id: ${state.pathParameters['id']}')),
+              body: Center(
+                child: Text('Invalid thesis id: ${state.pathParameters['id']}'),
+              ),
             );
           }
           return FacultyThesisFormScreen(thesisId: id);

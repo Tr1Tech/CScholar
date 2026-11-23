@@ -20,7 +20,7 @@ import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/thesis_card.dart';
 
-class ThesisDetailScreen extends ConsumerWidget {
+class ThesisDetailScreen extends ConsumerStatefulWidget {
   final int thesisId;
 
   /// Query-relative semantic match (0..1), handed through the route's `extra`
@@ -35,7 +35,45 @@ class ThesisDetailScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ThesisDetailScreen> createState() =>
+      _ThesisDetailScreenState();
+}
+
+class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
+  int get thesisId => widget.thesisId;
+  double? get similarity => widget.similarity;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleViewRecord();
+  }
+
+  @override
+  void didUpdateWidget(covariant ThesisDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Moving from /thesis/59 to /thesis/46 can reuse this State; without this
+    // the second study would never enter the history.
+    if (oldWidget.thesisId != widget.thesisId) _scheduleViewRecord();
+  }
+
+  void _scheduleViewRecord() {
+    // The last-opened study becomes the dashboard feed's anchor. Local-only
+    // (SharedPreferences); the id is sent to the server only when the
+    // dashboard asks for recommendations. Deferred to after the frame because
+    // Riverpod forbids state writes during initState/build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(recommendationAnchorProvider.notifier)
+          .setAnchor(thesisId, 'viewed');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _build(context, ref);
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     final thesisAsync = ref.watch(thesisDetailProvider(thesisId));
     final recommendedAsync = ref.watch(recommendedThesesProvider(thesisId));
     final savedIds = ref.watch(savedThesisIdsProvider);
@@ -307,12 +345,13 @@ class ThesisDetailScreen extends ConsumerWidget {
                             const Divider(color: CScholarColors.borderLight),
                             const SizedBox(height: 24),
 
-                            // Recommended Studies Section ("Because you viewed this study")
+                            // Related research: nearest neighbours of THIS
+                            // study by embedding distance. Not personalized.
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Recommended Studies',
+                                  'Related research',
                                   style: CScholarTextStyles.heading(
                                     18,
                                     FontWeight.w700,
@@ -321,7 +360,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Because you viewed this study',
+                                  'Closest matches by meaning, not keywords',
                                   style: CScholarTextStyles.body(
                                     12.5,
                                     FontWeight.w400,
@@ -434,7 +473,7 @@ class ThesisDetailScreen extends ConsumerWidget {
                                                     ),
                                                     Tooltip(
                                                       message:
-                                                          'AI recommendation — $sim to the study you are viewing.',
+                                                          'Semantic similarity — $sim to the study you are viewing.',
                                                       child: Container(
                                                         padding:
                                                             const EdgeInsets.symmetric(

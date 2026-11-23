@@ -1,0 +1,643 @@
+{
+  "title": "CScholar API",
+  "version": "1.0.0",
+  "locked_on": "2026-11-23",
+  "note": "Frozen API surface. The Swagger UI is final: do not add endpoints. Regenerate only with explicit owner approval.",
+  "operation_count": 61,
+  "operations": [
+    {
+      "method": "DELETE",
+      "path": "/api/academic-years/{year_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/advisers/{adviser_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/authors/{author_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/categories/{category_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/import/{job_id}",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/programs/{program_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/theses/{id}",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "admin",
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/academic-years",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/advisers",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "tags": [
+        "Auth"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/authors",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/categories",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/recent-activity",
+      "tags": [
+        "Dashboard"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/stats",
+      "tags": [
+        "Dashboard"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/db-test",
+      "tags": [
+        "System"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/embeddings/bulk-status",
+      "tags": [
+        "Embeddings"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty/activity",
+      "tags": [
+        "Dashboard"
+      ],
+      "roles": [
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty/advisees",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty/analytics",
+      "tags": [
+        "Dashboard"
+      ],
+      "roles": [
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty/dashboard",
+      "tags": [
+        "Dashboard"
+      ],
+      "roles": [
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/faculty/theses",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "tags": [
+        "System"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/import/template",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/import/{job_id}",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/import/{job_id}/report",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/keywords",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/programs",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/research-types",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/summary",
+      "tags": [
+        "System"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/theses",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/theses/{id}",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/theses/{id}/recommend",
+      "tags": [
+        "Search"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/theses/{thesis_id}/pdf",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "tags": [
+        "Users"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "tags": [
+        "System"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/academic-years",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/advisers",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "tags": [
+        "Auth"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "tags": [
+        "Auth"
+      ],
+      "roles": [],
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/authors",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin",
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/categories",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/embeddings/generate-bulk",
+      "tags": [
+        "Embeddings"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/embeddings/generate/{thesis_id}",
+      "tags": [
+        "Embeddings"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/embeddings/search",
+      "tags": [
+        "Search"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/import/preview",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/import/{job_id}/run",
+      "tags": [
+        "Bulk Import"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/ocr/pdf",
+      "tags": [
+        "Upload"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/programs",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/recommendations",
+      "tags": [
+        "Search"
+      ],
+      "roles": [],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/theses",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "admin",
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/theses/bulk-status",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload/pdf",
+      "tags": [
+        "Upload"
+      ],
+      "roles": [
+        "admin",
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/users",
+      "tags": [
+        "Users"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/academic-years/{year_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/advisers/{adviser_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/authors/{author_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/categories/{category_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/programs/{program_id}",
+      "tags": [
+        "Metadata"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/theses/{id}",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "admin",
+        "faculty"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/{user_id}",
+      "tags": [
+        "Users"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/{user_id}/active",
+      "tags": [
+        "Users"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    }
+  ]
+}

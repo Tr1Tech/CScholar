@@ -355,6 +355,18 @@ docs/        ERD, normalization, data dictionary, traceability
 - Database check: `http://localhost:5000/api/db-test`
 - API docs: `http://localhost:5000/docs`
 
+**The documented API is locked**
+
+The Swagger UI at `/docs` is final: its 61 operations are listed in
+[`backend/api_contract.json`](backend/api_contract.json) and no endpoint may be
+added. The server refuses to start if a route is added, removed, re-tagged, or
+has its allowed roles changed. Check it offline (no server needed) with:
+
+```bash
+cd backend
+venv\Scripts\python scripts\check_api_contract.py
+```
+
 **Environment variables** (`backend/.env`)
 
 | Key | Meaning |
@@ -386,6 +398,12 @@ flutter test
 
 **Schema note:** all objects are created in the `ceit_repo` schema. Manual
 queries need `ceit_repo.` prefixes or `SET search_path TO ceit_repo;`.
+
+**⚠️ The database schema is locked.** `db/schema.sql` is the complete, frozen
+set of tables. Do not add, alter, or drop tables/columns, and do not create
+migrations — this applies to AI agents as well. Use the existing tables, keep
+new state on the client, or ask the project owner before changing DDL. See the
+“Schema is locked — do not add tables” section in [`db/README.md`](db/README.md).
 
 **More docs**
 

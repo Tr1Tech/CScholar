@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Data Dictionary |
-| Version | 1.0 (Final) |
-| Date | 2026-10-09 |
+| Version | 1.1 |
+| Date | 2026-11-21 |
 | Source of truth | `db/schema.sql` (schema: `ceit_repo`) |
-| Totals | **16 tables, 84 attributes** |
+| Totals | **16 domain tables, 84 attributes (+ `theses.accession_no` = 85); 2 operational tables** |
 
 Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = column accepts NULL.
 
@@ -63,6 +63,8 @@ Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = colu
 > **Addendum 2026-11-19:** `theses.accession_no VARCHAR(50) UNIQUE` (nullable) was added for library accession numbers (`docs/real_data_plan.md` §8, applied before the pilot import). It is attribute 85; the running total below becomes **85 attributes** until the document is renumbered.
 >
 > **Addendum 2026-11-19:** `import_jobs` was added as operational metadata for the admin Bulk Import screen (preview rows, progress, report). It is not part of the thesis corpus and is intentionally excluded from the 85-attribute total.
+>
+> **Addendum 2026-11-21:** `thesis_reviews` was documented as the lifecycle audit trail. Like `import_jobs`, it is operational and excluded from the 85-attribute domain total; both are listed in §17–§18 with `O`/`J` column numbers so they cannot be confused with the domain numbering.
 
 ## 5. authors (6 attributes)
 
@@ -178,6 +180,45 @@ Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = colu
 | 83 | similarity_score | REAL | — | Yes | — | Similarity value of the match |
 | 84 | created_at | TIMESTAMP | — | No | DEFAULT NOW() | Row creation time |
 
+## 17. thesis_reviews (6 attributes) — operational audit trail
+
+Not part of the 16 domain tables. One row per lifecycle decision; keeps the
+history that `theses.review_notes` cannot (that column stores only the latest
+note). Column numbers use `O` so they never collide with the domain total.
+
+| # | Column | Type | Key | Null | Default / Constraint | Description |
+|---|---|---|---|---|---|---|
+| O1 | id | SERIAL | PK | No | — | Review decision identifier |
+| O2 | thesis_id | INTEGER | FK | No | REFERENCES theses(id) ON DELETE CASCADE | Reviewed study |
+| O3 | reviewer_id | INTEGER | FK | Yes | REFERENCES users(id) ON DELETE SET NULL | Acting admin/faculty reviewer |
+| O4 | decision | VARCHAR(20) | — | No | CHECK IN ('draft','approved','published','archived') | Decision recorded |
+| O5 | notes | TEXT | — | Yes | — | Return note or review comment |
+| O6 | created_at | TIMESTAMP | — | No | DEFAULT NOW() | Decision time |
+
+## 18. import_jobs (16 attributes) — operational job state
+
+Not part of the 16 domain tables. Holds the Bulk Import preview, progress and
+per-row report that the admin screen polls. Column numbers use `J`.
+
+| # | Column | Type | Key | Null | Default / Constraint | Description |
+|---|---|---|---|---|---|---|
+| J1 | id | SERIAL | PK | No | — | Import job identifier |
+| J2 | status | VARCHAR(20) | — | No | DEFAULT 'previewed'; CHECK IN ('previewed','queued','running','completed','failed','cancelled') | Job lifecycle state |
+| J3 | created_by | INTEGER | FK | Yes | REFERENCES users(id) ON DELETE SET NULL | Admin who started the batch |
+| J4 | csv_filename | VARCHAR(255) | — | Yes | — | Uploaded metadata CSV name |
+| J5 | total_rows | INTEGER | — | No | DEFAULT 0 | Rows in the batch |
+| J6 | processed_rows | INTEGER | — | No | DEFAULT 0 | Rows handled so far |
+| J7 | created_count | INTEGER | — | No | DEFAULT 0 | New theses created |
+| J8 | updated_count | INTEGER | — | No | DEFAULT 0 | Existing theses updated |
+| J9 | skipped_count | INTEGER | — | No | DEFAULT 0 | Rows skipped |
+| J10 | error_count | INTEGER | — | No | DEFAULT 0 | Rows that failed |
+| J11 | indexed_count | INTEGER | — | No | DEFAULT 0 | Embeddings generated |
+| J12 | message | TEXT | — | Yes | — | Progress or failure message |
+| J13 | rows | JSONB | — | Yes | — | Per-row preview/report |
+| J14 | created_at | TIMESTAMP | — | No | DEFAULT NOW() | Job creation time |
+| J15 | started_at | TIMESTAMP | — | Yes | — | Worker start time |
+| J16 | finished_at | TIMESTAMP | — | Yes | — | Completion/failure time |
+
 ## Attribute count by table
 
 | Table | Attributes | | Table | Attributes |
@@ -190,4 +231,10 @@ Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = colu
 | thesis_authors | 3 | | thesis_files | 8 |
 | advisers | 6 | | thesis_embeddings | 6 |
 | search_logs | 6 | | recommendation_logs | 6 |
-| **Total** | **84** | | | |
+| **Domain total** | **84** | | | |
+| thesis_reviews (operational) | 6 | | import_jobs (operational) | 16 |
+| **Operational total** | **22** | | | |
+
+The 84 domain attributes plus `theses.accession_no` give 85 domain columns.
+The 22 operational columns are excluded from that total, so 16 domain tables
+and 2 operational tables account for all 18 physical tables.

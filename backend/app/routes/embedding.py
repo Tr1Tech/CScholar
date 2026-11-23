@@ -137,7 +137,7 @@ def bulk_status():
 
 
 @router.post("/api/embeddings/search", dependencies=[Depends(login_required)], tags=["Search"])
-def search(data: SemanticSearchRequest = Body(default=None)):
+def search(request: Request, data: SemanticSearchRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data or "query" not in data:
         raise HTTPException(status_code=400, detail="Query is required")
@@ -156,4 +156,16 @@ def search(data: SemanticSearchRequest = Body(default=None)):
     if query_vector is None:
         raise HTTPException(status_code=500, detail="Failed to generate query embedding")
     theses = db.semantic_search(query_vector, limit=limit)
+    # search_logs is an existing, documented table. Logging is diagnostics:
+    # it must never fail the search itself. `mode` keeps the semantic call
+    # distinguishable from the keyword listing the repository also requests.
+    try:
+        db.log_search(
+            request.state.current_user["id"],
+            query,
+            len(theses),
+            {"mode": "semantic"},
+        )
+    except Exception:
+        pass
     return {"query": query, "results": theses, "count": len(theses)}

@@ -60,7 +60,10 @@ class ResultCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: CScholarTextStyles.heading(
-                              15, FontWeight.w700, CScholarColors.textPrimary),
+                            15,
+                            FontWeight.w700,
+                            CScholarColors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
@@ -74,7 +77,10 @@ class ResultCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: CScholarTextStyles.body(
-                      12, FontWeight.w500, CScholarColors.textSecondary),
+                    12,
+                    FontWeight.w500,
+                    CScholarColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -82,7 +88,10 @@ class ResultCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: CScholarTextStyles.body(
-                      11.5, FontWeight.w400, CScholarColors.textMuted),
+                    11.5,
+                    FontWeight.w400,
+                    CScholarColors.textMuted,
+                  ),
                 ),
                 if (keywords.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -90,24 +99,33 @@ class ResultCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: keywords
-                        .map((k) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                // A recessed well, not `backgroundSoft`: the
-                                // canvas (#E8EFE7) is DARKER than the clay card
-                                // (#F1F6F0), so those chips read as holes
-                                // punched in the panel rather than tokens on it.
-                                color: CScholarMaterial.clayDeep,
-                                borderRadius:
-                                    BorderRadius.circular(CScholarRadius.full),
-                                border:
-                                    Border.all(color: CScholarMaterial.rim),
+                        .map(
+                          (k) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              // A recessed well, not `backgroundSoft`: the
+                              // canvas (#E8EFE7) is DARKER than the clay card
+                              // (#F1F6F0), so those chips read as holes
+                              // punched in the panel rather than tokens on it.
+                              color: CScholarMaterial.clayDeep,
+                              borderRadius: BorderRadius.circular(
+                                CScholarRadius.full,
                               ),
-                              child: Text(k.term,
-                                  style: CScholarTextStyles.body(11,
-                                      FontWeight.w500, CScholarColors.textMuted)),
-                            ))
+                              border: Border.all(color: CScholarMaterial.rim),
+                            ),
+                            child: Text(
+                              k.term,
+                              style: CScholarTextStyles.body(
+                                11,
+                                FontWeight.w500,
+                                CScholarColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ],
@@ -115,28 +133,38 @@ class ResultCard extends StatelessWidget {
                 Row(
                   children: [
                     InkWell(
-                      onTap: () => context.go(
-                        '/thesis/${thesis.id}',
-                        extra: similarity,
-                      ),
+                      onTap: () =>
+                          context.go('/thesis/${thesis.id}', extra: similarity),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: CScholarColors.primaryGreenLight,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: CScholarMaterial.rimPublished),
+                          border: Border.all(
+                            color: CScholarMaterial.rimPublished,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Related Research',
-                                style: CScholarTextStyles.body(12,
-                                    FontWeight.w600, CScholarColors.primaryGreen)),
+                            Text(
+                              'Related Research',
+                              style: CScholarTextStyles.body(
+                                12,
+                                FontWeight.w600,
+                                CScholarColors.primaryGreen,
+                              ),
+                            ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward,
-                                size: 14, color: CScholarColors.primaryGreen),
+                            const Icon(
+                              Icons.arrow_forward,
+                              size: 14,
+                              color: CScholarColors.primaryGreen,
+                            ),
                           ],
                         ),
                       ),
@@ -177,8 +205,9 @@ class ResultCard extends StatelessWidget {
     final fg = _isThesis
         ? CScholarColors.thesisChipFg
         : CScholarColors.capstoneChipFg;
-    final rim =
-        _isThesis ? CScholarMaterial.rimPublished : CScholarMaterial.rimDraft;
+    final rim = _isThesis
+        ? CScholarMaterial.rimPublished
+        : CScholarMaterial.rimDraft;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -186,9 +215,10 @@ class ResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(CScholarRadius.sm),
         border: Border.all(color: rim),
       ),
-      child: Text(_isThesis ? 'Thesis' : 'Capstone',
-          style: CScholarTextStyles.body(
-              11, FontWeight.w700, fg)),
+      child: Text(
+        _isThesis ? 'Thesis' : 'Capstone',
+        style: CScholarTextStyles.body(11, FontWeight.w700, fg),
+      ),
     );
   }
 
@@ -201,47 +231,59 @@ class ResultCard extends StatelessWidget {
     final pct = (score * 100).round().clamp(0, 100);
     final badge = Tooltip(
       message:
-          'AI semantic match $pct% — ranked by meaning. Open the study to see related work.',
+          'Semantic match $pct% — ranked by meaning. Open the study to see related work.',
       child: SizedBox(
         width: 52,
         child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // tile-exempt: this is a circular DATA gauge carrying a percentage, not
-          // an icon tile — ClayIconTile would turn a number into a square chip.
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: CScholarColors.goldSoft,
-              border: Border.all(
-                  color: CScholarColors.warningFg, width: 2.5),
-              boxShadow: CScholarShadows.goldGlow,
-            ),
-            child: Center(
-              child: Text('$pct%',
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // tile-exempt: this is a circular DATA gauge carrying a percentage, not
+            // an icon tile — ClayIconTile would turn a number into a square chip.
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: CScholarColors.goldSoft,
+                border: Border.all(color: CScholarColors.warningFg, width: 2.5),
+                boxShadow: CScholarShadows.goldGlow,
+              ),
+              child: Center(
+                child: Text(
+                  '$pct%',
                   style: CScholarTextStyles.body(
-                      13, FontWeight.w800, CScholarColors.warningFg)),
+                    13,
+                    FontWeight.w800,
+                    CScholarColors.warningFg,
+                  ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.auto_awesome,
-                    size: 10, color: CScholarColors.warningFg),
-                const SizedBox(width: 2),
-                Text('AI Match',
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome,
+                    size: 10,
+                    color: CScholarColors.warningFg,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    'Semantic match',
                     style: CScholarTextStyles.body(
-                        10, FontWeight.w700, CScholarColors.warningFg)),
-              ],
+                      10,
+                      FontWeight.w700,
+                      CScholarColors.warningFg,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );

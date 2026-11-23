@@ -109,8 +109,8 @@ manuscripts, 462 vectors for 19 records.
 > "Related research is content similarity: the nearest published studies to
 > this one. It is not personalized and it does not use viewing history."
 
-Do not call this an AI recommendation. The desktop build still says
-"Recommended Studies"; the capstone unifies that copy.
+Do not call this an AI recommendation. Both layouts now say "Related
+research"; the personalized dashboard feed is a separate surface.
 
 ### 7:00 — Admin: publishing controls (2.5 min)
 
@@ -191,7 +191,7 @@ retrieve 58 (boarding house mapping) but ranks 41, 47, 57. Say:
 | Do not say | Say instead |
 |---|---|
 | "AI recommends studies for you" | "Related research shows content-similar studies" |
-| "Personalized recommendations" | "Nearest-neighbour retrieval; there is no user profile" |
+| "Personalized recommendations" | "Content-based: seeded by the last study you opened or saved, ranked by embedding similarity" |
 | "It understands everything" | "It ranks by semantic similarity; one paraphrase miss is documented" |
 | "99% accurate" | "hit@3 9/10 on ten labeled queries, 19 records" |
 | "ChatGPT for theses" | "Sentence embeddings plus pgvector, not a generative model" |
@@ -216,24 +216,31 @@ retrieve 58 (boarding house mapping) but ranks 41, 47, 57. Say:
 
 Freeze code on **Dec 1**. After that, only demo-blocking fixes.
 
-Current restore point (Nov 20, 2026 17:33):
+Current restore point (Nov 21, 2026 00:15):
 
-- `backups\cscholar_20261120_1733.dump` (custom-format database dump)
-- `backups\uploads_20261120_1734.zip` (32 PDFs, ~128 MB)
+- `backups\cscholar_20261121_0015.dump` (full custom-format database dump)
+- `backups\uploads_20261120_1734.zip` (32 PDFs, ~128 MB; uploads unchanged)
 
-Restore drill, already exercised once:
+`backups\` is the folder next to `CScholar\` (`RADJ SCHOOL\backups\`), not a
+folder inside the repository.
+
+Restore drill, exercised on Nov 21:
 
 ```powershell
 $env:PGPASSWORD='<password>'
 $bin='C:\Program Files\PostgreSQL\18\bin'
 & "$bin\createdb.exe" -h localhost -U postgres cscholar_restore_check
 & "$bin\pg_restore.exe" -h localhost -U postgres -d cscholar_restore_check `
-    --no-owner --no-privileges backups\cscholar_20261120_1733.dump
+    --no-owner --no-privileges backups\cscholar_20261121_0015.dump
 ```
 
-Verified counts in the restored copy: 19 theses (all published), 58 authors,
-10 advisers, 23 users, 462 embedding chunks, 1 adviser email. Drop the scratch
-database afterwards.
+Verified counts in the restored copy: 18 base tables (16 domain + 2 operational),
+19 theses (all published), 58 authors, 10 advisers, 23 users, 462 embedding
+chunks, 1 adviser email, 38 review decisions, 1 import job, and **no**
+`thesis_audit_log`. Drop the scratch database afterwards.
+
+> Do not re-run `db/logic/cscholar_lab5_logic.sql` on the demo database: it adds
+> `thesis_audit_log` and turns 18 tables into 19.
 
 To recover the demo machine: restore into `cscholar`, unzip the PDFs into
 `backend\app\uploads\`, start the backend, and run `demo_preflight.py`.

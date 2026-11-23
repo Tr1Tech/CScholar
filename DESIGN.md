@@ -31,9 +31,9 @@
 |-------|------|---------|
 | `/student/dashboard` | `screens/student/student_dashboard_screen.dart` | Home. Greeting banner (time-of-day + username + date), 4 metric cards (Published Studies, CEIT Programs, Academic Years, Your Saved), Recent Studies list (latest 4, tap → detail), Recommended for You (semantic recs from most recent record, tap → detail with score). |
 | `/repository?q&mode` | `screens/repository/repository_screen.dart` | Core discovery. `?q=` initial query, `?mode=semantic` preselects semantic search. Control header (title, search field with 450ms debounce, quick topics: Machine Learning / IoT / Web System / Mobile App, filters: type + program + year + category + keyword + sort). Results list (`ResultCard`) + AI rail (`RecRail`, top 4 semantic matches). Mobile filters in bottom sheet. |
-| `/thesis/:id` + `extra: double?` | `screens/thesis/thesis_detail_screen.dart` | Role-aware detail (`homeRoute`/`listRoute` switch per role). Hero banner, breadcrumbs (Home / List / Title), metadata rows (authors, program, year, adviser, category, type), View PDF (token-as-`?token=`), Save toggle (student only), Share + Cite (APA) buttons, semantic match meter (only when `extra` score passed), keywords, Recommended Studies (same `result` stagger as every list). |
+| `/thesis/:id` + `extra: double?` | `screens/thesis/thesis_detail_screen.dart` | Role-aware detail (`homeRoute`/`listRoute` switch per role). Hero banner, breadcrumbs (Home / List / Title), metadata rows (authors, program, year, adviser, category, type), View PDF (token-as-`?token=`), Save toggle (student only), Share + Cite (APA) buttons, semantic match meter (only when `extra` score passed), keywords, Related research (same `result` stagger as every list). |
 | `/saved` | `screens/student/saved_theses_screen.dart` | Bookmarked studies. Tabs: All / Thesis / Capstone filter. Row: cover tile, title, program + year, View + unsave toggle (removal re-forms keyed list). Empty state → Browse Repository. |
-| `/profile` | `screens/student/profile_screen.dart` | Identity card (avatar hero target — shell must set `heroAvatar: false` here, gradient accent bar, username + email + role badge + member-since/active pills), Account Information rows, Saved Studies preview (top 3 + View All Saved), Recent Searches placeholder. Edit Profile = snackbar stub. |
+| `/profile` | `screens/student/profile_screen.dart` | Identity card (avatar hero target — shell must set `heroAvatar: false` here, gradient accent bar, username + email + role badge + member-since/active pills), Account Information rows, Saved Studies preview (top 3 + View All Saved), Recent Searches (device-persisted, tap to re-run, per-row remove + Clear). Edit Profile = snackbar stub. |
 
 ### Admin (shell: `CScholarShell` + `AdminSidebar` + `AdminTopbar`)
 | Route | File | Purpose |
@@ -64,7 +64,7 @@
 
 ## 3. Navigation Graph (user flows)
 
-1. **Discover → Filter → Detail:** dashboard or `/repository` → search/debounce/filter pills → `ResultCard` tap → `/thesis/:id` → Recommended Studies → next detail (score passed via `extra`).
+1. **Discover → Filter → Detail:** dashboard or `/repository` → search/debounce/filter pills → `ResultCard` tap → `/thesis/:id` → Related research → next detail (score passed via `extra`).
 2. **AI loop:** any semantic entry (`ResultCard`, `RecRail`, dashboard recs) passes `similarity: double` through route `extra`. Detail shows `ScoreMeter` only when non-null. Direct loads / keyword taps pass nothing — meter stays off.
 3. **Submit / Curate (faculty):** `/faculty/thesis/new` → PDF attach → submit as `draft` → admin reviews in `/admin/thesis/management` → status dropdown → published.
 4. **Admin governance:** `/admin/dashboard` (KPIs + analytics + activity) → management table (approve/publish/archive, edit, delete) → users (activate/deactivate, role change) → programs (taxonomy).
@@ -80,9 +80,10 @@ Shared transitions: every route fades + rises (single shared `CScholarTransition
 | `thesisListProvider(ThesisListParams)` | `GET /api/theses?q&programId&academicYearId&categoryId&keyword&sortBy&researchType&showAll` | repository, admin dashboard analytics, admin management |
 | `semanticSearchProvider(query)` | `POST /api/embeddings/search` | repository semantic branch, `RecRail` |
 | `thesisProvider(id)` / `thesisDetailProvider` | `GET /api/theses/{id}` | detail screen, admin/faculty edit prefill |
-| `recommendedThesesProvider(id)` | `GET /api/theses/{id}/recommend` | dashboard recs, detail Recommended Studies |
+| `recommendedThesesProvider(id)` | `GET /api/theses/{id}/recommend` | detail Related research |
+| `recommendationsProvider` / `recommendationAnchorProvider` | `POST /api/recommendations` (one anchor id: last viewed/saved study) | dashboard Recommended for You |
 | `recentThesesProvider` | latest theses | dashboard Recent Studies |
-| `savedThesisIdsProvider` / `savedThesesProvider` | local saved-ids + thesis lookup | dashboard count, saved screen, profile preview, detail save toggle, result-card bookmark |
+| `savedThesisIdsProvider` / `savedThesesProvider` | device-local saved ids (SharedPreferences) + thesis lookup | dashboard count, saved screen, profile preview, detail save toggle, result-card bookmark |
 | `programsProvider` / `academicYearsProvider` / `categoriesProvider` / `keywordsProvider` / `authorsProvider` / `advisersProvider` / `researchTypesProvider` | `GET /api/programs`, `/api/academic-years`, `/api/categories`, `/api/keywords`, `/api/authors`, `/api/advisers`, `/api/research-types` | repository filters, all thesis forms, admin programs screen |
 | `dashboardStatsProvider` | `GET /api/dashboard/stats` (admin) | admin dashboard KPIs |
 | `publicStatsProvider` | `GET /api/stats/summary` | student dashboard metrics |
@@ -106,9 +107,9 @@ Mutations: `thesisApi.create/update/delete/updateStatus`, `uploadApi.uploadPdf`,
 
 PDF flow: pick → `uploadApi.uploadPdf(bytes, name, thesisId?)` → `pdfUrl` stored on form → served at `/api/theses/{id}/pdf`. OCR (`PyMuPDF`) + chunk + embed (`all-MiniLM-L6-v2`) happen server-side; bulk embed is async with status polling.
 
-## 6. Database (`db/schema.sql`, schema `ceit_repo`, 16 tables)
+## 6. Database (`db/schema.sql`, schema `ceit_repo`, 18 physical tables = 16 domain + 2 operational)
 
-`users` (role CHECK student/faculty/admin) → `programs`, `academic_years`, `theses` (status lifecycle `draft→approved→published→archived`) → `authors` + `thesis_authors`, `advisers` + `thesis_advisers`, `categories` + `thesis_categories`, `keywords` + `thesis_keywords`, `thesis_files` (PDF), `thesis_embeddings` (pgvector 384-d), `search_logs`, `recommendation_logs`. Details: `docs/ERD.md`, `docs/data_dictionary.md`, `docs/normalization.md`, `docs/requirements_traceability.md`.
+`users` (role CHECK student/faculty/admin) → `programs`, `academic_years`, `theses` (status lifecycle `draft→approved→published→archived`) → `authors` + `thesis_authors`, `advisers` + `thesis_advisers`, `categories` + `thesis_categories`, `keywords` + `thesis_keywords`, `thesis_files` (PDF), `thesis_embeddings` (pgvector 384-d), `search_logs`, `recommendation_logs`. Operational: `thesis_reviews` (lifecycle audit trail) and `import_jobs` (bulk-import job state). Details: `docs/ERD.md`, `docs/data_dictionary.md`, `docs/normalization.md`, `docs/requirements_traceability.md`.
 
 ## 7. Thesis lifecycle & invariants for any rebuild
 

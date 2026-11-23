@@ -351,26 +351,224 @@ final thesisProvider = FutureProvider.autoDispose.family<Thesis?, int>((
 // Alias for detail screen readability
 final thesisDetailProvider = thesisProvider;
 
-// Saved thesis IDs as a simple Set<int> — easy to check membership
+// Saved thesis IDs as a simple Set<int> — easy to check membership.
+//
+// Persisted on the device, not the server: the recommender receives these
+// ids with each request, so no per-student row is stored in the database.
 final savedThesisIdsProvider =
     NotifierProvider<SavedThesisIdsNotifier, Set<int>>(
       () => SavedThesisIdsNotifier(),
     );
 
 class SavedThesisIdsNotifier extends Notifier<Set<int>> {
-  @override
-  Set<int> build() => {};
+  static const _prefsKey = 'saved_thesis_ids';
 
-  void toggle(int id) {
-    if (state.contains(id)) {
-      state = {...state}..remove(id);
-    } else {
-      state = {...state, id};
+  /// Set as soon as the reader changes a bookmark. A slow prefs read must not
+  /// overwrite a newer local action with the disk copy.
+  bool _touched = false;
+
+  @override
+  Set<int> build() {
+    _restore();
+    return {};
+  }
+
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_prefsKey) ?? const <String>[];
+      final ids = raw.map(int.tryParse).whereType<int>().toSet();
+      if (_touched) return;
+      if (ids.isNotEmpty) {
+        state = ids;
+        ref.invalidate(recommendationsProvider);
+      }
+    } catch (_) {
+      // No prefs available (tests, first run): start empty.
     }
   }
 
-  void clear() => state = {};
+  Future<void> _persist(Set<int> ids) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _prefsKey,
+        ids.map((id) => id.toString()).toList(),
+      );
+    } catch (_) {
+      // Losing a bookmark write is not worth surfacing to the reader.
+    }
+  }
+
+  void toggle(int id) {
+    _touched = true;
+    final wasSaved = state.contains(id);
+    final next = wasSaved ? ({...state}..remove(id)) : {...state, id};
+    state = next;
+    _persist(next);
+    if (!wasSaved) {
+      // Saving is an action: the feed re-anchors on this study.
+      ref.read(recommendationAnchorProvider.notifier).setAnchor(id, 'saved');
+    } else {
+      ref.invalidate(recommendationsProvider);
+    }
+  }
+
+  void clear() {
+    _touched = true;
+    state = {};
+    _persist({});
+    ref.invalidate(recommendationsProvider);
+  }
 }
+
+/// The study the dashboard feed is currently anchored on.
+///
+/// The last thing the student acted on — opened or saved — replaces the
+/// previous anchor. One item keeps the explanation to a single sentence:
+/// "you viewed X, so here is what is closest to X".
+class ThesisAnchor {
+  const ThesisAnchor({required this.id, required this.kind});
+
+  final int id;
+
+  /// `viewed` or `saved`.
+  final String kind;
+}
+
+final recommendationAnchorProvider =
+    NotifierProvider<RecommendationAnchorNotifier, ThesisAnchor?>(
+      () => RecommendationAnchorNotifier(),
+    );
+
+class RecommendationAnchorNotifier extends Notifier<ThesisAnchor?> {
+  static const _idKey = 'reco_anchor_id';
+  static const _kindKey = 'reco_anchor_kind';
+
+  /// A slow prefs read must not overwrite a newer action.
+  bool _touched = false;
+
+  @override
+  ThesisAnchor? build() {
+    _restore();
+    return null;
+  }
+
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = int.tryParse(prefs.getString(_idKey) ?? '');
+      final kind = prefs.getString(_kindKey);
+      if (_touched || id == null || id <= 0) return;
+      if (kind != 'viewed' && kind != 'saved') return;
+      state = ThesisAnchor(id: id, kind: kind!);
+      ref.invalidate(recommendationsProvider);
+    } catch (_) {
+      // Start with no anchor.
+    }
+  }
+
+  Future<void> _write(int id, String kind) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_idKey, id.toString());
+      await prefs.setString(_kindKey, kind);
+    } catch (_) {
+      // Best-effort: the feed still works for this session.
+    }
+  }
+
+  /// Re-anchor on [id]. Called on detail open (`viewed`) and on save.
+  void setAnchor(int id, String kind) {
+    if (id <= 0) return;
+    if (kind != 'viewed' && kind != 'saved') return;
+    _touched = true;
+    if (state?.id == id && state?.kind == kind) return;
+    state = ThesisAnchor(id: id, kind: kind);
+    _write(id, kind);
+    ref.invalidate(recommendationsProvider);
+  }
+
+  void clear() {
+    _touched = true;
+    state = null;
+    _write(0, '');
+    ref.invalidate(recommendationsProvider);
+  }
+}
+
+/// One row of the personalized feed.
+class Recommendation {
+  const Recommendation({
+    required this.thesis,
+    required this.reason,
+    this.score,
+  });
+
+  final Thesis thesis;
+
+  /// Cosine similarity (0..1), null for the "new" fallback rows.
+  final double? score;
+
+  /// `similar` or `new`.
+  final String reason;
+}
+
+/// The dashboard feed plus the honest caption describing why it is ranked.
+class RecommendationFeed {
+  const RecommendationFeed({
+    required this.personalized,
+    required this.basis,
+    required this.items,
+  });
+
+  final bool personalized;
+  final String basis;
+  final List<Recommendation> items;
+
+  bool get isEmpty => items.isEmpty;
+}
+
+/// Personalized recommendations for the signed-in student.
+///
+/// The server ranks against a centroid built from the ids sent here; the
+/// history itself never leaves the device.
+final recommendationsProvider = FutureProvider.autoDispose<RecommendationFeed>((
+  ref,
+) async {
+  // One anchor, not a profile: the last study opened or saved. With exactly
+  // one source the server answers "Because you viewed/saved X", which is the
+  // sentence the UI prints.
+  final anchor = ref.read(recommendationAnchorProvider);
+  final savedIds = <int>[
+    if (anchor != null && anchor.kind == 'saved') anchor.id,
+  ];
+  final viewedIds = <int>[
+    if (anchor != null && anchor.kind == 'viewed') anchor.id,
+  ];
+  final data = await ref.read(apiServiceProvider).post('/api/recommendations', {
+    'saved_ids': savedIds,
+    'viewed_ids': viewedIds,
+    'limit': 4,
+  });
+  final map = data as Map<String, dynamic>;
+  final items = <Recommendation>[];
+  for (final raw in (map['items'] as List<dynamic>? ?? const <dynamic>[])) {
+    final row = raw as Map<String, dynamic>;
+    items.add(
+      Recommendation(
+        thesis: Thesis.fromJson(row['thesis'] as Map<String, dynamic>),
+        score: (row['score'] as num?)?.toDouble(),
+        reason: (row['reason'] as String?) ?? 'similar',
+      ),
+    );
+  }
+  return RecommendationFeed(
+    personalized: map['personalized'] as bool? ?? false,
+    basis: map['basis'] as String? ?? '',
+    items: items,
+  );
+});
 
 final recentThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
   ref,
@@ -583,6 +781,93 @@ final savedThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
   }
   return saved;
 });
+
+/// Queries the student has run, newest first, kept on this device only.
+///
+/// Written by the repository search box and read by the profile card. Nothing
+/// is sent to the server just to keep the list — the query only travels when
+/// the student is actually searching with it.
+final recentSearchesProvider =
+    NotifierProvider<RecentSearchesNotifier, List<String>>(
+      () => RecentSearchesNotifier(),
+    );
+
+class RecentSearchesNotifier extends Notifier<List<String>> {
+  static const _prefsKey = 'recent_search_queries';
+  static const _maxEntries = 6;
+
+  /// Set as soon as a query is recorded, so a slow prefs read cannot replace
+  /// the fresh local list with the older disk copy.
+  bool _touched = false;
+
+  @override
+  List<String> build() {
+    _restore();
+    return const [];
+  }
+
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_prefsKey) ?? const <String>[];
+      if (_touched || raw.isEmpty) return;
+      state = raw;
+    } catch (_) {
+      // No prefs available (tests, first run): start empty.
+    }
+  }
+
+  Future<void> _persist(List<String> queries) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_prefsKey, queries);
+    } catch (_) {
+      // Best-effort: the card still updates for this session.
+    }
+  }
+
+  /// Records [query] as the newest search.
+  ///
+  /// Live search produces a ladder of prefixes ("mach", "machine", "machine
+  /// learning"), so a query that extends — or shortens — an existing entry
+  /// replaces it instead of filling the card with near-duplicates.
+  void record(String query) {
+    final q = query.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (q.isEmpty) return;
+    if (state.isNotEmpty && state.first == q) return;
+
+    final lower = q.toLowerCase();
+    final next = <String>[
+      q,
+      for (final old in state)
+        if (old.toLowerCase() != lower &&
+            !lower.startsWith(old.toLowerCase()) &&
+            !old.toLowerCase().startsWith(lower))
+          old,
+    ];
+    if (next.length > _maxEntries) {
+      next.removeRange(_maxEntries, next.length);
+    }
+    _touched = true;
+    state = next;
+    _persist(next);
+  }
+
+  void remove(String query) {
+    final next = state.where((q) => q != query).toList();
+    if (next.length == state.length) return;
+    _touched = true;
+    state = next;
+    _persist(next);
+  }
+
+  void clear() {
+    if (state.isEmpty) return;
+    _touched = true;
+    state = const [];
+    _persist(const []);
+  }
+}
 
 // Simple state for search
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(

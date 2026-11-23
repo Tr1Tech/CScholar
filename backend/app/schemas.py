@@ -217,3 +217,25 @@ class SemanticSearchRequest(_Base):
     })
     query: str | None = None
     limit: int | None = Field(default=None, description="1-20 results")
+
+
+class RecommendationRequest(_Base):
+    """The student's on-device history, sent to be ranked.
+
+    The history itself is not stored server-side; only the resulting
+    impressions are logged in `recommendation_logs`.
+    """
+    model_config = ConfigDict(extra="ignore", json_schema_extra={
+        "example": {
+            "saved_ids": [12, 7],
+            "viewed_ids": [19, 12, 4],
+            "limit": 4,
+        }
+    })
+    saved_ids: list[int] | None = Field(
+        default=None, description="Bookmarked thesis ids (weighted x2)"
+    )
+    viewed_ids: list[int] | None = Field(
+        default=None, description="Recently opened thesis ids, newest first"
+    )
+    limit: int | None = Field(default=None, description="1-10 rows")

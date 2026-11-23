@@ -67,8 +67,9 @@ class ThesisCard extends StatefulWidget {
     Icons.lightbulb_outline,
   ];
 
-  static IconData iconFor(int id) => _coverIcons[
-      (id ~/ CScholarColors.coverGradients.length) % _coverIcons.length];
+  static IconData iconFor(int id) =>
+      _coverIcons[(id ~/ CScholarColors.coverGradients.length) %
+          _coverIcons.length];
 
   @override
   State<ThesisCard> createState() => _ThesisCardState();
@@ -94,10 +95,7 @@ class _ThesisCardState extends State<ThesisCard> {
     if (widget.onTap != null) {
       widget.onTap!();
     } else {
-      context.go(
-        '/thesis/${widget.thesis.id}',
-        extra: widget.similarityScore,
-      );
+      context.go('/thesis/${widget.thesis.id}', extra: widget.similarityScore);
     }
   }
 
@@ -116,109 +114,115 @@ class _ThesisCardState extends State<ThesisCard> {
       label: widget.thesis.title,
       hint: 'Open study details',
       child: Stack(
-      children: [
-        Focus(
-          focusNode: _node,
-          onFocusChange: (v) => setState(() => _focused = v),
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent &&
-                (event.logicalKey == LogicalKeyboardKey.enter ||
-                    event.logicalKey == LogicalKeyboardKey.space)) {
-              _open(context);
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: GestureDetector(
-          // Semantic landings hand their score through (see ResultCard): the
-          // detail screen meters it, plain taps meter nothing.
-          onTap: () => _open(context),
-          child: MouseRegion(
-            onEnter: (_) => setState(() => _hover = true),
-            onExit: (_) => setState(() => _hover = false),
-            child: Stack(
-              children: [
-                CScholarCard(
-              padding: EdgeInsets.zero,
-              lift: true,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(CScholarRadius.softCard),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Focus(
+            focusNode: _node,
+            onFocusChange: (v) => setState(() => _focused = v),
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  (event.logicalKey == LogicalKeyboardKey.enter ||
+                      event.logicalKey == LogicalKeyboardKey.space)) {
+                _open(context);
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: GestureDetector(
+              // Semantic landings hand their score through (see ResultCard): the
+              // detail screen meters it, plain taps meter nothing.
+              onTap: () => _open(context),
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _hover = true),
+                onExit: (_) => setState(() => _hover = false),
+                child: Stack(
                   children: [
-                    // The banner zooms to 1.03 inside its OWN clip (top corners
-                    // match the card, bottom stays square into the body), so the
-                    // zoom crops instead of overflowing. Transform only, over the
-                    // swap budget — the most premium micro-interaction available
-                    // for one transform.
-                    ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(CScholarRadius.softCard),
-                      ),
-                      child: AnimatedScale(
-                        scale: animate && _hover ? 1.03 : 1.0,
-                        duration:
-                            animate ? CScholarMotion.swap : Duration.zero,
-                        curve: CScholarCurves.settle,
-                        child: _banner(),
+                    CScholarCard(
+                      padding: EdgeInsets.zero,
+                      lift: true,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          CScholarRadius.softCard,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // The banner zooms to 1.03 inside its OWN clip (top corners
+                            // match the card, bottom stays square into the body), so the
+                            // zoom crops instead of overflowing. Transform only, over the
+                            // swap budget — the most premium micro-interaction available
+                            // for one transform.
+                            ClipRRect(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(CScholarRadius.softCard),
+                              ),
+                              child: AnimatedScale(
+                                scale: animate && _hover ? 1.03 : 1.0,
+                                duration: animate
+                                    ? CScholarMotion.swap
+                                    : Duration.zero,
+                                curve: CScholarCurves.settle,
+                                child: _banner(),
+                              ),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: _body(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: _body(),
+                    // Focus ring painted OVER the card — never around it, so it
+                    // adds zero pixels to layout (same contract as ClayNavList).
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: AnimatedContainer(
+                          duration: animate
+                              ? CScholarMotion.micro
+                              : Duration.zero,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              CScholarRadius.softCard,
+                            ),
+                            border: Border.all(
+                              color: CScholarMaterial.gelTop.withValues(
+                                alpha: _focused ? 0.55 : 0,
+                              ),
+                              width: 2,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-                ),
-                // Focus ring painted OVER the card — never around it, so it
-                // adds zero pixels to layout (same contract as ClayNavList).
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: AnimatedContainer(
-                      duration: animate
-                          ? CScholarMotion.micro
-                          : Duration.zero,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                            CScholarRadius.softCard),
-                        border: Border.all(
-                          color: CScholarMaterial.gelTop.withValues(
-                              alpha: _focused ? 0.55 : 0),
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ),
-          ),
-        ),
-        // Save toggle rides top-right on the banner when the card is
-        // save-aware. White glyphs: every banner stop is dark (5.0:1 or
-        // better with white). Same coordinates the in-banner toggle had —
-        // only the hit-test relationship changed, not the look.
-        if (widget.onToggleSave != null)
-          Positioned(
-            top: 2,
-            right: 2,
-            child: TactileToggle(
-              selected: widget.isSaved ?? false,
-              onChanged: widget.onToggleSave!,
-              icon: Icons.bookmark_outline,
-              selectedIcon: Icons.bookmark,
-              size: 18,
-              color: CScholarMaterial.shadowLight,
-              selectedColor: CScholarMaterial.shadowLight,
-              semanticLabel:
-                  (widget.isSaved ?? false) ? 'Saved' : 'Save study',
+          // Save toggle rides top-right on the banner when the card is
+          // save-aware. White glyphs: every banner stop is dark (5.0:1 or
+          // better with white). Same coordinates the in-banner toggle had —
+          // only the hit-test relationship changed, not the look.
+          if (widget.onToggleSave != null)
+            Positioned(
+              top: 2,
+              right: 2,
+              child: TactileToggle(
+                selected: widget.isSaved ?? false,
+                onChanged: widget.onToggleSave!,
+                icon: Icons.bookmark_outline,
+                selectedIcon: Icons.bookmark,
+                size: 18,
+                color: CScholarMaterial.shadowLight,
+                selectedColor: CScholarMaterial.shadowLight,
+                semanticLabel: (widget.isSaved ?? false)
+                    ? 'Saved'
+                    : 'Save study',
+              ),
             ),
-          ),
-      ],
+        ],
       ),
     );
   }
@@ -303,8 +307,10 @@ class _ThesisCardState extends State<ThesisCard> {
                 // composited to #409B4F over the green banner, which dropped
                 // white label text to 3.49:1 on every single card.
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: CScholarMaterial.shadowLight,
                     borderRadius: BorderRadius.circular(CScholarRadius.sm),
@@ -339,14 +345,14 @@ class _ThesisCardState extends State<ThesisCard> {
       flightShuttleBuilder:
           (flightContext, animation, direction, fromContext, toContext) =>
               Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradient,
-          ),
-        ),
-      ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradient,
+                  ),
+                ),
+              ),
       child: banner,
     );
   }
@@ -366,47 +372,44 @@ class _ThesisCardState extends State<ThesisCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-                    // Title Hero SOURCE: flies into the detail title. Text may
-                    // fly (unlike the slab, it stays legible mid-flight).
-                    widget.heroBanner
-                        ? Hero(
-                            tag: thesisTitleTag(widget.thesis.id),
-                            child: title,
-                          )
-                        : title,
-                    const SizedBox(height: 4),
-                    if (widget.thesis.authors != null && widget.thesis.authors!.isNotEmpty)
-                      Text(
-                        widget.thesis.authors!.map((a) => '${a.firstName} ${a.lastName}').join(', '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: CScholarTextStyles.body(
-                          11.5,
-                          FontWeight.w400,
-                          CScholarColors.textSecondary,
-                        ),
-                      ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        if ((widget.thesis.program?.code ?? '').isNotEmpty)
-                          Flexible(
-                            child: _tag(widget.thesis.program!.code),
-                          ),
-                        if ((widget.thesis.program?.code ?? '').isNotEmpty &&
-                            (widget.thesis.academicYear?.label ?? '').isNotEmpty)
-                          const SizedBox(width: 8),
-                        if ((widget.thesis.academicYear?.label ?? '').isNotEmpty)
-                          Text(
-                            widget.thesis.academicYear!.label,
-                            style: CScholarTextStyles.body(
-                              11,
-                              FontWeight.w500,
-                              CScholarColors.textHint,
-                            ),
-                          ),
-                      ],
-                    ),
+        // Title Hero SOURCE: flies into the detail title. Text may
+        // fly (unlike the slab, it stays legible mid-flight).
+        widget.heroBanner
+            ? Hero(tag: thesisTitleTag(widget.thesis.id), child: title)
+            : title,
+        const SizedBox(height: 4),
+        if (widget.thesis.authors != null && widget.thesis.authors!.isNotEmpty)
+          Text(
+            widget.thesis.authors!
+                .map((a) => '${a.firstName} ${a.lastName}')
+                .join(', '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: CScholarTextStyles.body(
+              11.5,
+              FontWeight.w400,
+              CScholarColors.textSecondary,
+            ),
+          ),
+        const Spacer(),
+        Row(
+          children: [
+            if ((widget.thesis.program?.code ?? '').isNotEmpty)
+              Flexible(child: _tag(widget.thesis.program!.code)),
+            if ((widget.thesis.program?.code ?? '').isNotEmpty &&
+                (widget.thesis.academicYear?.label ?? '').isNotEmpty)
+              const SizedBox(width: 8),
+            if ((widget.thesis.academicYear?.label ?? '').isNotEmpty)
+              Text(
+                widget.thesis.academicYear!.label,
+                style: CScholarTextStyles.body(
+                  11,
+                  FontWeight.w500,
+                  CScholarColors.textHint,
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -418,7 +421,7 @@ class _ThesisCardState extends State<ThesisCard> {
     final pct = (score * 100).round();
     final badge = Tooltip(
       message:
-          'AI semantic match — ranked by meaning, not keywords. Tap to see why.',
+          'Semantic match — ranked by meaning, not keywords. Tap to see why.',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
@@ -430,8 +433,11 @@ class _ThesisCardState extends State<ThesisCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.auto_awesome,
-                size: 11, color: CScholarColors.warningFg),
+            const Icon(
+              Icons.auto_awesome,
+              size: 11,
+              color: CScholarColors.warningFg,
+            ),
             const SizedBox(width: 4),
             Text(
               '$pct% match',

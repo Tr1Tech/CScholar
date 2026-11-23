@@ -52,22 +52,13 @@ class ProfileScreen extends ConsumerWidget {
             child: StaggerColumn(
               pitch: MotionPitch.page,
               children: [
-                // Header with "Edit Profile" button
-                PageHeader(
+                // Account details are provisioned by an admin; there is no
+                // self-service update endpoint, so the header carries no edit
+                // action rather than a button that only shows a snackbar.
+                const PageHeader(
                   title: 'Profile',
-                  subtitle: 'Manage your account details and review your repository activity',
-                  action: NeumorphButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile edit mode enabled.'),
-                        ),
-                      );
-                    },
-                    icon: Icons.edit_outlined,
-                    label: 'Edit Profile',
-                    gel: false,
-                  ),
+                  subtitle:
+                      'Review your account details and repository activity',
                 ),
 
                 const SizedBox(height: 28),
@@ -81,7 +72,7 @@ class ProfileScreen extends ConsumerWidget {
                           const SizedBox(width: 24),
                           Expanded(
                             flex: 4,
-                            child: _rightColumn(context, savedTheses),
+                            child: _rightColumn(context, ref, savedTheses),
                           ),
                         ],
                       )
@@ -89,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                         children: [
                           _leftColumn(user),
                           const SizedBox(height: 24),
-                          _rightColumn(context, savedTheses),
+                          _rightColumn(context, ref, savedTheses),
                         ],
                       ),
                 const CScholarFooter(),
@@ -101,8 +92,9 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  /// Mobile Profile (`cscholar-mobile-ui/src/App.tsx:905-953`): hero,
-  /// stats, menu list. No `RoleSwitcher` — mobile is student-only.
+  /// Mobile Profile (`cscholar-mobile-ui/src/App.tsx:905-953`): hero and
+  /// stats. Account details are read-only, so there is no menu list of
+  /// editing actions to render.
   Widget _mobileBody(
     BuildContext context,
     WidgetRef ref,
@@ -215,34 +207,6 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Container(
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: t.line),
-                bottom: BorderSide(color: t.line),
-              ),
-            ),
-            child: Column(
-              children: [
-                _profileMenuItem(
-                  context,
-                  icon: Icons.person_outline,
-                  label: 'Personal information',
-                  onTap: () =>
-                      MobileToast.show(context, 'Profile edit mode enabled.'),
-                ),
-                _profileMenuItem(
-                  context,
-                  icon: Icons.settings_outlined,
-                  label: 'Preferences',
-                  onTap: () =>
-                      MobileToast.show(context, 'Preferences coming soon.'),
-                  last: true,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -277,47 +241,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget _profileDivider(BuildContext context) {
     final t = CScholarMobileTheme.of(context);
     return Container(width: 1, height: 40, color: t.line);
-  }
-
-  Widget _profileMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool last = false,
-  }) {
-    final t = CScholarMobileTheme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          border: last ? null : Border(bottom: BorderSide(color: t.line)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 19, color: t.ink),
-                  const SizedBox(width: 11),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.dmSans(11, FontWeight.w600, t.ink),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 18, color: t.muted),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _leftColumn(dynamic user) {
@@ -497,6 +420,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _rightColumn(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<List<Thesis>> savedTheses,
   ) {
     return Column(
@@ -507,29 +431,113 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 20),
 
         // Recent Search Activity
-        CScholarCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        _recentSearchesCard(context, ref),
+      ],
+    );
+  }
+
+  /// The queries the reader actually ran on this device. Live search records
+  /// them after a short pause, so the card fills without anyone pressing Enter.
+  Widget _recentSearchesCard(BuildContext context, WidgetRef ref) {
+    final queries = ref.watch(recentSearchesProvider);
+    return CScholarCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(
-                'Recent Searches',
-                style: CScholarTextStyles.heading(
-                  15,
-                  FontWeight.w700,
+              Expanded(
+                child: Text(
+                  'Recent Searches',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.heading(
+                    15,
+                    FontWeight.w700,
+                    CScholarColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (queries.isNotEmpty)
+                GestureDetector(
+                  onTap: () =>
+                      ref.read(recentSearchesProvider.notifier).clear(),
+                  child: Text(
+                    'Clear',
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w600,
+                      CScholarColors.textMuted,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (queries.isEmpty)
+            const EmptyState(
+              compact: true,
+              icon: Icons.search,
+              title: 'No recent searches',
+              message: 'Your latest queries will appear here.',
+            )
+          else
+            for (var i = 0; i < queries.length; i++) ...[
+              _recentSearchRow(context, ref, queries[i]),
+              if (i != queries.length - 1)
+                const Divider(color: CScholarMaterial.rim, height: 1),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _recentSearchRow(BuildContext context, WidgetRef ref, String query) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(CScholarRadius.sm),
+      onTap: () =>
+          context.go('/repository?q=${Uri.encodeQueryComponent(query)}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.history,
+              size: 16,
+              color: CScholarColors.textMuted,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                query,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.body(
+                  13,
+                  FontWeight.w500,
                   CScholarColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 12),
-              const EmptyState(
-                compact: true,
-                icon: Icons.search,
-                title: 'No recent searches',
-                message: 'Your latest queries will appear here.',
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: 'Remove "$query"',
+              child: GestureDetector(
+                onTap: () =>
+                    ref.read(recentSearchesProvider.notifier).remove(query),
+                child: const Padding(
+                  padding: EdgeInsets.all(2),
+                  child: Icon(
+                    Icons.close,
+                    size: 15,
+                    color: CScholarColors.textMuted,
+                  ),
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

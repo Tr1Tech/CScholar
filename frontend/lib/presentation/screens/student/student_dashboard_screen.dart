@@ -39,14 +39,9 @@ class _StudentDashboardScreenState
     final savedIds = ref.watch(savedThesisIdsProvider);
     final academicYears = ref.watch(academicYearsProvider);
 
-    // Recommendations are generated from the most recent database record.
-    final recentList = recentTheses.value;
-    final recommendationSourceId = (recentList != null && recentList.isNotEmpty)
-        ? recentList.first.id
-        : null;
-    final recommendedTheses = recommendationSourceId == null
-        ? AsyncValue.data(<SemanticResult>[])
-        : ref.watch(recommendedThesesProvider(recommendationSourceId));
+    // Personalized feed: the profile is built from what this device has
+    // saved/opened (see recommendationsProvider). No per-student table.
+    final recommendations = ref.watch(recommendationsProvider);
 
     if (MobileStudentScaffold.useMobileShell(context)) {
       return StudentLayout(
@@ -56,8 +51,7 @@ class _StudentDashboardScreenState
           userName: user?.username ?? 'Alex',
           savedIds: savedIds,
           recentTheses: recentTheses,
-          recommendedTheses: recommendedTheses,
-          recommendationSourceId: recommendationSourceId,
+          recommendations: recommendations,
         ),
       );
     }
@@ -312,7 +306,7 @@ class _StudentDashboardScreenState
                     );
                     final rightCol = EntranceReveal(
                       delay: const Duration(milliseconds: 220),
-                      child: _recommendedStudiesCard(recommendedTheses),
+                      child: _recommendedStudiesCard(recommendations),
                     );
 
                     if (isMultiCol) {
@@ -352,8 +346,7 @@ class _StudentDashboardScreenState
     required String userName,
     required Set<int> savedIds,
     required AsyncValue<List<dynamic>> recentTheses,
-    required AsyncValue<List<SemanticResult>> recommendedTheses,
-    required int? recommendationSourceId,
+    required AsyncValue<RecommendationFeed> recommendations,
   }) {
     final t = CScholarMobileTheme.of(context);
     final now = DateTime.now();
@@ -610,24 +603,33 @@ class _StudentDashboardScreenState
           if (_showRecommended) ...[
             const SizedBox(height: 10),
             EntranceReveal(
-              child: asyncSlot<List<SemanticResult>>(
-                recommendedTheses,
+              child: asyncSlot<RecommendationFeed>(
+                recommendations,
                 skeleton: const SkeletonList(count: 1, cardHeight: 96),
-                data: (recs) {
-                  if (recs.isEmpty || recommendationSourceId == null) {
+                data: (feed) {
+                  if (feed.isEmpty) {
                     return Text('No recommendations yet', style: t.bodyMuted);
                   }
-                  final r = recs.first;
-                  return MobileThesisCard(
-                    thesis: r.thesis,
-                    saved: savedIds.contains(r.thesis.id),
-                    onOpen: () => context.go(
-                      '/thesis/${r.thesis.id}',
-                      extra: r.similarity,
-                    ),
-                    onSave: () => ref
-                        .read(savedThesisIdsProvider.notifier)
-                        .toggle(r.thesis.id),
+                  final r = feed.items.first;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(feed.basis, style: t.bodyMuted),
+                      ),
+                      MobileThesisCard(
+                        thesis: r.thesis,
+                        saved: savedIds.contains(r.thesis.id),
+                        onOpen: () => context.go(
+                          '/thesis/${r.thesis.id}',
+                          extra: r.score,
+                        ),
+                        onSave: () => ref
+                            .read(savedThesisIdsProvider.notifier)
+                            .toggle(r.thesis.id),
+                      ),
+                    ],
                   );
                 },
                 error: (_, _) =>
@@ -958,7 +960,7 @@ class _StudentDashboardScreenState
     );
   }
 
-  Widget _recommendedStudiesCard(AsyncValue<List<SemanticResult>> recommended) {
+  Widget _recommendedStudiesCard(AsyncValue<RecommendationFeed> recommendations) {
     return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -992,10 +994,10 @@ class _StudentDashboardScreenState
           const Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
           asyncSlot(
-            recommended,
+            recommendations,
             skeleton: const SkeletonList(count: 4, cardHeight: 64),
-            data: (recs) {
-              if (recs.isEmpty) {
+            data: (feed) {
+              if (feed.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),
@@ -1011,10 +1013,30 @@ class _StudentDashboardScreenState
                 );
               }
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 // Same result rhythm for the rail's own rows, inside the rail
                 // block gliding in from the right at +220.
-                children: recs.take(4).toList().asMap().entries.map((entry) {
+                children: [
+                  if (feed.basis.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        feed.basis,
+                        style: CScholarTextStyles.body(
+                          11.5,
+                          FontWeight.w400,
+                          CScholarColors.textMuted,
+                        ),
+                      ),
+                    ),
+                  ...feed.items.asMap().entries.map((entry) {
                   final r = entry.value;
+                  final score = r.score;
+                  final hasPct = score != null && score >= 0.5;
+                  final program = r.thesis.program?.name ?? '';
+                  final detail = hasPct
+                      ? '${(score * 100).round()}% match'
+                      : (r.reason == 'new' ? 'New' : 'Related');
                   return Stagger(
                     index: entry.key,
                     step: MotionPitch.result.step,
@@ -1026,7 +1048,7 @@ class _StudentDashboardScreenState
                         borderRadius: BorderRadius.circular(CScholarRadius.md),
                         onTap: () => context.go(
                           '/thesis/${r.thesis.id}',
-                          extra: r.similarity,
+                          extra: score,
                         ),
                         child: Container(
                           padding: const EdgeInsets.all(12),
@@ -1062,7 +1084,7 @@ class _StudentDashboardScreenState
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${r.thesis.program?.name ?? ''}${(r.thesis.program?.name ?? '').isEmpty ? '' : ' • '}${(r.similarity * 100).round()}% match',
+                                      '$program${program.isEmpty ? '' : ' • '}$detail',
                                       style: CScholarTextStyles.body(
                                         11.5,
                                         FontWeight.w400,
@@ -1073,8 +1095,11 @@ class _StudentDashboardScreenState
                                 ),
                               ),
                               Tooltip(
-                                message:
-                                    'AI recommendation — ${(r.similarity * 100).round()}% semantically similar to your recent views. Open to see why.',
+                                message: hasPct
+                                    ? 'Semantically similar to the studies you saved or opened — ${(score * 100).round()}%.'
+                                    : (r.reason == 'new'
+                                          ? 'New in the repository.'
+                                          : 'Related to the studies you saved or opened.'),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -1099,7 +1124,11 @@ class _StudentDashboardScreenState
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        '${(r.similarity * 100).round()}%',
+                                        hasPct
+                                            ? '${(score * 100).round()}%'
+                                            : (r.reason == 'new'
+                                                  ? 'New'
+                                                  : 'Related'),
                                         style: CScholarTextStyles.body(
                                           11,
                                           FontWeight.w700,
@@ -1116,7 +1145,8 @@ class _StudentDashboardScreenState
                       ),
                     ),
                   );
-                }).toList(),
+                  }),
+                ],
               );
             },
             error: (_, _) => Center(

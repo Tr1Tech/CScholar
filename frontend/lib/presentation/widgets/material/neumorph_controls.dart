@@ -64,16 +64,29 @@ class _NeumorphBaseState extends State<_NeumorphBase>
   bool _hover = false;
   bool _down = false;
 
+  /// True when focus came from a click/tap rather than Tab. The focus ring is
+  /// for keyboard users; showing it after a pointer press leaves an outline on
+  /// the button the reader just clicked, which is not a focus indicator they
+  /// asked for.
+  bool _focusFromPointer = false;
+
   bool get _disabled =>
       widget.onTap == null || widget.previewState == NeumorphState.disabled;
 
   bool get _isFocused =>
-      widget.previewState == NeumorphState.focus || _focus.hasFocus;
+      widget.previewState == NeumorphState.focus ||
+      (_focus.hasFocus && !_focusFromPointer);
 
   @override
   void initState() {
     super.initState();
-    _focus.addListener(_sync);
+    _focus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focus.hasFocus) _focusFromPointer = false;
+    if (mounted) setState(() {});
+    _sync();
   }
 
   @override
@@ -95,7 +108,7 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 
   @override
   void dispose() {
-    _focus.removeListener(_sync);
+    _focus.removeListener(_onFocusChange);
     _focus.dispose();
     _c.dispose();
     super.dispose();
@@ -267,7 +280,11 @@ class _NeumorphBaseState extends State<_NeumorphBase>
                 onTapDown: _disabled
                     ? null
                     : (_) {
+                        // Pointer focus is not keyboard focus: hide the ring
+                        // even if this button already had it.
+                        _focusFromPointer = true;
                         _focus.requestFocus();
+                        setState(() {});
                         _setDown(true);
                       },
                 onTapUp: _disabled ? null : (_) => _setDown(false),

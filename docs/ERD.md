@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Final ERD (CEIT Scope) |
-| Version | 1.0 (Final) |
-| Date | 2026-10-09 |
+| Version | 1.2 |
+| Date | 2026-11-21 |
 | Status | Approved for Lab Activity 4 submission |
-| Source of truth | `db/schema.sql` (16 tables, 18 foreign keys) |
+| Source of truth | `db/schema.sql` (18 physical tables = 16 domain + 2 operational; 21 foreign keys) |
 | Tool / notation | Crow's Foot, Mermaid `erDiagram` |
 
 ## ERD
@@ -146,6 +146,34 @@ erDiagram
         timestamp created_at
     }
 
+    thesis_reviews {
+        int         id          PK
+        int         thesis_id   FK
+        int         reviewer_id FK
+        varchar_20  decision
+        text        notes
+        timestamp   created_at
+    }
+
+    import_jobs {
+        int          id             PK
+        varchar_20   status
+        int          created_by     FK
+        varchar_255  csv_filename
+        int          total_rows
+        int          processed_rows
+        int          created_count
+        int          updated_count
+        int          skipped_count
+        int          error_count
+        int          indexed_count
+        text         message
+        jsonb        rows
+        timestamp    created_at
+        timestamp    started_at
+        timestamp    finished_at
+    }
+
     users            ||--o{ theses               : "creates"
     programs         ||--o{ theses               : "contains"
     academic_years   ||--o{ theses               : "covers"
@@ -164,6 +192,9 @@ erDiagram
     users            ||--o{ recommendation_logs  : "receives"
     theses           ||--o{ recommendation_logs  : "source of"
     theses           ||--o{ recommendation_logs  : "recommended in"
+    theses           ||--o{ thesis_reviews        : "audited by"
+    users            ||--o{ thesis_reviews        : "reviews"
+    users            ||--o{ import_jobs           : "starts"
 ```
 
 ## Relationship summary (Crow's Foot)
@@ -188,6 +219,9 @@ erDiagram
 | 16 | users | 1 : N | recommendation_logs | user_id | ON DELETE SET NULL, nullable |
 | 17 | theses | 1 : N | recommendation_logs | source_thesis_id | ON DELETE CASCADE |
 | 18 | theses | 1 : N | recommendation_logs | recommended_thesis_id | ON DELETE CASCADE |
+| 19 | theses | 1 : N | thesis_reviews | thesis_id | ON DELETE CASCADE; operational |
+| 20 | users | 1 : N | thesis_reviews | reviewer_id | ON DELETE SET NULL, nullable; operational |
+| 21 | users | 1 : N | import_jobs | created_by | ON DELETE SET NULL, nullable; operational |
 
 **Resolved many-to-many relationships (4):**
 
@@ -198,13 +232,26 @@ erDiagram
 | theses | thesis_categories | categories | — |
 | theses | thesis_keywords | keywords | — |
 
+## Operational tables (outside the domain model)
+
+These two tables support system workflows. They are not domain entities and are
+deliberately excluded from the 16-relation count, so the ERD stays a model of
+the CEIT thesis corpus.
+
+| Table | Purpose | Key / FKs | Retention |
+|---|---|---|---|
+| `thesis_reviews` | One row per lifecycle decision (draft/approved/published/archived) with the acting reviewer and any return note. Keeps history that `theses.review_notes` cannot, because that column stores only the latest note. | PK `id`; `thesis_id → theses` (CASCADE); `reviewer_id → users` (SET NULL) | Cascades with the study |
+| `import_jobs` | Bulk-import job state: status, progress counters, per-row report (`rows` JSONB), creator, timestamps. The admin screen polls one row. | PK `id`; `created_by → users` (SET NULL) | Operational history; one batch at a time |
+
 ## Statistics
 
-- Entities: **16** (12 regular + 4 junction)
-- Foreign keys: **18**
-- Unique constraints: 7 (users.username, users.email, programs.code, academic_years.name, categories.name, keywords.term, theses.accession_no)
-- CHECK constraints: 3 (users.role, theses.research_type, theses.status)
-- Indexes: 6 (4 B-tree + 1 HNSW vector index + FK index on thesis_embeddings)
+- Domain entities: **16** (12 regular + 4 junction)
+- Operational tables: **2** (`thesis_reviews`, `import_jobs`)
+- Total physical tables: **18** (16 domain + 2 operational)
+- Foreign keys: **21** (18 domain + 3 operational)
+- Unique constraints: 7 (domain only)
+- CHECK constraints: 5 (3 domain + 2 operational)
+- Indexes: 8 (6 domain + 2 operational)
 
 ## Change log
 
@@ -212,3 +259,4 @@ erDiagram
 |---|---|---|
 | 1.0 | 2026-10-09 | Final ERD released for Lab Activity 4; verified against `db/schema.sql` |
 | 1.1 | 2026-11-19 | Added `theses.accession_no` (nullable UNIQUE) for library accession numbers |
+| 1.2 | 2026-11-21 | Documented the two operational tables (`thesis_reviews`, `import_jobs`); totals now 18 physical = 16 domain + 2 operational |

@@ -142,9 +142,11 @@ class _AdminAddEditThesisScreenState
               .where((e) => e.isNotEmpty)
               .toList(),
           pdfUrl: _pdfUrl,
-          // Repository searches intentionally exclude drafts. Admin-created
-          // studies should be visible to repository users immediately.
-          status: widget.thesisId == null ? 'published' : null,
+          // New records start as drafts, exactly like bulk import. The admin
+          // approves and publishes from the management list, so "nothing goes
+          // public without review" stays true for every entry path. Edits keep
+          // the current status (null = unchanged).
+          status: widget.thesisId == null ? 'draft' : null,
           confirmDuplicate: confirmDuplicate,
         );
 
@@ -167,7 +169,13 @@ class _AdminAddEditThesisScreenState
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thesis registered successfully!')),
+        SnackBar(
+          content: Text(
+            widget.thesisId == null
+                ? 'Saved as a draft — approve and publish it from the list.'
+                : 'Thesis updated successfully!',
+          ),
+        ),
       );
       // Refresh the thesis list so the new one appears
       ref.invalidate(thesisListProvider(const ThesisListParams()));
@@ -452,7 +460,9 @@ class _AdminAddEditThesisScreenState
                             style: TextButton.styleFrom(
                               foregroundColor: CScholarColors.primaryGreen,
                               visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
                             ),
                             onPressed: _addAuthor,
                             icon: const Icon(Icons.person_add_alt_1, size: 16),

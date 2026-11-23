@@ -1,5 +1,24 @@
 # Phase 2 — Database Setup (PostgreSQL + pgvector)
 
+## ⚠️ Schema is locked — do not add tables
+
+`db/schema.sql` is the **complete and frozen** definition of the CScholar
+database (18 physical tables = 16 domain + 2 operational, including `import_jobs`
+and `thesis_reviews`). AI agents and contributors must
+not change it:
+
+- **Do not** add, rename, drop, or alter tables, columns, indexes, or
+  constraints.
+- **Do not** write migrations, `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, or
+  an ORM `create_all()`.
+- **Do not** create "temporary", "helper", "cache", or "analytics" tables to
+  work around a feature.
+- Use the existing tables and columns. If state must be new, keep it on the
+  client (for example `SharedPreferences`), or return an error to the user.
+- If a task genuinely cannot be completed without a schema change, **stop and
+  ask the project owner for explicit approval**. Never make the change
+  yourself.
+
 This folder contains the CScholar database schema, mock seed data, and the
 Lab 5 logic (views, functions, procedure, triggers).
 

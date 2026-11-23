@@ -24,18 +24,25 @@ class RecRail extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('AI Recommendations',
-              style: CScholarTextStyles.heading(
-                  16, FontWeight.w700, CScholarColors.textPrimary)),
+          Text(
+            'AI Recommendations',
+            style: CScholarTextStyles.heading(
+              16,
+              FontWeight.w700,
+              CScholarColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text('Related to your current search',
-              style: CScholarTextStyles.body(
-                  12, FontWeight.w400, CScholarColors.textMuted)),
+          Text(
+            'Related to your current search',
+            style: CScholarTextStyles.body(
+              12,
+              FontWeight.w400,
+              CScholarColors.textMuted,
+            ),
+          ),
           const SizedBox(height: 14),
-          if (query.trim().isEmpty)
-            _placeholder()
-          else
-            _results(context, ref),
+          if (query.trim().isEmpty) _placeholder() else _results(context, ref),
           const SizedBox(height: 14),
           _aiNote(context),
         ],
@@ -55,10 +62,13 @@ class RecRail extends ConsumerWidget {
       ),
       child: Center(
         child: Text(
-          'Type a query to see AI picks',
+          'Type a query to see related studies',
           textAlign: TextAlign.center,
           style: CScholarTextStyles.body(
-              12, FontWeight.w500, CScholarColors.textMuted),
+            12,
+            FontWeight.w500,
+            CScholarColors.textMuted,
+          ),
         ),
       ),
     );
@@ -74,9 +84,14 @@ class RecRail extends ConsumerWidget {
       data: (results) {
         final top = results.take(4).toList();
         if (top.isEmpty) {
-          return Text('No AI matches for this query yet',
-              style: CScholarTextStyles.body(
-                  12, FontWeight.w500, CScholarColors.textMuted));
+          return Text(
+            'No related studies for this query yet',
+            style: CScholarTextStyles.body(
+              12,
+              FontWeight.w500,
+              CScholarColors.textMuted,
+            ),
+          );
         }
         return Column(
           // Rail rows step dense on tight inside the rail gliding in from
@@ -95,9 +110,14 @@ class RecRail extends ConsumerWidget {
           ],
         );
       },
-      error: (_, _) => Text('Recommendations unavailable right now',
-          style: CScholarTextStyles.body(
-              12, FontWeight.w500, CScholarColors.textMuted)),
+      error: (_, _) => Text(
+        'Recommendations unavailable right now',
+        style: CScholarTextStyles.body(
+          12,
+          FontWeight.w500,
+          CScholarColors.textMuted,
+        ),
+      ),
     );
   }
 
@@ -116,57 +136,84 @@ class RecRail extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ThesisCover(
-                seed: t.id, width: 52, height: 64, borderRadius: 8, iconSize: 22),
+              seed: t.id,
+              width: 52,
+              height: 64,
+              borderRadius: 8,
+              iconSize: 22,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: CScholarTextStyles.body(
-                          12.5, FontWeight.w600, CScholarColors.textPrimary)),
+                  Text(
+                    t.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: CScholarTextStyles.body(
+                      12.5,
+                      FontWeight.w600,
+                      CScholarColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: isThesis
                               ? CScholarColors.thesisChipBg
                               : CScholarColors.capstoneChipBg,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(isThesis ? 'Thesis' : 'Capstone',
-                            style: CScholarTextStyles.body(
-                                10,
-                                FontWeight.w700,
-                                isThesis
-                                    ? CScholarColors.thesisChipFg
-                                    : CScholarColors.capstoneChipFg)),
+                        child: Text(
+                          isThesis ? 'Thesis' : 'Capstone',
+                          style: CScholarTextStyles.body(
+                            10,
+                            FontWeight.w700,
+                            isThesis
+                                ? CScholarColors.thesisChipFg
+                                : CScholarColors.capstoneChipFg,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                            '${t.program?.name ?? ''} • ${t.academicYear?.label ?? ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: CScholarTextStyles.body(11,
-                                FontWeight.w400, CScholarColors.textMuted)),
+                          '${t.program?.name ?? ''} • ${t.academicYear?.label ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CScholarTextStyles.body(
+                            11,
+                            FontWeight.w400,
+                            CScholarColors.textMuted,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('$pct% match',
-                      style: CScholarTextStyles.body(11, FontWeight.w700,
-                          CScholarColors.primaryGreen)),
+                  Text(
+                    '$pct% match',
+                    style: CScholarTextStyles.body(
+                      11,
+                      FontWeight.w700,
+                      CScholarColors.primaryGreen,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right,
-                size: 18, color: CScholarColors.textHint),
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: CScholarColors.textHint,
+            ),
           ],
         ),
       ),
@@ -186,21 +233,33 @@ class RecRail extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome,
-              size: 18, color: CScholarColors.goldDeep),
+          const Icon(
+            Icons.auto_awesome,
+            size: 18,
+            color: CScholarColors.goldDeep,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Ranked by meaning, not keywords',
-                    style: CScholarTextStyles.body(
-                        12, FontWeight.w700, CScholarColors.textPrimary)),
+                Text(
+                  'Ranked by meaning, not keywords',
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w700,
+                    CScholarColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
-                    'Semantic search compares the meaning of your query against every study.',
-                    style: CScholarTextStyles.body(
-                        11.5, FontWeight.w400, CScholarColors.textMuted)),
+                  'Semantic search compares the meaning of your query against every study.',
+                  style: CScholarTextStyles.body(
+                    11.5,
+                    FontWeight.w400,
+                    CScholarColors.textMuted,
+                  ),
+                ),
               ],
             ),
           ),

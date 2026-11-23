@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Normalization Verification Report |
-| Version | 1.0 (Final) |
-| Date | 2026-10-09 |
-| Source of truth | `db/schema.sql` (16 relations) |
+| Version | 1.1 |
+| Date | 2026-11-21 |
+| Source of truth | `db/schema.sql` (16 domain relations + 2 operational tables) |
 
 ## Method
 
@@ -18,7 +18,7 @@ For each relation R:
 
 ## Result summary
 
-**All 16 relations pass 1NF, 2NF and 3NF. All 16 relations also satisfy BCNF** — the only determinants of non-trivial functional dependencies are candidate keys / superkeys, so the BCNF condition is met in every relation. Because BCNF ⊂ 3NF ⊂ 2NF ⊂ 1NF, this verifies the whole schema at every level.
+**All 16 domain relations pass 1NF, 2NF and 3NF. All 16 also satisfy BCNF** — the only determinants of non-trivial functional dependencies are candidate keys / superkeys, so the BCNF condition is met in every relation. Because BCNF ⊂ 3NF ⊂ 2NF ⊂ 1NF, this verifies the whole domain model at every level. The two operational tables (`thesis_reviews`, `import_jobs`) are verified separately below and also pass 1NF–BCNF; they are excluded from the 16-relation count because they are workflow records, not domain entities.
 
 | # | Relation | Candidate key(s) | Detected non-trivial FDs | 1NF | 2NF | 3NF | BCNF |
 |---|---|---|---|---|---|---|---|
@@ -38,6 +38,16 @@ For each relation R:
 | 14 | thesis_embeddings | id | id→all | ✅ | ✅ | ✅ | ✅ |
 | 15 | search_logs | id | id→all | ✅ | ✅ | ✅ | ✅ |
 | 16 | recommendation_logs | id | id→all | ✅ | ✅ | ✅ | ✅ |
+
+### Operational tables (verified separately)
+
+These tables support workflows rather than the domain model, so they are not
+counted among the 16 core relations. Both still satisfy 1NF–BCNF.
+
+| # | Relation | Candidate key(s) | Detected non-trivial FDs | 1NF | 2NF | 3NF | BCNF |
+|---|---|---|---|---|---|---|---|
+| O1 | thesis_reviews | id | id→all | ✅ | ✅ | ✅ | ✅ |
+| O2 | import_jobs | id | id→all | ✅ | ✅ | ✅ | ✅ |
 
 ## Per-relation notes
 
@@ -89,7 +99,14 @@ Pure associative table with PK `(thesis_id, keyword_id)` → BCNF.
 ### recommendation_logs
 `id` PK; `source_thesis_id` and `recommended_thesis_id` are two separate FKs to `theses` (correctly modeled as two relationships, not one multi-valued attribute). All attributes depend on `id` → 3NF; only determinant is `id` → BCNF.
 
+### thesis_reviews (operational)
+`id` PK; `thesis_id` and `reviewer_id` are FKs (many-to-one), not multi-valued attributes. `decision`, `notes` and `created_at` depend directly on `id`; `id` is the only determinant → BCNF.
+
+### import_jobs (operational)
+`id` PK; `created_by` is an FK. `rows` is a JSONB report treated as one atomic value, so 1NF holds. The status, progress counters and timestamps depend directly on `id`; `id` is the only determinant → BCNF.
+
 ## Conclusion
 
-- **Core relations verified at 3NF: 16 of 16** (theses and its 15 companions, including all 4 junction tables).
-- **Relations evaluated for BCNF: 16 of 16 — all pass**, because no relation contains a non-trivial functional dependency whose determinant is not a superkey.
+- **Core domain relations verified at 3NF: 16 of 16** (theses and its 15 companions, including all 4 junction tables).
+- **Relations evaluated for BCNF: 16 of 16 domain — all pass**, because no relation contains a non-trivial functional dependency whose determinant is not a superkey.
+- **Operational tables: 2 of 2** (`thesis_reviews`, `import_jobs`) also pass 1NF–BCNF; they are not counted in the 16 domain relations.
