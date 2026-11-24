@@ -51,7 +51,9 @@ class NeumorphToggle extends StatelessWidget {
             // brand green so the state is legible without reading the ball's
             // rim. (White on green measures 9.45:1 — the ball still stands out
             // at 2.4:1 as an object, same as any knob on a fill.)
-            color: on ? CScholarMaterial.gelTop : CScholarMaterial.well,
+            color: on
+                ? CScholarMaterial.actionFill
+                : CScholarMaterial.well,
             borderRadius: radius,
           ),
           child: AnimatedAlign(

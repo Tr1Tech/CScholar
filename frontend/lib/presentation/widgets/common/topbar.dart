@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/theme_toggle.dart';
 
 /// Shared topbar chrome for every role shell (admin / faculty / student).
 ///
@@ -26,15 +27,28 @@ class Topbar extends StatelessWidget {
     super.key,
     this.leading,
     this.trailing,
+    this.showThemeToggle = true,
     this.padding = const EdgeInsets.fromLTRB(28, 16, 28, 12),
   });
 
   final Widget? leading;
   final Widget? trailing;
+
+  /// The light/dark switch sits here, at the top-right of every role shell —
+  /// one place, so admin, faculty and student can never disagree about where
+  /// it lives. Set false for a bar that must not carry it.
+  final bool showThemeToggle;
+
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
+    final trailingRow = <Widget>[
+      if (showThemeToggle) const ThemeModeButton(),
+      if (showThemeToggle && trailing != null) const SizedBox(width: 10),
+      ?trailing,
+    ];
+
     return Padding(
       padding: padding,
       child: Row(
@@ -42,8 +56,11 @@ class Topbar extends StatelessWidget {
           ?leading,
           // A trailing-only bar (faculty, student) must still sit right: the
           // pill is an identity anchor in the top-right corner, not a left item.
-          if (trailing != null) const Spacer(),
-          ?trailing,
+          if (trailingRow.isNotEmpty) const Spacer(),
+          if (trailingRow.length == 1)
+            trailingRow.first
+          else
+            Row(mainAxisSize: MainAxisSize.min, children: trailingRow),
         ],
       ),
     );
@@ -99,7 +116,7 @@ class TopbarSearchField extends StatelessWidget {
           FontWeight.w400,
           CScholarColors.textHint,
         ),
-        prefixIcon: const Icon(
+        prefixIcon: Icon(
           Icons.search,
           size: 20,
           color: CScholarColors.textSecondary,
@@ -108,7 +125,7 @@ class TopbarSearchField extends StatelessWidget {
             ? null
             : IconButton(
                 tooltip: 'Clear search',
-                icon: const Icon(
+                icon: Icon(
                   Icons.clear,
                   size: 18,
                   color: CScholarColors.textSecondary,
@@ -137,11 +154,15 @@ class TopbarSearchField extends StatelessWidget {
             // Match the field/select fill used across the rest of the shell.
             color: CScholarMaterial.clayDeep,
             borderRadius: radius,
-            // No outline at rest — the tonal fill is the field. High contrast
-            // keeps a strong rim as its fallback.
-            border: flat
-                ? Border.all(color: CScholarMaterial.rimStrong, width: 1.5)
-                : null,
+            // The topbar sits on the same near-white clay as the well, so the
+            // fill alone disappeared. Keep a soft green rim as the edge;
+            // high contrast strengthens it.
+            border: Border.all(
+              color: flat
+                  ? CScholarMaterial.rimStrong
+                  : CScholarColors.primaryGreen.withValues(alpha: 0.35),
+              width: flat ? 1.5 : 1,
+            ),
           ),
           child: field,
         ),
@@ -255,8 +276,8 @@ class CScholarHeaderAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
-        color: CScholarColors.goldSoft,
+      decoration: BoxDecoration(
+        color: CScholarColors.primaryGreenLight,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,

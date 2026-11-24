@@ -318,7 +318,7 @@ class _WashPainter extends CustomPainter {
       0.66,
       CScholarColors.primaryGreenLight,
     );
-    _wash(canvas, size, const Offset(0.84, 0.8), 0.5, CScholarColors.goldSoft);
+    _wash(canvas, size, const Offset(0.84, 0.8), 0.5, CScholarColors.violetTint);
   }
 
   void _wash(

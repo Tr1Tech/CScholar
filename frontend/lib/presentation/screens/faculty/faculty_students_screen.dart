@@ -234,7 +234,7 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
+            Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
           ],
         ),
       ),

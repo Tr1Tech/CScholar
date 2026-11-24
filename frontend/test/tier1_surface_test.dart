@@ -81,7 +81,7 @@ Widget _kpiGrid(BuildContext context, int columns) {
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     gridDelegate: kpiGridDelegate(context, columns),
-    children: const [
+    children: [
       KpiCard(
         label: 'STUDIES',
         value: '128',
@@ -159,7 +159,7 @@ void main() {
     });
 
     test('chip tints stay lighter than their ink', () {
-      for (final pair in const [
+      for (final pair in [
         (CScholarColors.primaryGreen, CScholarColors.primaryGreenLight),
         (CScholarColors.info, CScholarColors.infoLight),
         (CScholarColors.adminColor, CScholarColors.adminLight),

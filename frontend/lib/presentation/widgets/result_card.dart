@@ -6,7 +6,6 @@ import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
-import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// V2 search result card (new design): generative cover, title, authors,
 /// program/year, keyword chips, real match badge (semantic only), save +
@@ -129,8 +128,22 @@ class ResultCard extends StatelessWidget {
                         .toList(),
                   ),
                 ],
+                if (similarity != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _matchBadge(context, similarity!),
+                  ),
+                ],
                 const SizedBox(height: 10),
-                Row(
+                // Wrap, not Row+Spacer: at 200% text the two action pills
+                // exceed a narrow result column. They stack instead of
+                // overflowing.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     InkWell(
                       onTap: () =>
@@ -160,7 +173,7 @@ class ResultCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(
+                            Icon(
                               Icons.arrow_forward,
                               size: 14,
                               color: CScholarColors.primaryGreen,
@@ -169,28 +182,62 @@ class ResultCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    // Outline <-> filled morphs through the button's MorphIcon
-                    // instead of hard-swapping: the eye reads it as a
-                    // response, not a repaint.
-                    NeumorphIconButton(
-                      tooltip: isSaved ? 'Remove from Saved' : 'Save Study',
-                      size: 36,
-                      icon: Icons.bookmark_outline,
-                      selectedIcon: Icons.bookmark,
-                      selected: isSaved,
-                      onPressed: onToggleSave,
-                    ),
+                    // A labelled pill, not a bare 36px circle: the icon-only
+                    // button read as a floating affordance with no name. Same
+                    // geometry as "Related Research" so the row scans as one
+                    // set of actions; mint = saved, clay = unsaved.
+                    _saveButton(),
                   ],
                 ),
               ],
             ),
           ),
-          if (similarity != null) ...[
-            const SizedBox(width: 12),
-            _matchBadge(context, similarity!),
-          ],
         ],
+      ),
+    );
+  }
+
+  /// Save action as a named pill. The old icon-only circle was a 36px
+  /// mystery target; this states its purpose and shows the saved state.
+  Widget _saveButton() {
+    final bg = isSaved
+        ? CScholarColors.primaryGreenLight
+        : CScholarMaterial.clayDeep;
+    final fg = isSaved
+        ? CScholarColors.primaryGreen
+        : CScholarColors.textPrimary;
+    final rim = isSaved ? CScholarMaterial.rimPublished : CScholarMaterial.rim;
+    return Semantics(
+      button: true,
+      toggled: isSaved,
+      label: isSaved ? 'Saved — tap to remove' : 'Save study',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onToggleSave,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: rim),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                size: 15,
+                color: fg,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                isSaved ? 'Saved' : 'Save',
+                style: CScholarTextStyles.body(12, FontWeight.w700, fg),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -205,9 +252,7 @@ class ResultCard extends StatelessWidget {
     final fg = _isThesis
         ? CScholarColors.thesisChipFg
         : CScholarColors.capstoneChipFg;
-    final rim = _isThesis
-        ? CScholarMaterial.rimPublished
-        : CScholarMaterial.rimDraft;
+    final rim = CScholarMaterial.rimPublished;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -222,65 +267,50 @@ class ResultCard extends StatelessWidget {
     );
   }
 
-  /// Real match badge — gold AI identity with explainability tooltip.
-  /// Circular data gauge, now gold paper + amber ink so AI rank is distinct
-  /// from green status chips. Fixed 52px slot (same as before) so the
-  /// repository row never reflows — the label scales down inside it.
-  /// Pops in on a springy settle so the rank lands instead of painting.
+  /// Semantic match as a readable inline pill.
+  ///
+  /// It used to be a 52px column with a 10px label that `FittedBox` shrank to
+  /// ~6px. A horizontal pill carries the same mint/green identity, stays at a
+  /// legible 11.5px, and lives in the content flow so it never squeezes the
+  /// title column.
   Widget _matchBadge(BuildContext context, double score) {
     final pct = (score * 100).round().clamp(0, 100);
     final badge = Tooltip(
       message:
           'Semantic match $pct% — ranked by meaning. Open the study to see related work.',
-      child: SizedBox(
-        width: 52,
-        child: Column(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: CScholarColors.primaryGreenLight,
+          borderRadius: BorderRadius.circular(CScholarRadius.full),
+          border: Border.all(
+            color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // tile-exempt: this is a circular DATA gauge carrying a percentage, not
-            // an icon tile — ClayIconTile would turn a number into a square chip.
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: CScholarColors.goldSoft,
-                border: Border.all(color: CScholarColors.warningFg, width: 2.5),
-                boxShadow: CScholarShadows.goldGlow,
-              ),
-              child: Center(
-                child: Text(
-                  '$pct%',
-                  style: CScholarTextStyles.body(
-                    13,
-                    FontWeight.w800,
-                    CScholarColors.warningFg,
-                  ),
-                ),
+            Icon(
+              Icons.auto_awesome,
+              size: 12,
+              color: CScholarColors.primaryGreen,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '$pct%',
+              style: CScholarTextStyles.body(
+                12.5,
+                FontWeight.w800,
+                CScholarColors.primaryGreen,
               ),
             ),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.auto_awesome,
-                    size: 10,
-                    color: CScholarColors.warningFg,
-                  ),
-                  const SizedBox(width: 2),
-                  Text(
-                    'Semantic match',
-                    style: CScholarTextStyles.body(
-                      10,
-                      FontWeight.w700,
-                      CScholarColors.warningFg,
-                    ),
-                  ),
-                ],
+            const SizedBox(width: 5),
+            Text(
+              'Semantic match',
+              style: CScholarTextStyles.body(
+                11.5,
+                FontWeight.w600,
+                CScholarColors.primaryGreen,
               ),
             ),
           ],

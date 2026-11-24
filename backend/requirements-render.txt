@@ -1,0 +1,14 @@
+# Free 512 MB host (Render Free): ONNX runtime instead of torch.
+#   pip install -r requirements-render.txt
+#
+# fastembed runs the same all-MiniLM-L6-v2 weights exported to ONNX. It peaks
+# around 170 MB RSS, versus ~520 MB for torch + sentence-transformers, and its
+# 384-dim L2-normalised vectors match the stored vectors (cosine similarity
+# 1.00000, max abs difference 1.1e-07). Search results are unchanged.
+#
+# app/services/embeddings.py selects fastembed automatically when it is
+# installed; set EMBEDDING_BACKEND=fastembed to make that explicit.
+
+-r requirements-base.txt
+
+fastembed==0.9.1

@@ -254,7 +254,7 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                         TextButton(
                           onPressed: () =>
                               context.go('/faculty/thesis/${t.id}/edit'),
-                          child: const Text(
+                          child: Text(
                             'Edit',
                             style: TextStyle(
                               fontSize: 12,

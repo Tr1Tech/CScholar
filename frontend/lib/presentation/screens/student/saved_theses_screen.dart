@@ -26,6 +26,8 @@ class SavedThesesScreen extends ConsumerStatefulWidget {
 }
 
 class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
+  static const _tabs = ['All', 'Thesis', 'Capstone'];
+
   String _selectedTab = 'All';
 
   @override
@@ -55,7 +57,8 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                 // Page Header
                 PageHeader(
                   title: 'Saved Studies',
-                  subtitle: 'Your bookmarked research studies and reference papers',
+                  subtitle:
+                      'Your bookmarked research studies and reference papers',
                   action: NeumorphButton(
                     onPressed: () => context.go('/repository'),
                     icon: Icons.search,
@@ -66,11 +69,9 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                 const SizedBox(height: 24),
 
                 NeumorphSegmented(
-                  labels: const ['All', 'Thesis', 'Capstone'],
-                  selectedIndex: ['All', 'Thesis', 'Capstone']
-                      .indexOf(_selectedTab),
-                  onChanged: (i) => setState(() =>
-                      _selectedTab = ['All', 'Thesis', 'Capstone'][i]),
+                  labels: _tabs,
+                  selectedIndex: _tabs.indexOf(_selectedTab),
+                  onChanged: (i) => setState(() => _selectedTab = _tabs[i]),
                 ),
 
                 const SizedBox(height: 24),
@@ -84,19 +85,18 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                     var filtered = saved;
                     if (_selectedTab != 'All') {
                       filtered = filtered
-                          .where((t) =>
-                              t.researchType.toLowerCase() == _selectedTab.toLowerCase())
+                          .where(
+                            (t) =>
+                                t.researchType.toLowerCase() ==
+                                _selectedTab.toLowerCase(),
+                          )
                           .toList();
                     }
 
                     if (filtered.isEmpty) {
-                      return EmptyState(
-                        icon: Icons.bookmark_border,
-                        title: 'No saved studies',
-                        message:
-                            'Browse the repository to save research papers and capstone projects for later reference.',
-                        actionLabel: 'Browse Repository',
-                        onAction: () => context.go('/repository'),
+                      return _emptyState(
+                        mobile: false,
+                        hasSaved: saved.isNotEmpty,
                       );
                     }
 
@@ -121,113 +121,168 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 14),
                             child: CScholarCard(
-                            padding: const EdgeInsets.all(18),
-                            child: Row(
-                              children: [
-                                // tile-exempt: ThesisCover paints its own
-                                // illustration, so it is not an icon tile.
-                                // Same thesis cover as the research page: green
-                                // gel tile with the article glyph, scaled down
-                                // to this row's 60px slot.
-                                ThesisCover(
-                                  seed: thesis.id,
-                                  width: 60,
-                                  height: 60,
-                                  borderRadius: 16,
-                                  iconSize: 26,
-                                ),
-                                const SizedBox(width: 18),
+                              padding: const EdgeInsets.all(18),
+                              child: Row(
+                                children: [
+                                  // tile-exempt: ThesisCover paints its own
+                                  // illustration, so it is not an icon tile.
+                                  // Same thesis cover as the research page: green
+                                  // gel tile with the article glyph, scaled down
+                                  // to this row's 60px slot.
+                                  ThesisCover(
+                                    seed: thesis.id,
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 16,
+                                    iconSize: 26,
+                                  ),
+                                  const SizedBox(width: 18),
 
-                                // Title & Meta
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  // Title & Meta
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        InkWell(
+                                          onTap: () => context.go(
+                                            '/thesis/${thesis.id}',
+                                          ),
+                                          child: Text(
+                                            thesis.title,
+                                            style: CScholarTextStyles.heading(
+                                              15,
+                                              FontWeight.w700,
+                                              CScholarColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            if ((thesis.program?.name ?? '')
+                                                .isNotEmpty)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      CScholarMaterial.clayDeep,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        CScholarRadius.sm,
+                                                      ),
+                                                  border: Border.all(
+                                                    color: CScholarMaterial.rim,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  thesis.program!.name,
+                                                  style:
+                                                      CScholarTextStyles.body(
+                                                        11,
+                                                        FontWeight.w700,
+                                                        CScholarColors
+                                                            .textSecondary,
+                                                      ),
+                                                ),
+                                              ),
+                                            if ((thesis.program?.name ?? '')
+                                                    .isNotEmpty &&
+                                                (thesis.academicYear?.label ??
+                                                        '')
+                                                    .isNotEmpty)
+                                              const SizedBox(width: 8),
+                                            if ((thesis.academicYear?.label ??
+                                                    '')
+                                                .isNotEmpty)
+                                              Text(
+                                                thesis.academicYear!.label,
+                                                style: CScholarTextStyles.body(
+                                                  12,
+                                                  FontWeight.w500,
+                                                  CScholarColors.textMuted,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  // Right Actions: View & Save toggle. The toggle
+                                  // reads selected (everything here IS saved);
+                                  // tapping it unsaves, the row leaves, and the
+                                  // keyed list above re-forms the survivors
+                                  // instead of closing the gap instantly.
+                                  Row(
                                     children: [
-                                      InkWell(
-                                        onTap: () => context.go('/thesis/${thesis.id}'),
+                                      TextButton(
+                                        onPressed: () =>
+                                            context.go('/thesis/${thesis.id}'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor:
+                                              CScholarColors.primaryGreen,
+                                          backgroundColor: CScholarColors
+                                              .primaryGreenVeryLight,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 8,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              CScholarRadius.md,
+                                            ),
+                                          ),
+                                        ),
                                         child: Text(
-                                          thesis.title,
-                                          style: CScholarTextStyles.heading(
-                                            15,
-                                            FontWeight.w700,
-                                            CScholarColors.textPrimary,
+                                          'View',
+                                          style: CScholarTextStyles.body(
+                                            12.5,
+                                            FontWeight.w600,
+                                            CScholarColors.primaryGreen,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          if ((thesis.program?.name ?? '').isNotEmpty)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: CScholarMaterial.clayDeep,
-                                                borderRadius: BorderRadius.circular(CScholarRadius.sm),
-                                                border: Border.all(color: CScholarMaterial.rim),
+                                      const SizedBox(width: 8),
+                                      Tooltip(
+                                        message: 'Saved — tap to remove',
+                                        // The toggle already announces this.
+                                        excludeFromSemantics: true,
+                                        child: TactileToggle(
+                                          selected: true,
+                                          onChanged: () {
+                                            ref
+                                                .read(
+                                                  savedThesisIdsProvider
+                                                      .notifier,
+                                                )
+                                                .toggle(thesis.id);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Removed "${thesis.title}" from saved studies',
+                                                ),
                                               ),
-                                              child: Text(
-                                                thesis.program!.name,
-                                                style: CScholarTextStyles.body(11, FontWeight.w700, CScholarColors.textSecondary),
-                                              ),
-                                            ),
-                                          if ((thesis.program?.name ?? '').isNotEmpty &&
-                                              (thesis.academicYear?.label ?? '').isNotEmpty)
-                                            const SizedBox(width: 8),
-                                          if ((thesis.academicYear?.label ?? '').isNotEmpty)
-                                            Text(
-                                              thesis.academicYear!.label,
-                                              style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted),
-                                            ),
-                                        ],
+                                            );
+                                          },
+                                          icon: Icons.bookmark_outline,
+                                          selectedIcon: Icons.bookmark,
+                                          semanticLabel:
+                                              'Saved — tap to remove',
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-
-                                // Right Actions: View & Save toggle. The toggle
-                                // reads selected (everything here IS saved);
-                                // tapping it unsaves, the row leaves, and the
-                                // keyed list above re-forms the survivors
-                                // instead of closing the gap instantly.
-                                Row(
-                                  children: [
-                                    TextButton(
-                                      onPressed: () => context.go('/thesis/${thesis.id}'),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: CScholarColors.primaryGreen,
-                                        backgroundColor: CScholarColors.primaryGreenVeryLight,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CScholarRadius.md)),
-                                      ),
-                                      child: Text(
-                                        'View',
-                                        style: CScholarTextStyles.body(12.5, FontWeight.w600, CScholarColors.primaryGreen),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Tooltip(
-                                      message: 'Saved — tap to remove',
-                                      // The toggle already announces this.
-                                      excludeFromSemantics: true,
-                                      child: TactileToggle(
-                                        selected: true,
-                                        onChanged: () {
-                                          ref.read(savedThesisIdsProvider.notifier).toggle(thesis.id);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Removed "${thesis.title}" from saved studies')),
-                                          );
-                                        },
-                                        icon: Icons.bookmark_outline,
-                                        selectedIcon: Icons.bookmark,
-                                        semanticLabel: 'Saved — tap to remove',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                         );
                       },
                     );
@@ -249,85 +304,305 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
     );
   }
 
+  /// Selectable pill for the mobile filter sheet — same geometry as the
+  /// repository sheet, so both filters read as one system.
+  Widget _mobileChoicePill(
+    CScholarMobileTheme t,
+    String label,
+    bool active,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? t.green : t.surfaceSoft,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: active ? t.green : t.line),
+        ),
+        child: Text(
+          label,
+          style: t.dmSans(
+            10,
+            FontWeight.w700,
+            // Dark mode's green is a light mint accent, so white on it is
+            // unreadable: selected pills flip to ink there.
+            active
+                ? (t.isDark ? CScholarMobileColors.ink : CScholarColors.white)
+                : t.muted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The mint "Filters" pill from the search page.
+  Widget _mobileFilterPill(CScholarMobileTheme t) {
+    final active = _selectedTab == 'All' ? 0 : 1;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: t.mint,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.filter_list, size: 17, color: t.green),
+          const SizedBox(width: 5),
+          Text(
+            'Filters${active > 0 ? ' ($active)' : ''}',
+            style: t.dmSans(10, FontWeight.w700, t.green),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Same bottom sheet as the search page: draft the choice locally, then
+  /// commit it with "Show saved". Only the research type applies here — the
+  /// saved list is already a personal subset.
+  void _showMobileFilterSheet(BuildContext context) {
+    var type = _selectedTab;
+    MobileFilterSheet.show<void>(
+      context,
+      StatefulBuilder(
+        builder: (sheetContext, setSheet) {
+          final t = CScholarMobileTheme.of(sheetContext);
+          final ctaFill = t.green;
+          final ctaInk = t.isDark
+              ? CScholarMobileColors.ink
+              : CScholarColors.white;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Your library', style: t.eyebrow),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Filters',
+                        style: t.manrope(23, FontWeight.w700, t.ink),
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(sheetContext).pop(),
+                    // tile-exempt: bottom-sheet close affordance.
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: t.surfaceSoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.close, size: 16, color: t.muted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('RESEARCH TYPE', style: t.eyebrow),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: [
+                        for (final option in _tabs)
+                          _mobileChoicePill(
+                            t,
+                            option,
+                            option == type,
+                            () => setSheet(() => type = option),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => setSheet(() => type = 'All'),
+                    child: Text(
+                      'Clear all',
+                      style: t.dmSans(11, FontWeight.w700, t.muted),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedTab = type);
+                        Navigator.of(sheetContext).pop();
+                      },
+                      child: Container(
+                        height: 46,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: ctaFill,
+                          borderRadius: BorderRadius.circular(
+                            CScholarMobileRadius.cta,
+                          ),
+                        ),
+                        child: Text(
+                          'Show saved',
+                          style: t.dmSans(11, FontWeight.w800, ctaInk),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Empty panel for the current tab.
+  ///
+  /// Two different situations share this slot: a reader with no bookmarks at
+  /// all (send them to the repository) and a reader whose bookmarks are all in
+  /// another bucket (send them back to All, instead of implying nothing is
+  /// saved and hiding the filter that caused it).
+  Widget _emptyState({required bool mobile, required bool hasSaved}) {
+    if (!hasSaved) {
+      return EmptyState(
+        mobile: mobile,
+        icon: Icons.bookmark_border,
+        title: 'No saved studies',
+        message: 'Browse the repository to save research papers and capstone projects for later reference.',
+        actionLabel: 'Browse Repository',
+        onAction: () => context.go('/repository'),
+      );
+    }
+    return EmptyState(
+      mobile: mobile,
+      icon: Icons.filter_list_off,
+      title: switch (_selectedTab) {
+        'Thesis' => 'No saved theses',
+        'Capstone' => 'No saved capstones',
+        _ => 'No saved studies',
+      },
+      message: 'Your saved studies are filed under another type.',
+      actionLabel: 'Show all saved',
+      onAction: () => setState(() => _selectedTab = 'All'),
+    );
+  }
+
   /// Mobile Saved (`cscholar-mobile-ui/src/App.tsx:839-878`): page intro
   /// + card stack or tall empty state. Same `savedThesesProvider` and tab
   /// filter — only the layout is prototype-skinned.
   Widget _mobileBody(
-      BuildContext context, AsyncValue<List<dynamic>> savedTheses) {
+    BuildContext context,
+    AsyncValue<List<dynamic>> savedTheses,
+  ) {
     final t = CScholarMobileTheme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 106),
       child: StaggerColumn(
         pitch: MotionPitch.page,
         children: [
-          Text('Your library',
-              style: t.eyebrow),
+          Text('Your library', style: t.eyebrow),
           const SizedBox(height: 7),
-          Text('Saved research.',
-              style: t.pageTitle),
+          Text('Saved research.', style: t.pageTitle),
           const SizedBox(height: 7),
-          Text('Keep important work close at hand.',
-              style: t.bodyMuted),
-          const SizedBox(height: 22),
+          Text('Keep important work close at hand.', style: t.bodyMuted),
+          const SizedBox(height: 16),
+          // Search-page pattern: a saved count on the left, the mint Filters
+          // pill on the right, and a bottom sheet for the research type.
+          Row(
+            children: [
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${savedTheses.value?.length ?? 0} ',
+                        style: t.dmSans(11, FontWeight.w700, t.ink),
+                      ),
+                      TextSpan(
+                        text: (savedTheses.value?.length ?? 0) == 1
+                            ? 'saved study'
+                            : 'saved studies',
+                        style: t.dmSans(11, FontWeight.w400, t.muted),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showMobileFilterSheet(context),
+                child: _mobileFilterPill(t),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           asyncSlot<List<dynamic>>(
             savedTheses,
-            skeleton:
-                const SkeletonList(count: 3, cardHeight: 96),
+            skeleton: const SkeletonList(count: 3, cardHeight: 96),
             data: (saved) {
               var filtered = saved;
               if (_selectedTab != 'All') {
                 filtered = filtered
-                    .where((t) =>
-                        t.researchType.toLowerCase() ==
-                        _selectedTab.toLowerCase())
+                    .where(
+                      (t) =>
+                          t.researchType.toLowerCase() ==
+                          _selectedTab.toLowerCase(),
+                    )
                     .toList();
               }
               if (filtered.isEmpty) {
-                // Same panel, copy and action as the web Saved page — the
-                // mobile skin only swaps the material.
-                return EmptyState(
-                  mobile: true,
-                  icon: Icons.bookmark_border,
-                  title: 'No saved studies',
-                  message:
-                      'Browse the repository to save research papers and capstone projects for later reference.',
-                  actionLabel: 'Browse Repository',
-                  onAction: () => context.go('/repository'),
-                );
+                // Same panel and copy as the web Saved page — the mobile skin
+                // only swaps the material.
+                return _emptyState(mobile: true, hasSaved: saved.isNotEmpty);
               }
               return Column(
-                key: ValueKey(
-                    filtered.map((t) => t.id).join(',')),
+                key: ValueKey(filtered.map((t) => t.id).join(',')),
                 children: [
-                  for (var i = 0;
-                      i < filtered.length;
-                      i++)
+                  for (var i = 0; i < filtered.length; i++)
                     Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 11),
+                      padding: const EdgeInsets.only(bottom: 11),
                       child: Stagger(
                         index: i,
                         step: MotionPitch.result.step,
                         max: MotionPitch.result.max,
                         rise: MotionPitch.result.rise,
                         child: Builder(
-                            builder: (context) {
-                          final thesis = filtered[i];
-                          return MobileThesisCard(
-                            thesis: thesis,
-                            saved: true,
-                            onOpen: () => context.go(
-                                '/thesis/${thesis.id}'),
-                            onSave: () {
-                              ref
-                                  .read(savedThesisIdsProvider
-                                      .notifier)
-                                  .toggle(thesis.id);
-                              MobileToast.show(context,
-                                  'Removed "${thesis.title}" from saved');
-                            },
-                          );
-                        }),
+                          builder: (context) {
+                            final thesis = filtered[i];
+                            return MobileThesisCard(
+                              thesis: thesis,
+                              saved: true,
+                              onOpen: () => context.go('/thesis/${thesis.id}'),
+                              onSave: () {
+                                ref
+                                    .read(savedThesisIdsProvider.notifier)
+                                    .toggle(thesis.id);
+                                MobileToast.show(
+                                  context,
+                                  'Removed "${thesis.title}" from saved',
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     ),
                 ],
@@ -346,5 +621,4 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
       ),
     );
   }
-
 }

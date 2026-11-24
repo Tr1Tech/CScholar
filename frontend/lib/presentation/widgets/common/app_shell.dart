@@ -61,7 +61,7 @@ class CScholarShell extends StatelessWidget {
                 ),
           title: Text(
             mobileTitle,
-            style: const TextStyle(
+            style: TextStyle(
                 color: CScholarColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),

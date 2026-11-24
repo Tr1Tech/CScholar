@@ -1,70 +1,103 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
+import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 
 /// Design tokens for the whole app.
 ///
-/// SOFT UI v4 — the mobile shell is now the single source of truth. Every
-/// surface value here aliases [CScholarMobileColors] so desktop and mobile can
-/// never drift: paper canvas, near-white cards, soft green-tinted shadows,
-/// Manrope headings and DM Sans body copy.
+/// SOFT UI v4 — the mobile shell is the single source of truth. Every value
+/// here resolves through [CScholarPalette], so desktop and mobile share one
+/// definition and both follow the app-wide light/dark mode: paper canvas,
+/// near-white cards (dark green-black at night), soft tinted shadows, Manrope
+/// headings and DM Sans body copy.
+///
+/// The members are GETTERS, not `const`s, precisely so a mode switch can move
+/// them. `CScholarPalette.active` is the current resolution; [CScholarApp]
+/// clicks it over before anything reads it. Never cache one of these into a
+/// `const` or into a long-lived field — read it where you paint.
 ///
 /// Contrast note: raw accents (`coral`, `lilac`, `muted`) are FILL colours. Body
-/// copy uses the text-safe inks ([CScholarMobileColors.coralInk], [lilacInk],
-/// [mutedInk]) which clear 4.5:1 on paper and on their own tints.
+/// copy uses the text-safe inks ([CScholarPalette.danger], [lilacInk],
+/// [mutedInk]) which clear 4.5:1 on the canvas and on their own tints in BOTH
+/// modes.
 class CScholarColors {
-  // ---- Brand green: ONE green for fills and for text --------------------
-  static const Color primaryGreen = CScholarMobileColors.green;
-  static const Color primaryGreenHover = CScholarMobileColors.green2;
-  static const Color primaryGreenDark = CScholarMobileColors.greenDeep;
-  static const Color primaryGreenLight = CScholarMobileColors.mint;
-  static const Color primaryGreenVeryLight = CScholarMobileColors.surfaceSoft;
+  static CScholarPalette get _p => CScholarPalette.active;
+
+  // ---- Brand green -------------------------------------------------------
+  /// Text-safe brand green: links, icons, selected ink, small accents.
+  static Color get primaryGreen => _p.accent;
+
+  /// Brighter green ink: eyebrows, hover ink, status dots.
+  static Color get primaryGreenHover => _p.accentBright;
+
+  /// Pressed / deepest green.
+  static Color get primaryGreenDark => _p.accentDeep;
+
+  /// Tint behind green ink (active pill, published chip, metric tile).
+  static Color get primaryGreenLight => _p.mint;
+
+  /// Deeper tint: selected rows, hover wash, segmented track.
+  static Color get primaryGreenVeryLight => _p.surfaceSoft;
+
+  /// Solid green FILL: white text sits on this. On dark it is a deep green,
+  /// never the mint ink — that split is what keeps buttons legible at night.
+  static Color get primaryFill => _p.action;
+
+  /// Pressed solid fill.
+  static Color get primaryFillPressed => _p.actionPressed;
+
+  /// Deepest solid fill.
+  static Color get primaryFillDeep => _p.actionDeep;
+
+  /// Ink that rides on [primaryFill] / [primaryFillPressed].
+  static Color get onPrimaryFill => white;
 
   // Sidebars are light floating cards now. Legacy names are kept so old
   // references compile; they resolve to the brand green for glyphs/active ink.
-  static const Color forest = CScholarMobileColors.green;
-  static const Color sidebarDeep = forest;
-  static const Color sidebarHover = CScholarMobileColors.green2;
-  static const Color sidebarActive = forest;
-  static const Color adminSidebar = forest;
-  static const Color adminSidebarHover = CScholarMobileColors.green2;
-  static const Color repoSidebar = forest;
-  static const Color repoActive = forest;
-  static const Color savedSidebarActive = forest;
+  static Color get forest => primaryGreen;
+  static Color get sidebarDeep => forest;
+  static Color get sidebarHover => primaryGreenHover;
+  static Color get sidebarActive => forest;
+  static Color get adminSidebar => forest;
+  static Color get adminSidebarHover => primaryGreenHover;
+  static Color get repoSidebar => forest;
+  static Color get repoActive => forest;
+  static Color get savedSidebarActive => forest;
 
   /// Role accent dot / chip.
-  static const Map<String, Color> roleAccent = {
-    'student': CScholarMobileColors.green2,
-    'faculty': CScholarMobileColors.lilacInk,
-    'admin': CScholarMobileColors.coralInk,
+  static Map<String, Color> get roleAccent => {
+    'student': CScholarColors.studentColor,
+    'faculty': CScholarColors.facultyColor,
+    'admin': CScholarColors.adminColor,
   };
 
   // Accents — gold retires; coral is the attention / AI accent.
-  static const Color gold = CScholarMobileColors.coral;
-  static const Color goldLight = CScholarMobileColors.coralSoft;
-  static const Color goldDeep = CScholarMobileColors.coralInk;
-  static const Color goldSoft = CScholarMobileColors.coralSoft;
-  static const Color orange = CScholarMobileColors.coral;
-  static const Color orangeLight = CScholarMobileColors.coralSoft;
+  static Color get gold => _p.coral;
+  static Color get goldLight => _p.coralSoft;
+  static Color get goldDeep => _p.danger;
+  static Color get goldSoft => _p.coralSoft;
+  static Color get orange => _p.coral;
+  static Color get orangeLight => _p.coralSoft;
 
-  // Light shell: paper canvas, floating surface sidebar, mint active pill.
-  static const Color shellWash = CScholarMobileColors.paper;
-  static const Color sidebarLight = CScholarMobileColors.surface;
-  static const Color sidebarLightBorder = CScholarMobileColors.line;
-  static const Color navActiveBg = CScholarMobileColors.green;
-  static const Color heroDeep = CScholarMobileColors.greenDeep;
-  static const Color heroMid = CScholarMobileColors.green;
-  static const Color heroGlow = CScholarMobileColors.green2;
-  static const Color heroBase = CScholarMobileColors.greenDeep;
-  static const Color heroFloor = CScholarMobileColors.greenDeep;
-  static const Color heroText = CScholarMobileColors.mint;
+  // Shell: paper canvas, floating surface sidebar, mint active pill.
+  static Color get shellWash => _p.paper;
+  static Color get sidebarLight => _p.surface;
+  static Color get sidebarLightBorder => _p.line;
+  static Color get navActiveBg => primaryFill;
+  static Color get heroDeep => _p.accentDeep;
+  static Color get heroMid => _p.accent;
+  static Color get heroGlow => _p.accentBright;
+  static Color get heroBase => _p.accentDeep;
+  static Color get heroFloor => _p.accentDeep;
+  static Color get heroText => _p.mint;
   static const Color heroBadgeFill = Color(0x3317231E);
   static const Color heroBadgeRim = Color(0x4DF17B5B);
 
   // ---- Thesis cover art: eight measured two-stop gradients -----------------
-  // Decoration only — identity art on a cover, never text backgrounds. Every
-  // stop keeps white cover glyphs above 4.5:1.
+  // Identity art, not chrome: every stop is a DARK tone that carries white
+  // cover glyphs above 4.5:1, so the set is deliberately mode-STABLE. Flipping
+  // it would put white glyphs on a pale banner.
   static const List<List<Color>> coverGradients = [
     [CScholarMobileColors.greenDeep, CScholarMobileColors.green],
     [CScholarMobileColors.ink, CScholarMobileColors.green2],
@@ -76,64 +109,66 @@ class CScholarColors {
     [Color(0xFF102A22), Color(0xFF2F6B55)],
   ];
 
-  // Research-type chips
-  static const Color thesisChipBg = CScholarMobileColors.mint;
-  static const Color thesisChipFg = CScholarMobileColors.green;
-  static const Color capstoneChipBg = CScholarMobileColors.coralSoft;
-  static const Color capstoneChipFg = CScholarMobileColors.coralInk;
+  // Research-type chips. Type is identity, never alarm: both Thesis and
+  // Capstone use the brand green system. Coral is reserved for
+  // destructive/error UI.
+  static Color get thesisChipBg => _p.mint;
+  static Color get thesisChipFg => _p.accent;
+  static Color get capstoneChipBg => _p.mint;
+  static Color get capstoneChipFg => _p.accent;
 
   // ---- Metric tile tints ----
-  static const Color skyTint = CScholarMobileColors.mint;
-  static const Color skyInk = CScholarMobileColors.green;
-  static const Color violetTint = CScholarMobileColors.lilacSoft;
-  static const Color violetInk = CScholarMobileColors.lilacInk;
-  static const Color tealTint = CScholarMobileColors.coralSoft;
-  static const Color tealInk = CScholarMobileColors.coralInk;
-  static const Color cyanTint = CScholarMobileColors.cream;
-  static const Color cyanInk = CScholarMobileColors.mutedInk;
+  static Color get skyTint => _p.mint;
+  static Color get skyInk => _p.accent;
+  static Color get violetTint => _p.lilacSoft;
+  static Color get violetInk => _p.lilacInk;
+  static Color get tealTint => _p.coralSoft;
+  static Color get tealInk => _p.danger;
+  static Color get cyanTint => _p.surfaceWarm;
+  static Color get cyanInk => _p.mutedInk;
 
   // ---- Canvas & neutral surfaces ----
   static const Color white = Color(0xFFFFFFFF);
-  static const Color backgroundLight = CScholarMobileColors.paper;
-  static const Color backgroundSoft = CScholarMobileColors.paper;
-  static const Color backgroundDark = CScholarMobileColors.ink;
-  static const Color surfaceWhite = CScholarMobileColors.surface;
-  static const Color surfaceLight = CScholarMobileColors.surfaceSoft;
-  static const Color cardBg = CScholarMobileColors.surface;
-  static const Color dividerLight = CScholarMaterial.rim;
-  static const Color borderLight = CScholarMaterial.rim;
-  static const Color inputBg = CScholarMobileColors.surfaceSoft;
-  static const Color surface = CScholarMobileColors.surface;
+  static Color get backgroundLight => _p.paper;
+  static Color get backgroundSoft => _p.paper;
+  static Color get backgroundDark => CScholarMobileColors.inkDark;
+  static Color get surfaceWhite => _p.surface;
+  static Color get surfaceLight => _p.surfaceSoft;
+  static Color get cardBg => _p.surface;
+  static Color get dividerLight => CScholarMaterial.rim;
+  static Color get borderLight => CScholarMaterial.rim;
+  static Color get inputBg => _p.surfaceSoft;
+  static Color get surface => _p.surface;
 
   // ---- Text ----
-  static const Color textPrimary = CScholarMobileColors.ink;
-  static const Color textSecondary = CScholarMobileColors.mutedInk;
-  static const Color textMuted = CScholarMobileColors.mutedInk;
-  static const Color textHint = CScholarMobileColors.muted;
+  static Color get textPrimary => _p.ink;
+  static Color get textSecondary => _p.mutedInk;
+  static Color get textMuted => _p.mutedInk;
+  static Color get textHint => _p.hint;
   static const Color shadowColor = Color(0x1423382D);
 
   // ---- Status ----
-  static const Color success = primaryGreen;
-  static const Color warning = CScholarMobileColors.coral;
-  static const Color warningFg = CScholarMobileColors.coralInk;
-  static const Color error = CScholarMobileColors.coralInk;
-  static const Color errorLight = CScholarMobileColors.coralSoft;
-  static const Color info = CScholarMobileColors.green2;
-  static const Color infoLight = CScholarMobileColors.mint;
-  static const Color noteBg = CScholarMobileColors.coralSoft;
-  static const Color noteRim = CScholarMobileColors.coral;
-  static const Color noteIcon = CScholarMobileColors.coralInk;
-  static const Color noteInk = CScholarMobileColors.coralInk;
+  static Color get success => _p.accent;
+  static Color get warning => _p.coral;
+  static Color get warningFg => _p.danger;
+  static Color get error => _p.danger;
+  static Color get errorLight => _p.coralSoft;
+  static Color get info => _p.accentBright;
+  static Color get infoLight => _p.mint;
+  static Color get noteBg => _p.coralSoft;
+  static Color get noteRim => _p.coral;
+  static Color get noteIcon => _p.danger;
+  static Color get noteInk => _p.danger;
 
   // Roles
-  static const Color studentColor = CScholarMobileColors.green2;
-  static const Color facultyColor = CScholarMobileColors.lilacInk;
-  static const Color facultyLight = CScholarMobileColors.lilacSoft;
-  static const Color adminColor = CScholarMobileColors.coralInk;
-  static const Color adminLight = CScholarMobileColors.coralSoft;
+  static Color get studentColor => _p.accentBright;
+  static Color get facultyColor => _p.lilacInk;
+  static Color get facultyLight => _p.lilacSoft;
+  static Color get adminColor => _p.danger;
+  static Color get adminLight => _p.coralSoft;
 
   // ---- Chart / progress fills ----
-  static const Map<String, Color> statusFill = {
+  static Map<String, Color> get statusFill => {
     'published': primaryGreen,
     'approved': info,
     'draft': warningFg,
@@ -321,6 +356,14 @@ class CScholarMotion {
 
   /// Soft UI entrance: brief 300-500ms fade + rise.
   static const Duration softEnter = Duration(milliseconds: 350);
+
+  /// The one light/dark palette swap.
+  ///
+  /// Deliberately OUTSIDE the interaction budget: this is not a control
+  /// answering a tap (the switch pops its glyph immediately), it is the whole
+  /// interface changing material. The curtain covers for the first 62% and
+  /// dissolves for the rest, so the flip itself is never seen.
+  static const Duration themeSwap = Duration(milliseconds: 480);
 
   // ---------------------------------------------------------------- ambient
   /// Slow breath: a halo deepening, an icon tile floating ±2px.

@@ -1,9 +1,9 @@
 {
   "title": "CScholar API",
   "version": "1.0.0",
-  "locked_on": "2026-11-23",
+  "locked_on": "2026-11-24",
   "note": "Frozen API surface. The Swagger UI is final: do not add endpoints. Regenerate only with explicit owner approval.",
-  "operation_count": 61,
+  "operation_count": 62,
   "operations": [
     {
       "method": "DELETE",
@@ -570,6 +570,15 @@
       "roles": [
         "admin"
       ],
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/api/auth/password",
+      "tags": [
+        "Auth"
+      ],
+      "roles": [],
       "auth": true
     },
     {

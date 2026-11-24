@@ -61,6 +61,21 @@ class UpdateUserActiveRequest(_Base):
     is_active: bool | None = None
 
 
+class ChangePasswordRequest(_Base):
+    model_config = ConfigDict(extra="ignore", json_schema_extra={
+        "example": {
+            "current_password": "admin123",
+            "new_password": "newsecret123",
+        }
+    })
+    current_password: str | None = Field(
+        default=None, description="The account's current password"
+    )
+    new_password: str | None = Field(
+        default=None, description="Replacement password, at least 6 characters"
+    )
+
+
 # -- Theses ---------------------------------------------------------------
 
 class ThesisCreateRequest(_Base):

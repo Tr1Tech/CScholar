@@ -23,25 +23,41 @@ class GlassDialog extends StatelessWidget {
     this.title,
     required this.content,
     this.actions = const [],
+    this.insetPadding = const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+    this.radius = CScholarRadius.softSheet,
+    this.fill,
+    this.shadows,
+    this.borderColor,
   });
 
   final Widget? title;
   final Widget content;
   final List<Widget> actions;
 
+  /// Overridable so a mobile sheet can widen and sit closer to the edges
+  /// without every desktop dialog inheriting that geometry.
+  final EdgeInsets insetPadding;
+  final double radius;
+  final Color? fill;
+  final List<BoxShadow>? shadows;
+  final Color? borderColor;
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      insetPadding: insetPadding,
       // A Dialog gives its child the whole window; a text field's intrinsic
       // width then stretches every form dialog edge to edge. Cap the surface
       // at a comfortable reading width (AlertDialog's own 560 is close).
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: GlassPanel(
-          radius: CScholarRadius.softSheet,
+          radius: radius,
+          fill: fill ?? CScholarMaterial.glassChrome,
+          shadows: shadows,
+          borderColor: borderColor,
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -95,16 +111,19 @@ class GlassPanel extends StatelessWidget {
     super.key,
     required this.child,
     this.radius = CScholarRadius.softCard,
-    this.fill = CScholarMaterial.glassChrome,
+    this.fill,
     this.blur = CScholarMaterial.blurChrome,
     this.padding = const EdgeInsets.all(16),
     this.lifted = true,
     this.shadows,
+    this.borderColor,
   });
 
   final Widget child;
   final double radius;
-  final Color fill;
+
+  /// Fill override. Null resolves the live surface token at paint time.
+  final Color? fill;
 
   /// Retained for API compatibility; unused.
   final double blur;
@@ -114,6 +133,10 @@ class GlassPanel extends StatelessWidget {
   /// Overrides the default lifted shadow. Pass `const []` for a flush panel.
   final List<BoxShadow>? shadows;
 
+  /// Overrides the hairline. Mobile passes its theme line so the sheet edge
+  /// follows dark mode instead of drawing the light clay rim.
+  final Color? borderColor;
+
   @override
   Widget build(BuildContext context) {
     final flat = MediaQuery.highContrastOf(context);
@@ -121,10 +144,12 @@ class GlassPanel extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: flat ? CScholarMaterial.clay : fill,
+        color: flat ? CScholarMaterial.clay : (fill ?? CScholarMaterial.glassChrome),
         borderRadius: borderRadius,
         border: Border.all(
-          color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
+          color: flat
+              ? CScholarMaterial.rimStrong
+              : (borderColor ?? CScholarMaterial.rim),
         ),
         boxShadow: flat || !lifted
             ? null

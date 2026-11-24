@@ -209,7 +209,7 @@ class RecRail extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.chevron_right,
               size: 18,
               color: CScholarColors.textHint,
@@ -224,19 +224,21 @@ class RecRail extends ConsumerWidget {
     final note = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CScholarColors.goldSoft,
+        color: CScholarColors.primaryGreenLight,
         borderRadius: BorderRadius.circular(CScholarRadius.md),
-        // Solid rim, not a 40% alpha gold: an alpha rim on a light tint is a
+        // Solid rim, not a low-alpha tint: an alpha rim on a light tint is a
         // ~1.2:1 edge and reads as a rendering artefact.
-        border: Border.all(color: CScholarMaterial.rimDraft),
+        border: Border.all(
+          color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.auto_awesome,
             size: 18,
-            color: CScholarColors.goldDeep,
+            color: CScholarColors.primaryGreen,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -266,8 +268,8 @@ class RecRail extends ConsumerWidget {
         ],
       ),
     );
-    // One-shot shimmer sweep so the gold identity announces itself once,
-    // then rests. Decor only — the copy carries the meaning.
+    // One-shot shimmer sweep so the default green AI identity announces
+    // itself once, then rests. Decor only — the copy carries the meaning.
     return note.shimmerOnce(context);
   }
 }

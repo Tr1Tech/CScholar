@@ -45,7 +45,7 @@ class AdminSidebar extends ConsumerWidget {
               // Bottom Sidebar Footer with Logout
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(color: CScholarMaterial.rim, width: 1),
                   ),
@@ -66,7 +66,7 @@ class AdminSidebar extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.logout,
                             size: 20,
                             color: CScholarColors.textSecondary,
@@ -128,6 +128,12 @@ class AdminSidebar extends ConsumerWidget {
       icon: Icons.school_outlined,
       selectedIcon: Icons.school,
       path: '/admin/programs',
+    ),
+    (
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      path: '/admin/settings',
     ),
   ];
 

@@ -35,8 +35,7 @@ class ThesisDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ThesisDetailScreen> createState() =>
-      _ThesisDetailScreenState();
+  ConsumerState<ThesisDetailScreen> createState() => _ThesisDetailScreenState();
 }
 
 class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
@@ -111,7 +110,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
                   size: 48,
                   color: CScholarColors.textHint,
@@ -161,7 +160,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                       horizontal: 32,
                       vertical: 14,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: CScholarMaterial.clay,
                       border: Border(
                         bottom: BorderSide(color: CScholarMaterial.rim),
@@ -173,7 +172,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                           onTap: () => context.go(homeRoute),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.home_outlined,
                                 size: 16,
                                 color: CScholarColors.textMuted,
@@ -269,7 +268,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                             ),
 
                             const SizedBox(height: 36),
-                            const Divider(color: CScholarColors.borderLight),
+                            Divider(color: CScholarColors.borderLight),
                             const SizedBox(height: 24),
 
                             // Abstract Section (only when the database has one).
@@ -342,7 +341,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                             ],
 
                             const SizedBox(height: 40),
-                            const Divider(color: CScholarColors.borderLight),
+                            Divider(color: CScholarColors.borderLight),
                             const SizedBox(height: 24),
 
                             // Related research: nearest neighbours of THIS
@@ -482,29 +481,31 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                                                             ),
                                                         decoration: BoxDecoration(
                                                           color: CScholarColors
-                                                              .goldSoft,
+                                                              .primaryGreenLight,
                                                           borderRadius:
                                                               BorderRadius.circular(
                                                                 CScholarRadius
                                                                     .full,
                                                               ),
                                                           border: Border.all(
-                                                            color:
-                                                                CScholarMaterial
-                                                                    .rimDraft,
+                                                            color: CScholarColors
+                                                                .primaryGreen
+                                                                .withValues(
+                                                                  alpha: 0.25,
+                                                                ),
                                                           ),
                                                         ),
                                                         child: Row(
                                                           mainAxisSize:
                                                               MainAxisSize.min,
                                                           children: [
-                                                            const Icon(
+                                                            Icon(
                                                               Icons
                                                                   .auto_awesome,
                                                               size: 11,
                                                               color:
                                                                   CScholarColors
-                                                                      .warningFg,
+                                                                      .primaryGreen,
                                                             ),
                                                             const SizedBox(
                                                               width: 4,
@@ -515,7 +516,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                                                                 11.5,
                                                                 FontWeight.w700,
                                                                 CScholarColors
-                                                                    .warningFg,
+                                                                    .primaryGreen,
                                                               ),
                                                             ),
                                                           ],
@@ -595,13 +596,13 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
           backgroundColor: CScholarMaterial.clay,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back,
               color: CScholarColors.textPrimary,
             ),
             onPressed: () => context.go(listRoute),
           ),
-          title: const Text(
+          title: Text(
             'Thesis Details',
             style: TextStyle(
               color: CScholarColors.textPrimary,
@@ -652,6 +653,13 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
         }
         final authorsStr = thesis.authorsString;
         final programStr = thesis.program?.name ?? '';
+        // The mobile eyebrow is a scannable code ("BSIT"), not the full
+        // "Bachelor of Science in Information Technology" — the full name
+        // still lives under Research details.
+        final programCode = (thesis.program?.code ?? '').trim();
+        final programLabel = programCode.isNotEmpty
+            ? programCode.toUpperCase()
+            : programStr;
         final yearStr = thesis.academicYear?.label ?? '';
         final adviserStr =
             thesis.advisers != null && thesis.advisers!.isNotEmpty
@@ -679,13 +687,58 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
           child: StaggerColumn(
             pitch: MotionPitch.page,
             children: [
-              Text('$programStr · $yearStr', style: t.eyebrow),
-              const SizedBox(height: 9),
+              // Research type at a glance, so the header identifies the work
+              // even when the title itself runs long.
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '$programLabel · $yearStr',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.eyebrow,
+                    ),
+                  ),
+                  if (thesis.researchType.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: t.mint,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        thesis.researchType.toUpperCase(),
+                        style: t.dmSans(
+                          8,
+                          FontWeight.w800,
+                          t.green,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              // It is metadata, not a headline: 27px turned a normal thesis
+              // title into six lines of shouting on a phone. 21px with a
+              // tighter lead keeps the full title readable (no truncation —
+              // students need the exact title for citations).
               Text(
                 thesis.title,
-                style: t.manrope(27, FontWeight.w700, t.ink, height: 1.16),
+                style: t.manrope(
+                  21,
+                  FontWeight.w700,
+                  t.ink,
+                  height: 1.28,
+                  letterSpacing: -0.2,
+                ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   // tile-exempt: author initials avatar.
@@ -703,18 +756,27 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        authorsStr,
-                        style: t.dmSans(11, FontWeight.w700, t.ink),
-                      ),
-                      Text(
-                        'Undergraduate researcher',
-                        style: t.dmSans(9, FontWeight.w400, t.muted),
-                      ),
-                    ],
+                  // The author list is data, so it can be any length. Without
+                  // the flex the row overflowed horizontally on long bylines
+                  // (the yellow/black strip in the mobile detail).
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authorsStr,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.dmSans(11, FontWeight.w700, t.ink),
+                        ),
+                        Text(
+                          'Undergraduate researcher',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.dmSans(9, FontWeight.w400, t.muted),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -751,9 +813,11 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                     child: _MobileActionPill(
                       icon: isSaved ? Icons.bookmark : Icons.bookmark_outline,
                       label: isSaved ? 'Saved' : 'Save',
-                      fill: isSaved ? t.mint : CScholarMaterial.clay,
-                      ink: isSaved ? t.green : CScholarMaterial.textPrimary,
-                      border: isSaved ? null : CScholarMaterial.rim,
+                      // Theme-aware so the secondary pill does not stay a
+                      // white slab on the dark mobile canvas.
+                      fill: isSaved ? t.mint : t.surfaceSoft,
+                      ink: isSaved ? t.green : t.ink,
+                      border: isSaved ? null : t.line,
                       onTap: () {
                         ref
                             .read(savedThesisIdsProvider.notifier)
@@ -820,9 +884,30 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                       ),
                       child: Column(
                         children: [
+                          // Parity with the web metadata block: the eyebrow
+                          // shows the short course code + year, the full
+                          // program name and the rest of the record live here.
+                          if (programStr.isNotEmpty)
+                            _detailRow(context, 'Program', programStr),
+                          if (yearStr.isNotEmpty)
+                            _detailRow(context, 'Academic year', yearStr),
+                          if (thesis.researchType.isNotEmpty)
+                            _detailRow(context, 'Type', thesis.researchType),
+                          if (thesis.categoriesString.isNotEmpty)
+                            _detailRow(
+                              context,
+                              'Category',
+                              thesis.categoriesString,
+                            ),
                           if (adviserStr.isNotEmpty)
                             _detailRow(context, 'Adviser', adviserStr),
-                          _detailRow(context, 'Published', 'May $yearStr'),
+                          if (thesis.status.isNotEmpty)
+                            _detailRow(
+                              context,
+                              'Status',
+                              '${thesis.status[0].toUpperCase()}'
+                                  '${thesis.status.substring(1)}',
+                            ),
                           if (thesis.keywords != null &&
                               thesis.keywords!.isNotEmpty)
                             _detailRow(
@@ -1111,7 +1196,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.rate_review_outlined,
                   size: 18,
                   color: CScholarColors.warningFg,
@@ -1168,7 +1253,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.history,
                     size: 16,
                     color: CScholarColors.warningFg,
@@ -1237,7 +1322,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
           // these rows disproportionately tall on wide displays.
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border.symmetric(
                 horizontal: BorderSide(color: CScholarColors.borderLight),
               ),

@@ -2,17 +2,28 @@
 
 import os
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Security
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from .. import models as db
-from ..auth import hash_password, verify_password, create_token, decode_token, login_required, admin_required, bearer_scheme
+from ..auth import (
+    hash_password,
+    verify_password,
+    create_token,
+    decode_token,
+    token_matches_user,
+    login_required,
+    admin_required,
+    bearer_scheme,
+)
 from ..services.uploads import UPLOAD_URL_PREFIX, upload_filename, upload_path
+from ..services import object_store
 from ..schemas import (
     RegisterRequest,
     LoginRequest,
     CreateUserRequest,
     UpdateUserRequest,
     UpdateUserActiveRequest,
+    ChangePasswordRequest,
 )
 
 router = APIRouter()
@@ -73,6 +84,43 @@ def login(data: LoginRequest = Body(default=None)):
             "role": user["role"],
         },
     }
+
+
+@router.put("/api/auth/password", dependencies=[Depends(login_required)], tags=["Auth"])
+def change_password(data: ChangePasswordRequest = Body(default=None), request: Request = None):
+    """Change the signed-in user's password (any role).
+
+    The current password is required so a borrowed session cannot silently
+    take over the account. Existing JWTs stay valid until they expire.
+    """
+    data = data.model_dump(exclude_unset=True) if data is not None else None
+    if not data:
+        raise HTTPException(status_code=400, detail="Missing request body")
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+    if not current_password or not new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="Current and new password are required",
+        )
+    if len(new_password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 6 characters",
+        )
+    user = request.state.current_user
+    if not verify_password(current_password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    if verify_password(new_password, user["password_hash"]):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from the current password",
+        )
+    db.set_user_password(user["id"], hash_password(new_password))
+    # Rotating the hash revokes every older token. Mint a fresh one for this
+    # device so the person who just changed the password stays signed in.
+    updated = db.get_user_by_id(user["id"])
+    return {"message": "Password updated", "token": create_token(updated)}
 
 
 @router.get("/api/users", dependencies=[Depends(admin_required)], tags=["Users"])
@@ -217,6 +265,11 @@ def get_thesis_pdf(
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     if not user or not user.get("is_active"):
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    if not token_matches_user(payload, user):
+        raise HTTPException(
+            status_code=401,
+            detail="Session expired; please sign in again",
+        )
 
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
@@ -232,6 +285,16 @@ def get_thesis_pdf(
     if upload_filename(pdf_url) is None:
         raise HTTPException(status_code=400, detail="Invalid filename")
     file_path = upload_path(pdf_url)
-    if not file_path or not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="PDF file not found on server")
-    return FileResponse(file_path, media_type="application/pdf")
+    if file_path and os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/pdf")
+
+    # Free hosts have no persistent disk: the file may live in object storage
+    # while this instance has never seen it. The auth check above is unchanged;
+    # the redirect target is a short-lived presigned URL for this one object.
+    stored_name = upload_filename(pdf_url)
+    if stored_name and object_store.enabled():
+        signed = object_store.presigned_get(stored_name)
+        if signed:
+            return RedirectResponse(signed, status_code=307)
+
+    raise HTTPException(status_code=404, detail="PDF file not found on server")

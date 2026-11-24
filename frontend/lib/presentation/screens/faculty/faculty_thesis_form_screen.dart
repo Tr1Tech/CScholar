@@ -245,7 +245,7 @@ class _FacultyThesisFormScreenState
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text(
             'Could not load types: $e',
-            style: const TextStyle(color: CScholarColors.error, fontSize: 12),
+            style: TextStyle(color: CScholarColors.error, fontSize: 12),
           ),
         ),
       ],
@@ -271,7 +271,7 @@ class _FacultyThesisFormScreenState
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text(
             'Could not load programs: $e',
-            style: const TextStyle(color: CScholarColors.error, fontSize: 12),
+            style: TextStyle(color: CScholarColors.error, fontSize: 12),
           ),
         ),
       ],
@@ -297,7 +297,7 @@ class _FacultyThesisFormScreenState
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text(
             'Could not load years: $e',
-            style: const TextStyle(color: CScholarColors.error, fontSize: 12),
+            style: TextStyle(color: CScholarColors.error, fontSize: 12),
           ),
         ),
       ],
@@ -323,7 +323,7 @@ class _FacultyThesisFormScreenState
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.person_outline,
                 size: 20,
                 color: CScholarColors.primaryGreen,
@@ -352,7 +352,7 @@ class _FacultyThesisFormScreenState
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.lock_outline,
                 size: 16,
                 color: CScholarColors.textMuted,
@@ -414,7 +414,7 @@ class _FacultyThesisFormScreenState
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text(
             'Could not load authors: $e',
-            style: const TextStyle(color: CScholarColors.error, fontSize: 12),
+            style: TextStyle(color: CScholarColors.error, fontSize: 12),
           ),
         ),
       ],
@@ -443,7 +443,7 @@ class _FacultyThesisFormScreenState
           loading: () => const ClayLoader(height: 8),
           error: (e, _) => Text(
             'Could not load categories: $e',
-            style: const TextStyle(color: CScholarColors.error, fontSize: 12),
+            style: TextStyle(color: CScholarColors.error, fontSize: 12),
           ),
         ),
       ],
@@ -479,7 +479,7 @@ class _FacultyThesisFormScreenState
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.picture_as_pdf_outlined,
               size: 20,
               color: CScholarColors.primaryGreen,
@@ -506,7 +506,7 @@ class _FacultyThesisFormScreenState
                 child: const Text('Remove', style: TextStyle(fontSize: 12)),
               )
             else
-              const Tooltip(
+              Tooltip(
                 message: 'Uploading again replaces the attached file',
                 child: Icon(
                   Icons.info_outline,
@@ -715,7 +715,7 @@ class _FacultyThesisFormScreenState
         ref.invalidate(facultyThesesProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text('Draft submitted — an admin will review it'),
               backgroundColor: CScholarColors.success,
             ),

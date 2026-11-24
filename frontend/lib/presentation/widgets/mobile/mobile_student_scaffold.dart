@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/config.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
-import 'package:frontend/core/providers/mobile_theme_provider.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_header.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_nav.dart';
@@ -43,8 +42,9 @@ class MobileStudentScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = ref.watch(mobileThemeModeProvider);
-    final t = CScholarMobileTheme(isDark: isDark);
+    // Painted mode, via the scope: the toggle sets the provider at tap time but
+    // the shell repaints when the root flips the palette under the curtain.
+    final t = CScholarMobileTheme.of(context);
 
     // The mode scope is provided by [StudentLayout], above this scaffold:
     // screens resolve `CScholarMobileTheme.of` with the layout's context,

@@ -357,7 +357,7 @@ docs/        ERD, normalization, data dictionary, traceability
 
 **The documented API is locked**
 
-The Swagger UI at `/docs` is final: its 61 operations are listed in
+The Swagger UI at `/docs` is final: its 62 operations are listed in
 [`backend/api_contract.json`](backend/api_contract.json) and no endpoint may be
 added. The server refuses to start if a route is added, removed, re-tagged, or
 has its allowed roles changed. Check it offline (no server needed) with:
@@ -414,6 +414,7 @@ new state on the client, or ask the project owner before changing DDL. See the
 | `docs/data_dictionary.md` | Column-level reference |
 | `docs/requirements_traceability.md` | Requirements → tables |
 | `docs/pdf_token_check.md` | Why PDF opens in a new tab with `?token=` |
+| `docs/DEPLOY_RENDER_NEON.md` | Free public deployment (Render + Neon) and phone setup |
 | `db/logic/README.md` | Views, functions, procedure, triggers |
 
 </details>

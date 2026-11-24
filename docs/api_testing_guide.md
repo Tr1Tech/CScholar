@@ -74,6 +74,7 @@ instructor should see when the inputs are valid.
 | POST | `/api/auth/register` | public | body: `username`, `email`, `password` | `201` token + user, role is always `student` |
 | POST | `/api/auth/login` | public | body: `email`, `password` | `200` token + user |
 | GET | `/api/auth/me` | any login | header only | `200` id, username, email, role, `is_active`, timestamps |
+| PUT | `/api/auth/password` | any login | body: `current_password`, `new_password` | `200 {"message":"Password updated","token":"..."}` — old tokens are now rejected |
 | GET | `/api/users` | admin | none | `200 {"users":[...],"total":23}` |
 | POST | `/api/users` | admin | body: `username`, `email`, `password`, `role` | `201 {"message":"User created","user":{...}}` |
 | PUT | `/api/users/{user_id}` | admin | path id + body: `username` and/or `email` and/or `role` | `200 {"message":"User updated",...}` |
@@ -89,6 +90,11 @@ Copy-paste bodies:
 ```json
 // POST /api/auth/login      (UI: Sign in — Email, Password)
 {"email": "admin@csu.edu.ph", "password": "admin123"}
+```
+
+```json
+// PUT /api/auth/password    (UI: Settings/Profile → Change password)
+{"current_password": "admin123", "new_password": "newsecret123"}
 ```
 
 ```json
@@ -109,6 +115,8 @@ Copy-paste bodies:
 Rules to show:
 
 - register/login errors: missing fields → `400`, wrong password → `401`, duplicate username/email → `409`, deactivated account → `403`.
+- change password (any role, own account only): missing field or a new password under 6 characters → `400`, wrong `current_password` → `401`, new password equal to the current one → `400`.
+- Every JWT carries a keyed fingerprint of the password hash. A password change rotates that fingerprint, so all tokens issued before it return `401 Session expired; please sign in again`. The response's `token` is the replacement for the device that made the change. Deploying this claim signs out every session that predates it, once.
 - Admin cannot remove their own admin role, or deactivate their own account (`400`).
 - `role` must be `student`, `faculty`, or `admin` (`400` otherwise).
 - The UI's register form also asks for a **student ID** and **program**; those are not part of the API body and are not stored by `/api/auth/register`.

@@ -92,6 +92,21 @@ class AuthApi {
   Future<Map<String, dynamic>> me() async {
     return await _api.get('/api/auth/me');
   }
+
+  /// Change the signed-in account's password (works for every role).
+  ///
+  /// Returns the fresh token the server mints: changing the password revokes
+  /// every older token, including this device's.
+  Future<String> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final data = await _api.put('/api/auth/password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+    return (data as Map<String, dynamic>)['token'] as String;
+  }
 }
 
 // --- Theses ---

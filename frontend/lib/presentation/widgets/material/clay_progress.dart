@@ -70,7 +70,7 @@ class ClayProgressBar extends StatelessWidget {
 /// still reads as a moulded gel instead of a flat div. The 0.22 shade matches
 /// the system's own ramp (gelTop #007A14 -> gelBottom #00610F).
 List<Color> _gelRamp(Color? tint) => tint == null
-    ? const [CScholarMaterial.gelTop, CScholarMaterial.gelBottom]
+    ? [CScholarMaterial.gelTop, CScholarMaterial.gelBottom]
     : [tint, Color.lerp(tint, CScholarMaterial.textPrimary, 0.22)!];
 
 class _BarPainter extends CustomPainter {

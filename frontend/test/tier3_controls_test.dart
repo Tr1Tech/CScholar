@@ -1153,7 +1153,7 @@ void main() {
       // look boxed-in. What must still be perceivable is STATE: focus and error
       // are the indicators a keyboard user navigates by, so they owe the 3:1
       // floor WCAG 1.4.11 sets for component boundaries.
-      const surfaces = <String, Color>{
+      final surfaces = <String, Color>{
         'clayDeep': CScholarMaterial.clayDeep,
         'clay': CScholarMaterial.clay,
       };
@@ -1376,6 +1376,7 @@ void main() {
       const allowed = {
         'lib/core/material/material_tokens.dart',
         'lib/core/material/cscholar_mobile_tokens.dart',
+        'lib/core/material/cscholar_palette.dart',
         'lib/core/constants/cscholar_constants.dart',
         'lib/presentation/widgets/common/csu_mark.dart',
         'lib/presentation/widgets/common/cscholar_logo.dart',
@@ -1471,7 +1472,7 @@ void main() {
         ((ink.b * 255 * ink.a) + (stop.b * 255 * (1 - ink.a))).round(),
       );
 
-      const stops = <String, Color>{
+      final stops = <String, Color>{
         'heroDeep': CScholarColors.heroDeep,
         'heroMid': CScholarColors.heroMid,
         'heroGlow': CScholarColors.heroGlow,

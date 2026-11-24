@@ -9,6 +9,9 @@ env/
 # Runtime uploads (user PDFs; the folder is created on demand)
 backend/app/uploads/
 
+# ONNX embedding cache when fastembed is the runtime
+.fastembed_cache/
+
 # Secrets — NEVER commit
 .env
 token.json

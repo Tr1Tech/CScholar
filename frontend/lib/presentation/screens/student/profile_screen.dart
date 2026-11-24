@@ -8,6 +8,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
+import 'package:frontend/presentation/widgets/common/change_password_dialog.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
@@ -68,7 +69,10 @@ class ProfileScreen extends ConsumerWidget {
                     ? Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(flex: 7, child: _leftColumn(user)),
+                          Expanded(
+                            flex: 7,
+                            child: _leftColumn(context, user),
+                          ),
                           const SizedBox(width: 24),
                           Expanded(
                             flex: 4,
@@ -78,7 +82,7 @@ class ProfileScreen extends ConsumerWidget {
                       )
                     : Column(
                         children: [
-                          _leftColumn(user),
+                          _leftColumn(context, user),
                           const SizedBox(height: 24),
                           _rightColumn(context, ref, savedTheses),
                         ],
@@ -207,7 +211,86 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 14),
+          _mobileSecurityCard(context),
+          const SizedBox(height: 10),
+          _mobileLogoutCard(context, ref),
         ],
+      ),
+    );
+  }
+
+  /// The mobile profile has no settings tab, so the password action sits at the
+  /// bottom of the identity column, matching the menu-row shape of the shell.
+  Widget _mobileSecurityCard(BuildContext context) {
+    final t = CScholarMobileTheme.of(context);
+    return Material(
+      color: t.surface,
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(17),
+        onTap: () => showChangePasswordDialog(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lock_reset_outlined, size: 20, color: t.green),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Change password',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.dmSans(12, FontWeight.w700, t.ink),
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 20, color: t.muted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Mobile has no sidebar, so the Profile tab owns sign-out.
+  Widget _mobileLogoutCard(BuildContext context, WidgetRef ref) {
+    final t = CScholarMobileTheme.of(context);
+    final ink = t.dangerInk;
+    return Material(
+      color: t.surface,
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(17),
+        onTap: () {
+          ref.read(authProvider.notifier).logout();
+          context.go('/login');
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: t.line),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 20, color: ink),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Log out',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.dmSans(12, FontWeight.w700, ink),
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 20, color: t.muted),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -243,7 +326,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(width: 1, height: 40, color: t.line);
   }
 
-  Widget _leftColumn(dynamic user) {
+  Widget _leftColumn(BuildContext context, dynamic user) {
     return Column(
       children: [
         // 1. User Identity Profile Card
@@ -395,21 +478,59 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Divider(color: CScholarMaterial.rim, height: 1),
+              Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Username', user?.username ?? '', hasDot: true),
-              const Divider(color: CScholarMaterial.rim, height: 1),
+              Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Role', _roleLabel(user?.role)),
-              const Divider(color: CScholarMaterial.rim, height: 1),
+              Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow('Email', user?.email ?? ''),
-              const Divider(color: CScholarMaterial.rim, height: 1),
+              Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow(
                 'Status',
                 user == null ? '' : (user.isActive ? 'Active' : 'Inactive'),
               ),
-              const Divider(color: CScholarMaterial.rim, height: 1),
+              Divider(color: CScholarMaterial.rim, height: 1),
               _academicRow(
                 'Member Since',
                 user == null ? '' : _formatDate(user.createdAt),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 3. Security — the one account action a student owns.
+        CScholarCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Security',
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Change the password used to sign in to this account.',
+                style: CScholarTextStyles.body(
+                  13,
+                  FontWeight.w400,
+                  CScholarColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: NeumorphButton(
+                  onPressed: () => showChangePasswordDialog(context),
+                  icon: Icons.lock_reset_outlined,
+                  label: 'Change password',
+                  expand: true,
+                ),
               ),
             ],
           ),
@@ -485,7 +606,7 @@ class ProfileScreen extends ConsumerWidget {
             for (var i = 0; i < queries.length; i++) ...[
               _recentSearchRow(context, ref, queries[i]),
               if (i != queries.length - 1)
-                const Divider(color: CScholarMaterial.rim, height: 1),
+                Divider(color: CScholarMaterial.rim, height: 1),
             ],
         ],
       ),
@@ -501,7 +622,7 @@ class ProfileScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.history,
               size: 16,
               color: CScholarColors.textMuted,
@@ -525,7 +646,7 @@ class ProfileScreen extends ConsumerWidget {
               child: GestureDetector(
                 onTap: () =>
                     ref.read(recentSearchesProvider.notifier).remove(query),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(2),
                   child: Icon(
                     Icons.close,
@@ -594,7 +715,7 @@ class ProfileScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Text(
               'Unable to load saved studies: $err',
-              style: const TextStyle(color: CScholarColors.error, fontSize: 13),
+              style: TextStyle(color: CScholarColors.error, fontSize: 13),
             ),
           ),
           data: (list) {
@@ -705,7 +826,7 @@ class ProfileScreen extends ConsumerWidget {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: CScholarColors.primaryGreen,
                           shape: BoxShape.circle,
                         ),
@@ -775,7 +896,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
               size: 12,
               color: CScholarColors.textHint,

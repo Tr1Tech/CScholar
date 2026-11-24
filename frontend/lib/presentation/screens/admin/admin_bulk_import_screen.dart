@@ -623,7 +623,7 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
     final style = _rowStyle(row);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: CScholarMaterial.rim, width: 1)),
       ),
       child: Row(
@@ -923,7 +923,7 @@ class _ErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 20, color: CScholarColors.error),
+          Icon(Icons.error_outline, size: 20, color: CScholarColors.error),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

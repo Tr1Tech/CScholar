@@ -180,6 +180,25 @@ def set_user_active(user_id, is_active):
         put_conn(conn)
 
 
+def set_user_password(user_id, password_hash):
+    """Replace a user's password hash. Returns True when a row was updated."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET password_hash = %s WHERE id = %s",
+                (password_hash, user_id),
+            )
+            updated = cur.rowcount > 0
+        conn.commit()
+        return updated
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        put_conn(conn)
+
+
 def user_exists(username, email):
     """Check if username or email already exists."""
     conn = get_conn()

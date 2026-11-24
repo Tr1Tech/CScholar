@@ -1,5 +1,6 @@
 """PDF upload routes -- extract text with PyMuPDF, associate with thesis."""
 
+import logging
 import os
 import threading
 from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form
@@ -7,6 +8,9 @@ from ..auth import login_required
 from .. import models as db
 from ..config import UPLOAD_DIR
 from ..services.uploads import secure_filename
+from ..services import object_store
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Upload"])
 
@@ -110,6 +114,14 @@ async def upload_pdf(
     file_path = os.path.join(UPLOAD_DIR, unique_name)
     with open(file_path, "wb") as f:
         f.write(file_bytes)
+
+    # Mirror to object storage when configured. A failure here must not reject
+    # the upload: the local copy still serves this instance.
+    if object_store.enabled():
+        try:
+            object_store.put_bytes(file_bytes, unique_name, "application/pdf")
+        except Exception as exc:
+            logger.warning("PDF not mirrored to object storage: %s", exc)
 
     pdf_url = f"/api/uploads/{unique_name}"
 

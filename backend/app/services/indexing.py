@@ -17,7 +17,8 @@ import subprocess
 import tempfile
 import threading
 
-from .uploads import upload_path
+from .uploads import upload_filename, upload_path
+from . import object_store
 
 # Below this many characters the PDF is treated as a scan, not a digital file.
 MIN_TEXT_CHARS = 200
@@ -117,10 +118,17 @@ def pdf_text_from_url(pdf_url, allow_ocr=True):
 
     The path rules live in [upload_path], shared with the download and
     validation routes: only a bare filename under UPLOAD_DIR is accepted.
+    When the local file is gone (a free host restarted) but the PDF was
+    mirrored to object storage, it is downloaded to a temp file first.
     """
-    path = None
+    downloaded = None
     try:
         path = upload_path(pdf_url)
+        if (not path or not os.path.isfile(path)) and object_store.enabled():
+            stored = upload_filename(pdf_url)
+            if stored:
+                downloaded = object_store.materialize(stored)
+                path = downloaded
         if not path or not os.path.isfile(path):
             return ""
         import pymupdf
@@ -134,6 +142,12 @@ def pdf_text_from_url(pdf_url, allow_ocr=True):
         # A missing, corrupt, or unreadable PDF must not stop title+abstract
         # indexing; the caller falls back to those.
         return ""
+    finally:
+        if downloaded:
+            try:
+                os.unlink(downloaded)
+            except OSError:
+                pass
 
 
 def embed_thesis_async(thesis_id, title, abstract, pdf_text=None, pdf_url=None):

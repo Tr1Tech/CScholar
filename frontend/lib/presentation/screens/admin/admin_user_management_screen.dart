@@ -727,10 +727,10 @@ class _AdminUserManagementScreenState
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),
-        title: const Text(
+        title: Text(
           'User Management',
           style: TextStyle(
             color: CScholarColors.textPrimary,

@@ -437,7 +437,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                 borderRadius: CScholarRadius.xl,
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_today_outlined,
                       color: CScholarColors.primaryGreen,
                     ),
@@ -478,7 +478,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
+                        child: Text(
                           'INACTIVE',
                           style: TextStyle(
                             fontSize: 10,
@@ -557,7 +557,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                 borderRadius: CScholarRadius.xl,
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.category_outlined,
                       color: CScholarColors.primaryGreen,
                     ),
@@ -1044,10 +1044,10 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
+          icon: Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),
-        title: const Text(
+        title: Text(
           'Programs & Categories',
           style: TextStyle(
             color: CScholarColors.textPrimary,
@@ -1079,7 +1079,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addForTab(context),
-        backgroundColor: CScholarColors.primaryGreen,
+        backgroundColor: CScholarColors.primaryFill,
         child: const Icon(Icons.add, color: CScholarColors.white),
       ),
     );

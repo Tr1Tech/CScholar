@@ -816,8 +816,8 @@ class TactileToggle extends StatefulWidget {
     this.burst = true,
     this.haptic = true,
     this.semanticLabel,
-    this.color = CScholarMaterial.textPrimary,
-    this.selectedColor = CScholarMaterial.textPrimary,
+    this.color,
+    this.selectedColor,
   });
 
   final bool selected;
@@ -843,11 +843,11 @@ class TactileToggle extends StatefulWidget {
 
   final String? semanticLabel;
 
-  /// Glyph colours, forwarded to the inner [MorphIcon]. The default is dark
-  /// ink for clay surfaces; a toggle floating on a dark thesis banner passes
-  /// white. Optional-with-defaults, so every existing call site is untouched.
-  final Color color;
-  final Color selectedColor;
+  /// Glyph colours, forwarded to the inner [MorphIcon]. Null is dark ink for
+  /// clay surfaces (resolved at paint time so it follows the mode); a toggle
+  /// floating on a dark thesis banner passes white.
+  final Color? color;
+  final Color? selectedColor;
 
   @override
   State<TactileToggle> createState() => _TactileToggleState();
@@ -942,8 +942,9 @@ class _TactileToggleState extends State<TactileToggle>
                       icon: widget.icon,
                       selectedIcon: widget.selectedIcon,
                       selected: widget.selected,
-                      color: widget.color,
-                      selectedColor: widget.selectedColor,
+                      color: widget.color ?? CScholarMaterial.textPrimary,
+                      selectedColor:
+                          widget.selectedColor ?? CScholarMaterial.textPrimary,
                       size: widget.size,
                     ),
                   ),

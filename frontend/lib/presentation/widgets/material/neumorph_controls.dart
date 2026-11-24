@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
@@ -31,6 +32,9 @@ class _NeumorphBase extends StatefulWidget {
     required this.radius,
     required this.gel,
     this.danger = false,
+    this.flat = false,
+    this.flatFill,
+    this.flatBorder,
     this.onTap,
     this.previewState,
     this.semanticLabel,
@@ -41,6 +45,15 @@ class _NeumorphBase extends StatefulWidget {
   final double radius;
   final bool gel;
   final bool danger;
+
+  /// Solid fill, no gradient and no shadow. Mobile surfaces are flat, so
+  /// dialogs shown there opt in rather than inheriting the clay gel.
+  final bool flat;
+
+  /// Secondary flat fill/rim. Mobile passes its theme values so the button
+  /// does not paint the static light clay on a dark sheet.
+  final Color? flatFill;
+  final Color? flatBorder;
   final VoidCallback? onTap;
   final NeumorphState? previewState;
   final String? semanticLabel;
@@ -152,20 +165,35 @@ class _NeumorphBaseState extends State<_NeumorphBase>
   }
 
   BoxDecoration _decoration(double t) {
+    if (widget.flat) {
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(widget.radius),
+        color: widget.gel
+            ? (widget.danger
+                ? CScholarMaterial.dangerFill
+                : CScholarMaterial.actionFill)
+            : (widget.flatFill ?? CScholarMaterial.clay),
+        border: widget.gel
+            ? null
+            : Border.all(
+                color: Color.lerp(
+                  widget.flatBorder ?? CScholarMaterial.rim,
+                  CScholarMaterial.rimStrong,
+                  t,
+                )!,
+              ),
+      );
+    }
     if (widget.gel) {
       final top = widget.danger
-          ? CScholarColors.error
-          : CScholarMaterial.gelTop;
+          ? CScholarMaterial.dangerFill
+          : CScholarMaterial.actionFill;
       final bottom = widget.danger
-          ? Color.lerp(
-              CScholarColors.error,
-              CScholarMaterial.textPrimary,
-              0.22,
-            )!
-          : CScholarMaterial.gelBottom;
+          ? CScholarMaterial.dangerFillPressed
+          : CScholarMaterial.actionFillPressed;
       final deep = widget.danger
-          ? Color.lerp(CScholarColors.error, CScholarMaterial.textPrimary, 0.4)!
-          : CScholarMaterial.gelDeep;
+          ? CScholarMaterial.dangerFillPressed
+          : CScholarMaterial.actionFillDeep;
       return BoxDecoration(
         borderRadius: BorderRadius.circular(widget.radius),
         gradient: LinearGradient(
@@ -319,6 +347,8 @@ class NeumorphButton extends StatelessWidget {
     this.danger = false,
     this.expand = false,
     this.loading = false,
+    this.flat = false,
+    this.mobile = false,
     this.previewState,
   });
 
@@ -328,6 +358,14 @@ class NeumorphButton extends StatelessWidget {
   final bool gel;
   final bool danger;
   final bool expand;
+
+  /// Mobile: a solid fill with no gradient or shadow, matching the flat
+  /// surfaces of the mobile shell.
+  final bool flat;
+
+  /// Resolve flat fills from the mobile theme so secondary actions and ink
+  /// follow light/dark. Only meaningful together with [flat].
+  final bool mobile;
 
   /// In-flight state: the button ignores taps and shows progress in place.
   final bool loading;
@@ -352,7 +390,10 @@ class NeumorphButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGel = gel || danger;
-    final foreground = isGel ? Colors.white : CScholarMaterial.textPrimary;
+    final mt = mobile ? CScholarMobileTheme.of(context) : null;
+    final foreground = isGel
+        ? Colors.white
+        : (mt?.ink ?? CScholarMaterial.textPrimary);
     final labelStyle = CScholarTextStyles.body(14, FontWeight.w700, foreground);
     // Icon glyph (18px) plus its 8px gap; the sweep plus its 8px gap.
     final labelFace =
@@ -363,6 +404,9 @@ class NeumorphButton extends StatelessWidget {
       radius: CScholarRadius.full,
       gel: isGel,
       danger: danger,
+      flat: flat,
+      flatFill: mt?.surfaceSoft,
+      flatBorder: mt?.line,
       onTap: loading ? null : onPressed,
       previewState: previewState,
       semanticLabel: label,

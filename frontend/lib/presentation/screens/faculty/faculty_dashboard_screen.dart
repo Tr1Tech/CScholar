@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/core/utils/relative_time.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -34,146 +35,153 @@ class FacultyDashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           children: [
-                              StaggerColumn(
-                            pitch: MotionPitch.page,
-                            children: [
-                              PageHeader(
-                                title: 'Faculty Dashboard',
-                                subtitle: 'Track your advisees, research activity, and student progress.',
-                                action: NeumorphButton(
-                                  onPressed: () => context.go('/faculty/thesis/new'),
-                                  icon: Icons.add,
-                                  label: 'New Thesis',
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              // KPI Cards
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final count = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 520 ? 2 : 1);
-                                  final cards = [
-                                    (
-                                      label: 'ADVISEES',
-                                      value: '${stats.value?['advisees'] ?? 0}',
-                                      trend: '${stats.value?['active_projects'] ?? 0} active projects',
-                                      icon: Icons.people_outline,
-                                      iconBg: CScholarColors.thesisChipBg,
-                                      iconColor: CScholarColors.primaryGreen,
-                                    ),
-                                    (
-                                      label: 'MY THESES',
-                                      value: '${stats.value?['theses'] ?? 0}',
-                                      trend: '${stats.value?['published'] ?? 0} published',
-                                      icon: Icons.article_outlined,
-                                      iconBg: CScholarColors.capstoneChipBg,
-                                      iconColor: CScholarColors.warningFg,
-                                    ),
-                                    (
-                                      label: 'PROGRAMS',
-                                      value: '${stats.value?['programs'] ?? 0}',
-                                      trend: '${stats.value?['programs'] ?? 0} CEIT programs',
-                                      icon: Icons.school_outlined,
-                                      iconBg: CScholarColors.goldLight,
-                                      iconColor: CScholarColors.goldDeep,
-                                    ),
-                                    (
-                                      // Faculty do not review their own
-                                      // advisees; these are drafts waiting on
-                                      // an admin to publish them.
-                                      label: 'FOR PUBLICATION',
-                                      value: '${stats.value?['pending_reviews'] ?? 0}',
-                                      trend: '${stats.value?['completed_reviews'] ?? 0} published',
-                                      icon: Icons.rate_review_outlined,
-                                      iconBg: CScholarColors.infoLight,
-                                      iconColor: CScholarColors.info,
-                                    ),
-                                  ];
-                                  return GridView(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    // Fixed extent, not an aspect ratio — see
-                                    // [kpiGridDelegate].
-                                    gridDelegate: kpiGridDelegate(context, count),
-                                    children: [
-                                      for (var i = 0; i < cards.length; i++)
-                                        // Diagonal cascade on the feature rhythm
-                                        // (see the admin dashboard): each cell
-                                        // carries its finished delay against
-                                        // the laid-out column count.
-                                        Stagger(
-                                          index: i,
-                                          step: MotionPitch.feature.step,
-                                          max: MotionPitch.feature.max,
-                                          rise: MotionPitch.feature.rise,
-                                          delay: StaggerColumn.diagonalDelay(
-                                            index: i,
-                                            columns: count,
-                                            pitch: MotionPitch.feature,
-                                          ),
-                                          child: KpiCard(
-                                            label: cards[i].label,
-                                            value: cards[i].value,
-                                            trend: cards[i].trend,
-                                            icon: cards[i].icon,
-                                            iconBg: cards[i].iconBg,
-                                            iconColor: cards[i].iconColor,
-                                          ),
-                                        ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
+            StaggerColumn(
+              pitch: MotionPitch.page,
+              children: [
+                PageHeader(
+                  title: 'Faculty Dashboard',
+                  subtitle: 'Track your advisees, research activity, and student progress.',
+                  action: NeumorphButton(
+                    onPressed: () => context.go('/faculty/thesis/new'),
+                    icon: Icons.add,
+                    label: 'New Thesis',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // KPI Cards
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final count = constraints.maxWidth > 900
+                        ? 4
+                        : (constraints.maxWidth > 520 ? 2 : 1);
+                    final cards = [
+                      (
+                        label: 'ADVISEES',
+                        value: '${stats.value?['advisees'] ?? 0}',
+                        trend:
+                            '${stats.value?['active_projects'] ?? 0} active projects',
+                        icon: Icons.people_outline,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                      ),
+                      (
+                        label: 'MY THESES',
+                        value: '${stats.value?['theses'] ?? 0}',
+                        trend: '${stats.value?['published'] ?? 0} published',
+                        icon: Icons.article_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                      ),
+                      (
+                        label: 'PROGRAMS',
+                        value: '${stats.value?['programs'] ?? 0}',
+                        trend: '${stats.value?['programs'] ?? 0} CEIT programs',
+                        icon: Icons.school_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                      ),
+                      (
+                        // Faculty do not review their own
+                        // advisees; these are drafts waiting on
+                        // an admin to publish them.
+                        label: 'FOR PUBLICATION',
+                        value: '${stats.value?['pending_reviews'] ?? 0}',
+                        trend:
+                            '${stats.value?['completed_reviews'] ?? 0} published',
+                        icon: Icons.rate_review_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                      ),
+                    ];
+                    return GridView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      // Fixed extent, not an aspect ratio — see
+                      // [kpiGridDelegate].
+                      gridDelegate: kpiGridDelegate(context, count),
+                      children: [
+                        for (var i = 0; i < cards.length; i++)
+                          // Diagonal cascade on the feature rhythm
+                          // (see the admin dashboard): each cell
+                          // carries its finished delay against
+                          // the laid-out column count.
+                          Stagger(
+                            index: i,
+                            step: MotionPitch.feature.step,
+                            max: MotionPitch.feature.max,
+                            rise: MotionPitch.feature.rise,
+                            delay: StaggerColumn.diagonalDelay(
+                              index: i,
+                              columns: count,
+                              pitch: MotionPitch.feature,
+                            ),
+                            child: KpiCard(
+                              label: cards[i].label,
+                              value: cards[i].value,
+                              trend: cards[i].trend,
+                              icon: cards[i].icon,
+                              iconBg: cards[i].iconBg,
+                              iconColor: cards[i].iconColor,
+                            ),
                           ),
-                          // The content row leaves the shared column so its
-                          // panels land on their explicit PART 7 beats (+120 /
-                          // +180) instead of stacking on the column's index.
-                          const SizedBox(height: 28),
-                          // Content: Left (Recent Activity) + Right (Advisees).
-                          // The panels keep their responsive Row/Column split;
-                          // each carries its own beat. The wrappers sit INSIDE
-                          // the flex (never between a Flex and its Expanded),
-                          // so the layout is untouched.
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final isWide = constraints.maxWidth > 860;
-                              final leftPanel = EntranceReveal(
-                                delay: const Duration(milliseconds: 120),
-                                rise: 0,
-                                child: _recentActivityPanel(context, recentActivity),
-                              );
-                              final rightPanel = EntranceReveal(
-                                delay: const Duration(milliseconds: 180),
-                                rise: 0,
-                                child: _adviseesPanel(context, ref),
-                              );
-                              if (isWide) {
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(flex: 7, child: leftPanel),
-                                    const SizedBox(width: 24),
-                                    Expanded(flex: 4, child: rightPanel),
-                                  ],
-                                );
-                              } else {
-                                return Column(
-                                  children: [
-                                    leftPanel,
-                                    const SizedBox(height: 24),
-                                    rightPanel,
-                                  ],
-                                );
-                              }
-                            },
-                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            // The content row leaves the shared column so its
+            // panels land on their explicit PART 7 beats (+120 /
+            // +180) instead of stacking on the column's index.
+            const SizedBox(height: 28),
+            // Content: Left (Recent Activity) + Right (Advisees).
+            // The panels keep their responsive Row/Column split;
+            // each carries its own beat. The wrappers sit INSIDE
+            // the flex (never between a Flex and its Expanded),
+            // so the layout is untouched.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 860;
+                final leftPanel = EntranceReveal(
+                  delay: const Duration(milliseconds: 120),
+                  rise: 0,
+                  child: _recentActivityPanel(context, recentActivity),
+                );
+                final rightPanel = EntranceReveal(
+                  delay: const Duration(milliseconds: 180),
+                  rise: 0,
+                  child: _adviseesPanel(context, ref),
+                );
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 7, child: leftPanel),
+                      const SizedBox(width: 24),
+                      Expanded(flex: 4, child: rightPanel),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      leftPanel,
+                      const SizedBox(height: 24),
+                      rightPanel,
+                    ],
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _recentActivityPanel(BuildContext context, AsyncValue<List<Map<String, dynamic>>> activity) {
+  Widget _recentActivityPanel(
+    BuildContext context,
+    AsyncValue<List<Map<String, dynamic>>> activity,
+  ) {
     return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,11 +190,16 @@ class FacultyDashboardScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
-                child: Text('Recent Activity',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: CScholarTextStyles.heading(
-                        16, FontWeight.w700, CScholarColors.textPrimary)),
+                child: Text(
+                  'Recent Activity',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: CScholarTextStyles.heading(
+                    16,
+                    FontWeight.w700,
+                    CScholarColors.textPrimary,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               Flexible(
@@ -199,7 +212,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const Divider(color: CScholarMaterial.rim, height: 20),
+          Divider(color: CScholarMaterial.rim, height: 20),
           asyncSlot<List<Map<String, dynamic>>>(
             activity,
             skeleton: const SkeletonList(count: 4, cardHeight: 56),
@@ -209,7 +222,8 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   compact: true,
                   icon: Icons.history,
                   title: 'No recent activity',
-                  message: 'Supervised studies and their status will show up here.',
+                  message:
+                      'Supervised studies and their status will show up here.',
                 );
               }
               return Column(
@@ -229,7 +243,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                       iconColor: CScholarColors.primaryGreen,
                       title: item['title'] ?? 'Untitled',
                       subtitle: item['subtitle'] ?? 'No details',
-                      time: item['created_at'] ?? '',
+                      time: relativeTime(item['created_at'] as String?),
                     ),
                   );
                 }).toList(),
@@ -238,8 +252,14 @@ class FacultyDashboardScreen extends ConsumerWidget {
             error: (err, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text('Could not load activity: $err',
-                    style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted)),
+                child: Text(
+                  'Could not load activity: $err',
+                  style: CScholarTextStyles.body(
+                    12,
+                    FontWeight.w500,
+                    CScholarColors.textMuted,
+                  ),
+                ),
               ),
             ),
           ),
@@ -254,8 +274,15 @@ class FacultyDashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('My Advisees', style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
-          const Divider(color: CScholarMaterial.rim, height: 20),
+          Text(
+            'My Advisees',
+            style: CScholarTextStyles.heading(
+              16,
+              FontWeight.w700,
+              CScholarColors.textPrimary,
+            ),
+          ),
+          Divider(color: CScholarMaterial.rim, height: 20),
           stats.when(
             data: (s) {
               final count = (s['advisees'] as num?)?.toInt() ?? 0;
@@ -273,7 +300,10 @@ class FacultyDashboardScreen extends ConsumerWidget {
                   child: Text(
                     '$count advisee${count == 1 ? '' : 's'} linked to your account',
                     style: CScholarTextStyles.body(
-                        13, FontWeight.w400, CScholarColors.textSecondary),
+                      13,
+                      FontWeight.w400,
+                      CScholarColors.textSecondary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -286,7 +316,10 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 child: Text(
                   'Could not load advisees: $err',
                   style: CScholarTextStyles.body(
-                      13, FontWeight.w400, CScholarColors.textSecondary),
+                    13,
+                    FontWeight.w400,
+                    CScholarColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -330,13 +363,38 @@ class FacultyDashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: CScholarTextStyles.body(13, FontWeight.w600, CScholarColors.textPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: CScholarTextStyles.body(
+                    13,
+                    FontWeight.w600,
+                    CScholarColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: CScholarTextStyles.body(11.5, FontWeight.w400, CScholarColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  subtitle,
+                  style: CScholarTextStyles.body(
+                    11.5,
+                    FontWeight.w400,
+                    CScholarColors.textMuted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          Text(time, style: CScholarTextStyles.body(11, FontWeight.w400, CScholarColors.textHint)),
+          Text(
+            time,
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w400,
+              CScholarColors.textHint,
+            ),
+          ),
         ],
       ),
     );

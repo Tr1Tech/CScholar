@@ -92,7 +92,9 @@ void main() {
   tearDown(() => CScholarMotion.ambientEnabled = true);
 
   group('tier 2 — shared topbar chrome', () {
-    testWidgets('search is a tonal clay well, not a white box', (tester) async {
+    testWidgets('search is an outlined tonal clay well, not a white box', (
+      tester,
+    ) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
 
@@ -106,13 +108,15 @@ void main() {
         CScholarMaterial.clayDeep,
         reason: 'the search well lost the house recessed fill',
       );
+      // The topbar and the well are both near-white clay; the fill alone
+      // disappeared. A soft green rim gives the field an edge.
+      final border = well.border as Border;
+      expect(border, isNotNull);
       expect(
-        well.border,
-        isNull,
-        reason:
-            'the search well grew an outline back — clay draws none at '
-            'rest',
+        border.top.color,
+        CScholarColors.primaryGreen.withValues(alpha: 0.35),
       );
+      expect(border.top.width, 1);
       expect(tester.takeException(), isNull);
     });
 
@@ -239,9 +243,9 @@ void main() {
         ),
       );
 
-      // 320 wide, edge to edge: the well draws no rim at rest, and the field's
-      // own 14px content padding is what keeps the text off the curve.
-      expect(tester.getSize(find.byType(TextField)).width, closeTo(320, 1.5));
+      // 320 wide pill; the 1px rim insets the bare field to 318, and the
+      // field's own 14px content padding is what keeps the text off the curve.
+      expect(tester.getSize(find.byType(TextField)).width, closeTo(318, 1.5));
       expect(tester.takeException(), isNull);
     });
 
@@ -387,11 +391,10 @@ void main() {
       );
       expect(find.text('87% match'), findsOneWidget);
       final badge = _decorationOf(tester, find.text('87% match'));
-      // Gold AI identity: goldSoft paper + amber ink (5.42:1), distinct from
-      // green status chips.
-      expect(badge.color, CScholarColors.goldSoft);
+      // Default AI identity is the mobile mint/green, not a gold/coral accent.
+      expect(badge.color, CScholarColors.primaryGreenLight);
       final label = tester.widget<Text>(find.text('87% match'));
-      expect(label.style!.color, CScholarColors.warningFg);
+      expect(label.style!.color, CScholarColors.primaryGreen);
       expect(tester.takeException(), isNull);
     });
 
@@ -424,8 +427,13 @@ void main() {
         reason: 'keyword chips fell back to the canvas fill (a hole)',
       );
       expect(well.border, isNotNull);
-      // The type token carries a rim now, like every other chip.
-      expect(_decorationOf(tester, find.text('Capstone')).border, isNotNull);
+      // The type token carries a rim now, like every other chip. Both research
+      // types use the brand green; coral stays for delete/error.
+      final capstoneChip = _decorationOf(tester, find.text('Capstone'));
+      expect(capstoneChip.border, isNotNull);
+      expect(capstoneChip.color, CScholarColors.primaryGreenLight);
+      final capstoneLabel = tester.widget<Text>(find.text('Capstone'));
+      expect(capstoneLabel.style!.color, CScholarColors.primaryGreen);
       expect(tester.takeException(), isNull);
     });
   });

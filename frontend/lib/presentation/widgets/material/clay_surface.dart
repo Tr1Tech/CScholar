@@ -17,7 +17,7 @@ class ClaySurface extends StatelessWidget {
     this.radius = CScholarRadius.softCard,
     this.padding = const EdgeInsets.all(22),
     this.depth = 1,
-    this.color = CScholarMaterial.clay,
+    this.color,
     this.showRim = false,
     this.shadows,
   });
@@ -26,7 +26,10 @@ class ClaySurface extends StatelessWidget {
   final double radius;
   final EdgeInsetsGeometry padding;
   final double depth;
-  final Color color;
+
+  /// Fill override. Null resolves the live surface token at paint time, so a
+  /// default card follows the light/dark mode instead of freezing one mode.
+  final Color? color;
   final bool showRim;
 
   /// Rare override for the drop shadow. Null uses the card shadow for [depth].
@@ -39,7 +42,7 @@ class ClaySurface extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
-        color: color,
+        color: color ?? CScholarMaterial.clay,
         border: Border.all(
           color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
         ),

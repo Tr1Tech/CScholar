@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/animate_x.dart';
@@ -40,15 +41,18 @@ class ThesisCard extends StatefulWidget {
   /// type label at >= 4.5:1 — the previous set included `#FF9900` (2.14:1) and
   /// `#0D9488` (3.74:1), so one card in five had an unreadable label.
   ///
+  /// Mode-STABLE on purpose: these are identity art, not chrome. Flipping them
+  /// with the palette would put white glyphs on pale banners at night.
+  ///
   /// Public so the contrast contract is testable (see
-  /// `test/tier2_surface_test.dart`). Ratios with white text: #007A14 5.54,
-  /// #1D4ED8 6.70, #0F766E 5.47, #7E22CE 6.98, #B45309 5.02.
+  /// `test/tier2_surface_test.dart`). Ratios with white text: #174F3D 9.45,
+  /// #2D7159 5.38, #5B5194 7.35, #A63E25 5.66, #17231E 15.0.
   static const List<Color> bannerPalette = [
-    CScholarColors.primaryGreen,
-    CScholarColors.primaryGreenHover,
-    CScholarColors.facultyColor,
-    CScholarColors.adminColor,
-    CScholarColors.textPrimary,
+    CScholarMobileColors.green,
+    CScholarMobileColors.green2,
+    CScholarMobileColors.lilacInk,
+    CScholarMobileColors.coralInk,
+    CScholarMobileColors.ink,
   ];
 
   /// Generative cover gradient for a thesis id — same source as [ThesisCover]
@@ -292,7 +296,7 @@ class _ThesisCardState extends State<ThesisCard> {
               child: Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: CScholarMaterial.goldTop,
                   shape: BoxShape.circle,
                 ),
@@ -414,9 +418,10 @@ class _ThesisCardState extends State<ThesisCard> {
     );
   }
 
-  /// Match badge — gold AI identity. One-shot shimmer sweep on arrival so
-  /// the eye catches it once, then it rests. Max 1 per card, never behind
-  /// body text. Static under reduced motion.
+  /// Match badge — the default mint/green AI identity (same as mobile).
+  /// One-shot shimmer sweep on arrival so the eye catches it once, then it
+  /// rests. Max 1 per card, never behind body text. Static under reduced
+  /// motion.
   Widget _semanticBadge(double score) {
     final pct = (score * 100).round();
     final badge = Tooltip(
@@ -425,18 +430,19 @@ class _ThesisCardState extends State<ThesisCard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: CScholarColors.goldSoft,
+          color: CScholarColors.primaryGreenLight,
           borderRadius: BorderRadius.circular(CScholarRadius.full),
-          border: Border.all(color: CScholarMaterial.rimDraft),
-          boxShadow: CScholarShadows.goldGlow,
+          border: Border.all(
+            color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.auto_awesome,
               size: 11,
-              color: CScholarColors.warningFg,
+              color: CScholarColors.primaryGreen,
             ),
             const SizedBox(width: 4),
             Text(
@@ -444,7 +450,7 @@ class _ThesisCardState extends State<ThesisCard> {
               style: CScholarTextStyles.body(
                 10.5,
                 FontWeight.w700,
-                CScholarColors.warningFg,
+                CScholarColors.primaryGreen,
               ),
             ),
           ],

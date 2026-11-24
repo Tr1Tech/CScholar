@@ -110,13 +110,13 @@ extension AnimateX on Widget {
   Widget shimmerOnce(
     BuildContext context, {
     Duration delay = Duration.zero,
-    Color color = CScholarMaterial.shadowLight,
+    Color? color,
   }) {
     if (!animateEnabled(context)) return this;
     return animate().shimmer(
       delay: delay,
       duration: CScholarMotion.shimmer,
-      color: color.withValues(alpha: 0.4),
+      color: (color ?? CScholarMaterial.shadowLight).withValues(alpha: 0.4),
     );
   }
 }

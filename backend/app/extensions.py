@@ -46,6 +46,13 @@ def get_pool():
                 _pool = psycopg_pool.ConnectionPool(
                     conninfo, min_size=1, max_size=20,
                     configure=_configure_conn, timeout=10,
+                    # Neon (and any host that suspends an idle database) drops
+                    # pooled connections after a few idle minutes. Check the
+                    # connection on checkout so the first request after a pause
+                    # reconnects instead of failing with "server closed the
+                    # connection unexpectedly"; max_idle retires it sooner.
+                    check=psycopg_pool.ConnectionPool.check_connection,
+                    max_idle=240,
                 )
     return _pool
 

@@ -1,27 +1,73 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Mobile theme mode — mirrors the prototype's `cscholar-theme`
-/// localStorage toggle (`cscholar-mobile-ui/src/App.tsx:266-283`).
-final mobileThemeModeProvider = NotifierProvider<MobileThemeMode, bool>(
-  () => MobileThemeMode(),
+/// One light/dark mode for the WHOLE app — web and mobile.
+///
+/// The switch lives in the top-right corner of every shell (desktop topbar,
+/// mobile header, auth screens). It used to drive the mobile shell only; the
+/// web now resolves the same flag through `CScholarPalette`, so both builds
+/// flip together and the choice is shared per device.
+///
+/// The persisted value is read once in `main()` before `runApp`, so the first
+/// frame is already painted in the saved mode: no flash of light before dark,
+/// and no unrequested transition on start-up.
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, bool>(
+  ThemeModeNotifier.new,
 );
 
-class MobileThemeMode extends Notifier<bool> {
+/// Historically the mobile-only toggle. Same provider — the mode is app-wide
+/// now, and every existing (mobile) call site keeps working unchanged.
+final mobileThemeModeProvider = themeModeProvider;
+
+/// Where the app starts before the notifier exists (set by `main()`).
+class CScholarModeStore {
+  CScholarModeStore._();
+
+  /// The persisted mode, already merged with the legacy mobile key.
+  static bool initialDark = false;
+
+  static const String prefsKey = 'cscholar-theme-dark';
+
+  /// The key the mobile-only toggle used. Read as a fallback so nobody loses
+  /// the choice they already made.
+  static const String legacyPrefsKey = 'cscholar-mobile-theme-dark';
+
+  /// Resolves the saved mode. Call from `main()` before `runApp`.
+  static Future<bool> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      initialDark =
+          prefs.getBool(prefsKey) ??
+          prefs.getBool(legacyPrefsKey) ??
+          false;
+    } catch (_) {
+      // No prefs on this platform (or a test host): stay light.
+      initialDark = false;
+    }
+    return initialDark;
+  }
+}
+
+class ThemeModeNotifier extends Notifier<bool> {
   @override
-  bool build() {
-    _load();
-    return false;
+  bool build() => CScholarModeStore.initialDark;
+
+  /// Flips the mode and persists it. The visual swap is animated by the root
+  /// shell (see `CScholarApp`), which repaints the palette mid-transition.
+  Future<void> toggle() => setDark(!state);
+
+  Future<void> setDark(bool value) async {
+    if (state == value) return;
+    state = value;
+    await _persist(value);
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getBool('cscholar-mobile-theme-dark') ?? false;
-  }
-
-  Future<void> toggle() async {
-    state = !state;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('cscholar-mobile-theme-dark', state);
+  Future<void> _persist(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(CScholarModeStore.prefsKey, value);
+    } catch (_) {
+      // Best-effort: the mode still applies for this session.
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/core/utils/relative_time.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -85,24 +86,24 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         value: '${stats.value?['programs'] ?? 0}',
                         trend: '${stats.value?['active_programs'] ?? 0} active',
                         icon: Icons.school_outlined,
-                        iconBg: CScholarColors.goldLight,
-                        iconColor: CScholarColors.goldDeep,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
                       ),
                       (
                         label: 'USERS',
                         value: '${stats.value?['users'] ?? 0}',
                         trend: '${stats.value?['active_users'] ?? 0} active',
                         icon: Icons.people_outline,
-                        iconBg: CScholarColors.capstoneChipBg,
-                        iconColor: CScholarColors.warningFg,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
                       ),
                       (
                         label: 'SEARCHES',
                         value: '${stats.value?['searches'] ?? '0'}',
                         trend: '+${stats.value?['search_growth'] ?? 0}%',
                         icon: Icons.search,
-                        iconBg: CScholarColors.infoLight,
-                        iconColor: CScholarColors.info,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
                       ),
                     ];
                     return GridView(
@@ -336,7 +337,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ),
               ],
             ),
-            const Divider(color: CScholarMaterial.rim, height: 20),
+            Divider(color: CScholarMaterial.rim, height: 20),
             const SkeletonList(count: 4, cardHeight: 56),
           ],
         ),
@@ -394,7 +395,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ],
         ),
-        const Divider(color: CScholarMaterial.rim, height: 20),
+        Divider(color: CScholarMaterial.rim, height: 20),
         if (items.isEmpty)
           const EmptyState(
             compact: true,
@@ -409,11 +410,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             final widgets = <Widget>[];
             if (idx > 0) {
               widgets.add(
-                const Divider(color: CScholarMaterial.rim, height: 16),
+                Divider(color: CScholarMaterial.rim, height: 16),
               );
             }
             // Dense feed rows step on the tight rhythm — one gesture, not a
             // second cascade competing with the page.
+            final style = _activityStyle(
+              item['activity_type'] as String? ?? '',
+            );
+            // Explicit presentation fields from the API still win; the style
+            // derived from `activity_type` is the fallback.
+            final iconName = item['icon'] as String?;
+            final iconBgHex = item['icon_bg'] as String?;
+            final iconColorHex = item['icon_color'] as String?;
             widgets.add(
               Stagger(
                 index: idx,
@@ -421,21 +430,27 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 max: MotionPitch.tight.max,
                 rise: MotionPitch.tight.rise,
                 child: _activityItem(
-                  icon: _iconFor(item['icon'] as String? ?? 'info'),
-                  iconBg: _colorFor(item['icon_bg'] as String? ?? '#F3F4F6'),
-                  iconColor: _colorFor(
-                    item['icon_color'] as String? ?? '#6B7280',
-                  ),
+                  icon: iconName == null ? style.icon : _iconFor(iconName),
+                  iconBg: iconBgHex == null
+                      ? style.background
+                      : _colorFor(iconBgHex),
+                  iconColor: iconColorHex == null
+                      ? style.tint
+                      : _colorFor(iconColorHex),
                   title: item['title'] as String? ?? '',
                   subtitle: item['subtitle'] as String? ?? '',
-                  time: item['time'] as String? ?? '',
+                  // The endpoint sends ISO timestamps; the row shows how long
+                  // ago the thesis landed instead of a raw date.
+                  time: relativeTime(
+                    item['created_at'] as String? ?? item['time'] as String?,
+                  ),
                 ),
               ),
             );
             return widgets;
           }),
         if (items.isNotEmpty) ...[
-          const Divider(color: CScholarMaterial.rim, height: 20),
+          Divider(color: CScholarMaterial.rim, height: 20),
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Row(
@@ -477,6 +492,59 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  /// Icon and tint for a feed row, chosen from the API's `activity_type`.
+  ///
+  /// The dashboard endpoint currently only emits "New thesis added", but the
+  /// tags keep the feed legible if it starts reporting other kinds of events
+  /// (updates, publishes, user events) without a client change.
+  ({IconData icon, Color background, Color tint}) _activityStyle(String type) {
+    final tag = type.toLowerCase();
+    if (tag.contains('update') || tag.contains('edit')) {
+      return (
+        icon: Icons.edit_note_outlined,
+        background: CScholarColors.infoLight,
+        tint: CScholarColors.info,
+      );
+    }
+    if (tag.contains('publish') || tag.contains('approve')) {
+      return (
+        icon: Icons.verified_outlined,
+        background: CScholarColors.thesisChipBg,
+        tint: CScholarColors.primaryGreen,
+      );
+    }
+    if (tag.contains('delete') ||
+        tag.contains('archive') ||
+        tag.contains('remove')) {
+      return (
+        icon: Icons.delete_outline,
+        background: CScholarColors.errorLight,
+        tint: CScholarColors.error,
+      );
+    }
+    if (tag.contains('user') ||
+        tag.contains('person') ||
+        tag.contains('account')) {
+      return (
+        icon: Icons.person_add_outlined,
+        background: CScholarColors.violetTint,
+        tint: CScholarColors.violetInk,
+      );
+    }
+    if (tag.contains('search')) {
+      return (
+        icon: Icons.search,
+        background: CScholarColors.infoLight,
+        tint: CScholarColors.info,
+      );
+    }
+    return (
+      icon: Icons.add_circle_outline,
+      background: CScholarColors.thesisChipBg,
+      tint: CScholarColors.primaryGreen,
     );
   }
 
@@ -592,8 +660,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _managementTile(
             context,
             icon: Icons.upload_file_outlined,
-            iconColor: CScholarColors.violetInk,
-            iconBg: CScholarColors.violetTint,
+            iconColor: CScholarColors.primaryGreen,
+            iconBg: CScholarColors.thesisChipBg,
             title: 'Bulk Import',
             subtitle: 'Add a batch from a spreadsheet',
             onTap: () => context.go('/admin/import'),
@@ -602,8 +670,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _managementTile(
             context,
             icon: Icons.people_alt_outlined,
-            iconColor: CScholarColors.warningFg,
-            iconBg: CScholarColors.capstoneChipBg,
+            iconColor: CScholarColors.primaryGreen,
+            iconBg: CScholarColors.thesisChipBg,
             title: 'Manage Users',
             subtitle: 'Review student approvals & roles',
             onTap: () => context.go('/admin/users'),
@@ -612,8 +680,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _managementTile(
             context,
             icon: Icons.category_outlined,
-            iconColor: CScholarColors.skyInk,
-            iconBg: CScholarColors.skyTint,
+            iconColor: CScholarColors.primaryGreen,
+            iconBg: CScholarColors.thesisChipBg,
             title: 'Programs & Tags',
             subtitle: 'Organize college departments',
             onTap: () => context.go('/admin/programs'),
@@ -676,7 +744,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
               size: 12,
               color: CScholarColors.textHint,

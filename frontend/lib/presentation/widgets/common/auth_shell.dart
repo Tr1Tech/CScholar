@@ -4,6 +4,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/animate_x.dart';
 import 'package:frontend/presentation/widgets/common/csu_mark.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/theme_toggle.dart';
 import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 
 /// Shared shell for the two auth screens (login / register) — ONE visual unit.
@@ -40,6 +41,9 @@ class AuthShell extends StatelessWidget {
         clipBehavior: Clip.hardEdge,
         children: [
           const _AmbientField(),
+          // The switch floats in the corner here: the auth screens have no
+          // topbar to carry it, and they are the first screens a visitor sees.
+          const ThemeModeCorner(),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -103,7 +107,7 @@ class AuthShell extends StatelessWidget {
                     children: [
                       // Gold on canvas is decoration (1.26:1); the copy
                       // carries the meaning.
-                      const Icon(Icons.school,
+                      Icon(Icons.school,
                           size: 14, color: CScholarColors.gold),
                       const SizedBox(width: 6),
                       Flexible(
@@ -163,7 +167,7 @@ class _AmbientField extends StatelessWidget {
           alignment: const Alignment(0.75, 0.9),
           child: _AmbientOrb(
             size: 320,
-            color: CScholarColors.goldSoft,
+            color: CScholarColors.cyanTint,
             drift: const Offset(-16, -12),
             duration: const Duration(seconds: 13),
           ),
@@ -293,7 +297,7 @@ class AuthErrorBanner extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline,
+                    Icon(Icons.error_outline,
                         size: 18, color: CScholarColors.error),
                     const SizedBox(width: 8),
                     Expanded(

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/screens/auth/login_screen.dart';
 import 'package:frontend/presentation/screens/auth/register_screen.dart';
@@ -17,6 +19,7 @@ import 'package:frontend/presentation/screens/admin/admin_thesis_management_scre
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_bulk_import_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
@@ -57,6 +60,15 @@ const String mobileOnlyNotice =
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
+/// Wraps a route body so an app-wide palette swap reaches it.
+///
+/// The Navigator keeps the page widget it was handed, so rebuilding
+/// `MaterialApp` with a new theme never rebuilds a route — measured, see
+/// `test/theme_mode_test.dart`. [CScholarPaletteRebuild] is mounted INSIDE the
+/// route and depends on the palette scope, so it is the one thing that hears
+/// the flip and rebuilds the page once, while the transition curtain covers it.
+Widget page(WidgetBuilder builder) => CScholarPaletteRebuild(builder: builder);
 
 /// DEV ONLY — the design lab is compiled out of release builds.
 /// `dart.vm.product` is true only in AOT/release, so this stays on under
@@ -156,14 +168,16 @@ final appRouter = Provider<GoRouter>((ref) {
       // Public routes
       GoRoute(
         path: '/login',
-        builder: (context, state) => LoginScreen(
-          reason: state.uri.queryParameters['reason'],
-          initialEmail: state.uri.queryParameters['email'],
+        builder: (context, state) => page(
+          (_) => LoginScreen(
+            reason: state.uri.queryParameters['reason'],
+            initialEmail: state.uri.queryParameters['email'],
+          ),
         ),
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => page((_) => const RegisterScreen()),
       ),
 
       // DEV ONLY design lab (clay / glass) — stripped from
@@ -171,7 +185,7 @@ final appRouter = Provider<GoRouter>((ref) {
       if (kEnableDesignLab)
         GoRoute(
           path: '/design-lab',
-          builder: (context, state) => const DesignLabScreen(),
+          builder: (context, state) => page((_) => const DesignLabScreen()),
         ),
 
       // Student shell
@@ -181,13 +195,17 @@ final appRouter = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/student/dashboard',
-            builder: (context, state) => const StudentDashboardScreen(),
+            builder: (context, state) =>
+                page((_) => const StudentDashboardScreen()),
           ),
           GoRoute(
             path: '/repository',
-            builder: (context, state) => RepositoryScreen(
-              initialQuery: state.uri.queryParameters['q'],
-              initialSemantic: state.uri.queryParameters['mode'] == 'semantic',
+            builder: (context, state) => page(
+              (_) => RepositoryScreen(
+                initialQuery: state.uri.queryParameters['q'],
+                initialSemantic:
+                    state.uri.queryParameters['mode'] == 'semantic',
+              ),
             ),
           ),
           GoRoute(
@@ -195,26 +213,31 @@ final appRouter = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
               if (id == null || id <= 0) {
-                return Scaffold(
-                  body: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Invalid thesis id: ${state.pathParameters['id']}',
-                        ),
-                        const SizedBox(height: 16),
-                        NeumorphButton(
-                          onPressed: () => context.go('/repository'),
-                          label: 'Back to Repository',
-                        ),
-                      ],
+                return page(
+                  (_) => Scaffold(
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: CScholarColors.textMuted,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Invalid thesis id: ${state.pathParameters['id']}',
+                            style: TextStyle(
+                              color: CScholarColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          NeumorphButton(
+                            onPressed: () => context.go('/repository'),
+                            label: 'Back to Repository',
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -223,19 +246,22 @@ final appRouter = Provider<GoRouter>((ref) {
               // score through `extra` so the detail screen can meter it.
               // Direct loads and keyword entries carry no score — the meter
               // simply stays off rather than guessing one.
-              return ThesisDetailScreen(
-                thesisId: id,
-                similarity: state.extra as double?,
+              return page(
+                (_) => ThesisDetailScreen(
+                  thesisId: id,
+                  similarity: state.extra as double?,
+                ),
               );
             },
           ),
           GoRoute(
             path: '/saved',
-            builder: (context, state) => const SavedThesesScreen(),
+            builder: (context, state) =>
+                page((_) => const SavedThesesScreen()),
           ),
           GoRoute(
             path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
+            builder: (context, state) => page((_) => const ProfileScreen()),
           ),
         ],
       ),
@@ -243,100 +269,136 @@ final appRouter = Provider<GoRouter>((ref) {
       // Admin routes
       GoRoute(
         path: '/admin/dashboard',
-        builder: (context, state) => const AdminDashboardScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminDashboardScreen()),
       ),
       GoRoute(
         path: '/admin/thesis/management',
-        builder: (context, state) => const AdminThesisManagementScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminThesisManagementScreen()),
       ),
       GoRoute(
         path: '/admin/thesis/new',
-        builder: (context, state) => const AdminAddEditThesisScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminAddEditThesisScreen()),
       ),
       GoRoute(
         path: '/admin/import',
-        builder: (context, state) => const AdminBulkImportScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminBulkImportScreen()),
       ),
       GoRoute(
         path: '/admin/thesis/:id/edit',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
-            return Scaffold(
-              body: Center(
-                child: Text('Invalid thesis id: ${state.pathParameters['id']}'),
+            return page(
+              (_) => Scaffold(
+                body: Center(
+                  child: Text(
+                    'Invalid thesis id: ${state.pathParameters['id']}',
+                    style: TextStyle(color: CScholarColors.textPrimary),
+                  ),
+                ),
               ),
             );
           }
-          return AdminAddEditThesisScreen(thesisId: id);
+          return page((_) => AdminAddEditThesisScreen(thesisId: id));
         },
       ),
       GoRoute(
         path: '/admin/programs',
-        builder: (context, state) => const AdminProgramsScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminProgramsScreen()),
       ),
       GoRoute(
         path: '/admin/users',
-        builder: (context, state) => const AdminUserManagementScreen(),
+        builder: (context, state) =>
+            page((_) => const AdminUserManagementScreen()),
+      ),
+      GoRoute(
+        path: '/admin/settings',
+        builder: (context, state) =>
+            page((_) => const AdminSettingsScreen()),
       ),
 
       // Faculty routes
       GoRoute(
         path: '/faculty/dashboard',
-        builder: (context, state) => const FacultyDashboardScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultyDashboardScreen()),
       ),
       GoRoute(
         path: '/faculty/theses',
-        builder: (context, state) => const FacultyThesesScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultyThesesScreen()),
       ),
       GoRoute(
         path: '/faculty/thesis/new',
-        builder: (context, state) => const FacultyThesisFormScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultyThesisFormScreen()),
       ),
       GoRoute(
         path: '/faculty/thesis/:id/edit',
         builder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
-            return Scaffold(
-              body: Center(
-                child: Text('Invalid thesis id: ${state.pathParameters['id']}'),
+            return page(
+              (_) => Scaffold(
+                body: Center(
+                  child: Text(
+                    'Invalid thesis id: ${state.pathParameters['id']}',
+                    style: TextStyle(color: CScholarColors.textPrimary),
+                  ),
+                ),
               ),
             );
           }
-          return FacultyThesisFormScreen(thesisId: id);
+          return page((_) => FacultyThesisFormScreen(thesisId: id));
         },
       ),
       GoRoute(
         path: '/faculty/students',
-        builder: (context, state) => const FacultyStudentsScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultyStudentsScreen()),
       ),
       GoRoute(
         path: '/faculty/analytics',
-        builder: (context, state) => const FacultyAnalyticsScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultyAnalyticsScreen()),
       ),
       GoRoute(
         path: '/faculty/settings',
-        builder: (context, state) => const FacultySettingsScreen(),
+        builder: (context, state) =>
+            page((_) => const FacultySettingsScreen()),
       ),
 
       // Fallback — must be last (matches any unmatched location)
       GoRoute(
         path: '/:unmatched',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text('Page not found: ${state.matchedLocation}'),
-                const SizedBox(height: 16),
-                NeumorphButton(
-                  onPressed: () => context.go('/login'),
-                  label: 'Back to Sign In',
-                ),
-              ],
+        builder: (context, state) => page(
+          (_) => Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: CScholarColors.textMuted,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Page not found: ${state.matchedLocation}',
+                    style: TextStyle(color: CScholarColors.textPrimary),
+                  ),
+                  const SizedBox(height: 16),
+                  NeumorphButton(
+                    onPressed: () => context.go('/login'),
+                    label: 'Back to Sign In',
+                  ),
+                ],
+              ),
             ),
           ),
         ),

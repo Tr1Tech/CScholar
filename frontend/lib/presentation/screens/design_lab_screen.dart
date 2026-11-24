@@ -359,7 +359,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 2),
             child: Icon(
               Icons.check_circle_outline,
@@ -698,7 +698,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
             radius: radius,
             showRim: rim,
             padding: const EdgeInsets.all(18),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.dashboard_outlined,
                 size: 26,

@@ -127,7 +127,7 @@ class StudentLayout extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.logout,
                         size: 20,
                         color: CScholarColors.textSecondary,

@@ -248,8 +248,10 @@ class _MobileAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = CScholarMobileTheme.of(context);
-    // Dark mode's green is a light mint accent, so white would be unreadable.
-    final ink = t.isDark ? CScholarMobileColors.greenDeep : Colors.white;
+    // Use the brand green as a FILL in both modes. Resolved `t.green` is the
+    // light mint accent in dark mode, which is a tint for icons — as a button
+    // fill it read washed out against the dark canvas. White carries the label
+    // on the solid brand green in either mode.
     return GestureDetector(
       onTap: () {
         selectionHaptic();
@@ -258,10 +260,13 @@ class _MobileAction extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
         decoration: BoxDecoration(
-          color: t.green,
+          color: CScholarMobileColors.green,
           borderRadius: BorderRadius.circular(CScholarMobileRadius.cta),
         ),
-        child: Text(label, style: t.dmSans(12, FontWeight.w800, ink)),
+        child: Text(
+          label,
+          style: t.dmSans(12, FontWeight.w800, Colors.white),
+        ),
       ),
     );
   }

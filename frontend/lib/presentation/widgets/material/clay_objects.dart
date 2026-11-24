@@ -148,8 +148,8 @@ class ClayIconTile extends StatelessWidget {
     this.size = 40,
     this.gel = true,
     this.gold = false,
-    this.tint = CScholarMaterial.textGreen,
-    this.background = CScholarMaterial.clay,
+    this.tint,
+    this.background,
     this.glowStrength = 1,
   });
 
@@ -157,8 +157,12 @@ class ClayIconTile extends StatelessWidget {
   final double size;
   final bool gel;
   final bool gold;
-  final Color tint;
-  final Color background;
+
+  /// Glyph colour for the flat (non-gel) tile. Null resolves the live green.
+  final Color? tint;
+
+  /// Fill for the flat tile. Null resolves the live surface.
+  final Color? background;
 
   /// Multiplier on [CScholarMaterial.goldGlow] — 0.6 is a hint, 1.5 is a lamp.
   final double glowStrength;
@@ -168,8 +172,8 @@ class ClayIconTile extends StatelessWidget {
     final flat = MediaQuery.highContrastOf(context);
     final radius = BorderRadius.circular(14);
     final glyph = gold
-        ? CScholarMaterial.textPrimary // 12.98:1 on gold top, 6.08:1 on bottom
-        : (gel ? Colors.white : tint);
+        ? CScholarMaterial.prestigeInk
+        : (gel ? Colors.white : (tint ?? CScholarMaterial.textGreen));
     final rimmed = flat || !(gel || gold);
 
     return Container(
@@ -180,18 +184,24 @@ class ClayIconTile extends StatelessWidget {
         gradient: gold
             ? CScholarMaterial.goldGradient
             : gel
-                ? const LinearGradient(
+                ? LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
+                    // A gel tile carries a WHITE glyph, so it must stay a deep
+                    // fill in dark mode: gelTop is the accent INK and would turn
+                    // the tile pale.
                     colors: [
-                      CScholarMaterial.gelTop,
-                      CScholarMaterial.gelBottom,
+                      CScholarMaterial.actionFill,
+                      CScholarMaterial.actionFillPressed,
                     ],
                   )
                 : LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [CScholarMaterial.clayHigh, background],
+                    colors: [
+                      CScholarMaterial.clayHigh,
+                      background ?? CScholarMaterial.clay,
+                    ],
                   ),
         border: rimmed
             ? Border.all(
@@ -234,10 +244,14 @@ class GelAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [CScholarMaterial.gelTop, CScholarMaterial.gelBottom],
+          // White initials ride this: a deep fill in both modes.
+          colors: [
+            CScholarMaterial.actionFill,
+            CScholarMaterial.actionFillPressed,
+          ],
         ),
         boxShadow: CScholarMaterial.gelDrop(depth: 0.7),
       ),

@@ -13,7 +13,7 @@ class CScholarFooter extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 32),
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: CScholarColors.borderLight)),
       ),
       child: Center(

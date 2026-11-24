@@ -37,8 +37,7 @@ class MobileThesisCard extends StatelessWidget {
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: t.surface,
-          borderRadius:
-              BorderRadius.circular(CScholarMobileRadius.card),
+          borderRadius: BorderRadius.circular(CScholarMobileRadius.card),
           border: Border.all(color: t.line),
           boxShadow: CScholarMobileShadows.card,
         ),
@@ -54,18 +53,21 @@ class MobileThesisCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: t.dmSans(
-                        9,
-                        FontWeight.w800,
-                        t.green2,
-                        height: 1.2,
-                        letterSpacing: 0.72),
+                      9,
+                      FontWeight.w800,
+                      t.green2,
+                      height: 1.2,
+                      letterSpacing: 0.72,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 if (matchPercent != null) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: t.mint,
                       borderRadius: BorderRadius.circular(999),
@@ -94,19 +96,13 @@ class MobileThesisCard extends StatelessWidget {
                     width: 29,
                     height: 29,
                     decoration: BoxDecoration(
-                      color: saved
-                          ? t.mint
-                          : t.surfaceSoft,
+                      color: saved ? t.mint : t.surfaceSoft,
                       borderRadius: BorderRadius.circular(9),
                     ),
                     child: Icon(
-                      saved
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
+                      saved ? Icons.bookmark : Icons.bookmark_border,
                       size: 18,
-                      color: saved
-                          ? t.green
-                          : t.muted,
+                      color: saved ? t.green : t.muted,
                     ),
                   ),
                 ),
@@ -127,30 +123,27 @@ class MobileThesisCard extends StatelessWidget {
               '${thesis.authorsString} · ${thesis.academicYear?.label ?? ''}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: t.dmSans(
-                  10, FontWeight.w400, t.muted),
+              style: t.dmSans(10, FontWeight.w400, t.muted),
             ),
             const SizedBox(height: 11),
             Wrap(
               spacing: 5,
               runSpacing: 5,
               children: [
-                for (final tag in (thesis.keywords ?? [])
-                    .take(2)
-                    .map((k) => k.term))
+                for (final tag
+                    in (thesis.keywords ?? []).take(2).map((k) => k.term))
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 5),
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: t.surfaceSoft,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       tag,
-                      style: t.dmSans(
-                          8,
-                          FontWeight.w600,
-                          t.muted),
+                      style: t.dmSans(8, FontWeight.w600, t.muted),
                     ),
                   ),
               ],
@@ -250,10 +243,7 @@ class MobileResearchOrbit extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF34765E),
-                      CScholarMobileColors.green
-                    ],
+                    colors: [Color(0xFF34765E), CScholarMobileColors.green],
                   ),
                   boxShadow: const [
                     BoxShadow(
@@ -282,7 +272,9 @@ class MobileResearchOrbit extends StatelessWidget {
                 width: 40,
                 height: 48,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 9, vertical: 14),
+                  horizontal: 9,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: t.surface,
                   borderRadius: BorderRadius.circular(12),
@@ -291,19 +283,16 @@ class MobileResearchOrbit extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: CScholarMobileColors.coral,
-                          borderRadius: BorderRadius.circular(99),
-                        )),
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: CScholarMobileColors.coral,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Container(
-                        height: 3,
-                        color: t.muted.withValues(alpha: 0.4)),
+                    Container(height: 3, color: t.muted.withValues(alpha: 0.4)),
                     const SizedBox(height: 4),
-                    Container(
-                        height: 3,
-                        color: t.muted.withValues(alpha: 0.4)),
+                    Container(height: 3, color: t.muted.withValues(alpha: 0.4)),
                   ],
                 ),
               ),
@@ -314,30 +303,21 @@ class MobileResearchOrbit extends StatelessWidget {
     );
   }
 
-  static Widget _floatCore(
-      BuildContext context, double t, Widget child) {
+  static Widget _floatCore(BuildContext context, double t, Widget child) {
     return Transform.translate(
       offset: Offset(0, -7 * t),
-      child: Transform.rotate(
-        angle: (-8 + 4 * t) * _deg,
-        child: child,
-      ),
+      child: Transform.rotate(angle: (-8 + 4 * t) * _deg, child: child),
     );
   }
 
-  static Widget _floatPaper(
-      BuildContext context, double t, Widget child) {
+  static Widget _floatPaper(BuildContext context, double t, Widget child) {
     return Transform.translate(
       offset: Offset(0, 5 * t),
-      child: Transform.rotate(
-        angle: (11 - 4 * t) * _deg,
-        child: child,
-      ),
+      child: Transform.rotate(angle: (11 - 4 * t) * _deg, child: child),
     );
   }
 
-  static Widget _pulseNode(
-      BuildContext context, double t, Widget child) {
+  static Widget _pulseNode(BuildContext context, double t, Widget child) {
     return Transform.scale(scale: 1 + 0.22 * t, child: child);
   }
 
@@ -349,7 +329,9 @@ class MobileResearchOrbit extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(
-            color: Colors.white.withValues(alpha: 0.9), width: 3),
+          color: Colors.white.withValues(alpha: 0.9),
+          width: 3,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x2E263C31),
@@ -386,10 +368,14 @@ class _OrbitLoop extends StatefulWidget {
 
 class _OrbitLoopState extends State<_OrbitLoop>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: widget.duration);
-  late final CurvedAnimation _curve =
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+  );
+  late final CurvedAnimation _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOut,
+  );
   Timer? _delayTimer;
   bool _running = false;
 

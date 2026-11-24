@@ -38,11 +38,11 @@ void main() {
     );
     expect(
       (decoration.gradient! as LinearGradient).colors.first,
-      CScholarMaterial.gelTop,
+      CScholarMaterial.actionFill,
     );
     expect(
       (decoration.gradient! as LinearGradient).colors.last,
-      CScholarMaterial.gelBottom,
+      CScholarMaterial.actionFillPressed,
     );
     expect(
       decoration.boxShadow,

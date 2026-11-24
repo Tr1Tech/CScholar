@@ -66,6 +66,26 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
     }
   }
 
+  /// Changes this account's password and adopts the replacement token.
+  ///
+  /// The password change rotates the server-side fingerprint, so every token
+  /// issued before it stops working. Swapping in the new token here is what
+  /// keeps this device signed in while other sessions drop out.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final token = await _authApi.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+    ref.read(apiServiceProvider).setToken(token);
+    // [state] is deliberately untouched: the user did not change, and
+    // notifying the router would only bounce them off the current page.
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
@@ -127,6 +147,26 @@ final currentUserProvider = Provider<User?>((ref) {
 
 final currentUserRoleProvider = Provider<String?>((ref) {
   return ref.watch(authProvider).value?.role;
+});
+
+/// Device-local state that belongs to a person — bookmarks, the
+/// recommendation anchor, recent searches — is namespaced per account.
+///
+/// These lists used to live under one flat key, so signing out and registering
+/// a new account inherited the previous account's bookmarks and history. The
+/// signed-out scope keeps the bare key: nothing is written there while a user
+/// is signed in, and it keeps pre-login browsing / existing device data
+/// working.
+String localStateKey(String base, int? userId) =>
+    userId == null ? base : '$base:u$userId';
+
+/// The signed-in account's id, or null while signed out/restoring.
+///
+/// Per-account notifiers watch this, so switching accounts (log out and sign
+/// in again, or register a new account) rebuilds them from that account's own
+/// slice of local storage instead of carrying the previous list in memory.
+final localStateScopeProvider = Provider<int?>((ref) {
+  return ref.watch(authProvider.select((state) => state.value?.id));
 });
 
 // Thesis list params
@@ -355,6 +395,8 @@ final thesisDetailProvider = thesisProvider;
 //
 // Persisted on the device, not the server: the recommender receives these
 // ids with each request, so no per-student row is stored in the database.
+// The stored list is namespaced by account (see [localStateKey]) so a new
+// account never inherits the previous reader's bookmarks.
 final savedThesisIdsProvider =
     NotifierProvider<SavedThesisIdsNotifier, Set<int>>(
       () => SavedThesisIdsNotifier(),
@@ -363,22 +405,31 @@ final savedThesisIdsProvider =
 class SavedThesisIdsNotifier extends Notifier<Set<int>> {
   static const _prefsKey = 'saved_thesis_ids';
 
+  /// Bumped on every account change. A prefs read started for the previous
+  /// account must not land on the new one.
+  int _generation = 0;
+
   /// Set as soon as the reader changes a bookmark. A slow prefs read must not
   /// overwrite a newer local action with the disk copy.
   bool _touched = false;
 
   @override
   Set<int> build() {
-    _restore();
+    final userId = ref.watch(localStateScopeProvider);
+    _generation++;
+    _touched = false;
+    _restore(userId, _generation);
     return {};
   }
 
-  Future<void> _restore() async {
+  Future<void> _restore(int? userId, int generation) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getStringList(_prefsKey) ?? const <String>[];
+      final raw =
+          prefs.getStringList(localStateKey(_prefsKey, userId)) ??
+          const <String>[];
       final ids = raw.map(int.tryParse).whereType<int>().toSet();
-      if (_touched) return;
+      if (!ref.mounted || generation != _generation || _touched) return;
       if (ids.isNotEmpty) {
         state = ids;
         ref.invalidate(recommendationsProvider);
@@ -388,11 +439,11 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
     }
   }
 
-  Future<void> _persist(Set<int> ids) async {
+  Future<void> _persist(Set<int> ids, int? userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(
-        _prefsKey,
+        localStateKey(_prefsKey, userId),
         ids.map((id) => id.toString()).toList(),
       );
     } catch (_) {
@@ -401,11 +452,12 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
   }
 
   void toggle(int id) {
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     final wasSaved = state.contains(id);
     final next = wasSaved ? ({...state}..remove(id)) : {...state, id};
     state = next;
-    _persist(next);
+    _persist(next, userId);
     if (!wasSaved) {
       // Saving is an action: the feed re-anchors on this study.
       ref.read(recommendationAnchorProvider.notifier).setAnchor(id, 'saved');
@@ -415,9 +467,10 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
   }
 
   void clear() {
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     state = {};
-    _persist({});
+    _persist({}, userId);
     ref.invalidate(recommendationsProvider);
   }
 }
@@ -427,6 +480,9 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
 /// The last thing the student acted on — opened or saved — replaces the
 /// previous anchor. One item keeps the explanation to a single sentence:
 /// "you viewed X, so here is what is closest to X".
+///
+/// Namespaced per account: the dashboard caption is personal history, so a
+/// newly registered account must not inherit "because you viewed X".
 class ThesisAnchor {
   const ThesisAnchor({required this.id, required this.kind});
 
@@ -445,34 +501,43 @@ class RecommendationAnchorNotifier extends Notifier<ThesisAnchor?> {
   static const _idKey = 'reco_anchor_id';
   static const _kindKey = 'reco_anchor_kind';
 
+  /// Bumped on every account change so a stale prefs read cannot apply the
+  /// previous account's anchor to this one.
+  int _generation = 0;
+
   /// A slow prefs read must not overwrite a newer action.
   bool _touched = false;
 
   @override
   ThesisAnchor? build() {
-    _restore();
+    final userId = ref.watch(localStateScopeProvider);
+    _generation++;
+    _touched = false;
+    _restore(userId, _generation);
     return null;
   }
 
-  Future<void> _restore() async {
+  Future<void> _restore(int? userId, int generation) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final id = int.tryParse(prefs.getString(_idKey) ?? '');
-      final kind = prefs.getString(_kindKey);
-      if (_touched || id == null || id <= 0) return;
+      final id = int.tryParse(
+        prefs.getString(localStateKey(_idKey, userId)) ?? '',
+      );
+      final kind = prefs.getString(localStateKey(_kindKey, userId));
+      if (!ref.mounted || generation != _generation || _touched) return;
+      if (id == null || id <= 0) return;
       if (kind != 'viewed' && kind != 'saved') return;
       state = ThesisAnchor(id: id, kind: kind!);
-      ref.invalidate(recommendationsProvider);
     } catch (_) {
       // Start with no anchor.
     }
   }
 
-  Future<void> _write(int id, String kind) async {
+  Future<void> _write(int id, String kind, int? userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_idKey, id.toString());
-      await prefs.setString(_kindKey, kind);
+      await prefs.setString(localStateKey(_idKey, userId), id.toString());
+      await prefs.setString(localStateKey(_kindKey, userId), kind);
     } catch (_) {
       // Best-effort: the feed still works for this session.
     }
@@ -482,18 +547,18 @@ class RecommendationAnchorNotifier extends Notifier<ThesisAnchor?> {
   void setAnchor(int id, String kind) {
     if (id <= 0) return;
     if (kind != 'viewed' && kind != 'saved') return;
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     if (state?.id == id && state?.kind == kind) return;
     state = ThesisAnchor(id: id, kind: kind);
-    _write(id, kind);
-    ref.invalidate(recommendationsProvider);
+    _write(id, kind, userId);
   }
 
   void clear() {
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     state = null;
-    _write(0, '');
-    ref.invalidate(recommendationsProvider);
+    _write(0, '', userId);
   }
 }
 
@@ -539,7 +604,11 @@ final recommendationsProvider = FutureProvider.autoDispose<RecommendationFeed>((
   // One anchor, not a profile: the last study opened or saved. With exactly
   // one source the server answers "Because you viewed/saved X", which is the
   // sentence the UI prints.
-  final anchor = ref.read(recommendationAnchorProvider);
+  //
+  // Watching (not reading) the anchor matters across account switches: the
+  // anchor is per-account, so a new account's feed must be rebuilt even when
+  // that account has no anchor yet (instead of reusing the old caption).
+  final anchor = ref.watch(recommendationAnchorProvider);
   final savedIds = <int>[
     if (anchor != null && anchor.kind == 'saved') anchor.id,
   ];
@@ -759,8 +828,9 @@ final usersProvider = FutureProvider.autoDispose<List<User>>((ref) async {
   return raw.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
 });
 
-// Saved studies — the bookmarked IDs are kept per session, but every study
-// shown is re-loaded from the database so no stale/offline copy is displayed.
+// Saved studies — the bookmarked IDs are kept per account on this device, but
+// every study shown is re-loaded from the database so no stale/offline copy is
+// displayed.
 final savedThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
   ref,
 ) async {
@@ -786,7 +856,8 @@ final savedThesesProvider = FutureProvider.autoDispose<List<Thesis>>((
 ///
 /// Written by the repository search box and read by the profile card. Nothing
 /// is sent to the server just to keep the list — the query only travels when
-/// the student is actually searching with it.
+/// the student is actually searching with it. Namespaced per account, so a new
+/// account starts with an empty history.
 final recentSearchesProvider =
     NotifierProvider<RecentSearchesNotifier, List<String>>(
       () => RecentSearchesNotifier(),
@@ -796,31 +867,45 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
   static const _prefsKey = 'recent_search_queries';
   static const _maxEntries = 6;
 
+  /// Bumped on every account change so a stale prefs read cannot apply the
+  /// previous account's history to this one.
+  int _generation = 0;
+
   /// Set as soon as a query is recorded, so a slow prefs read cannot replace
   /// the fresh local list with the older disk copy.
   bool _touched = false;
 
   @override
   List<String> build() {
-    _restore();
+    final userId = ref.watch(localStateScopeProvider);
+    _generation++;
+    _touched = false;
+    _restore(userId, _generation);
     return const [];
   }
 
-  Future<void> _restore() async {
+  Future<void> _restore(int? userId, int generation) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getStringList(_prefsKey) ?? const <String>[];
-      if (_touched || raw.isEmpty) return;
+      final raw =
+          prefs.getStringList(localStateKey(_prefsKey, userId)) ??
+          const <String>[];
+      if (!ref.mounted ||
+          generation != _generation ||
+          _touched ||
+          raw.isEmpty) {
+        return;
+      }
       state = raw;
     } catch (_) {
       // No prefs available (tests, first run): start empty.
     }
   }
 
-  Future<void> _persist(List<String> queries) async {
+  Future<void> _persist(List<String> queries, int? userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_prefsKey, queries);
+      await prefs.setStringList(localStateKey(_prefsKey, userId), queries);
     } catch (_) {
       // Best-effort: the card still updates for this session.
     }
@@ -848,24 +933,27 @@ class RecentSearchesNotifier extends Notifier<List<String>> {
     if (next.length > _maxEntries) {
       next.removeRange(_maxEntries, next.length);
     }
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     state = next;
-    _persist(next);
+    _persist(next, userId);
   }
 
   void remove(String query) {
     final next = state.where((q) => q != query).toList();
     if (next.length == state.length) return;
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     state = next;
-    _persist(next);
+    _persist(next, userId);
   }
 
   void clear() {
     if (state.isEmpty) return;
+    final userId = ref.read(localStateScopeProvider);
     _touched = true;
     state = const [];
-    _persist(const []);
+    _persist(const [], userId);
   }
 }
 

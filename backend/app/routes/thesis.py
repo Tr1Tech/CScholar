@@ -7,7 +7,8 @@ from .. import models as db
 from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
-from ..services.uploads import upload_path
+from ..services.uploads import upload_filename, upload_path
+from ..services import object_store
 from ..schemas import (
     BulkStatusRequest,
     RecommendationRequest,
@@ -366,7 +367,20 @@ def _require_faculty(request):
 
 def _valid_upload_url(pdf_url):
     path = upload_path(pdf_url)
-    return bool(path) and os.path.isfile(path)
+    if path and os.path.isfile(path):
+        return True
+    # After a restart on a free host the local copy is gone but the file is
+    # still in object storage, so an unchanged pdf_url must stay valid.
+    stored = upload_filename(pdf_url)
+    return bool(stored) and object_store.enabled() and object_store.exists(stored)
+
+
+def _stored_file_size(stored_name):
+    """Size of a stored PDF from disk or object storage; 0 when unknown."""
+    try:
+        return os.path.getsize(os.path.join(UPLOAD_DIR, stored_name))
+    except OSError:
+        return object_store.size(stored_name) or 0
 
 
 def _original_upload_name(pdf_url):
@@ -485,7 +499,7 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
                 thesis_id=thesis_id,
                 filename=_original_upload_name(stored_pdf_url),
                 file_path=stored_pdf_url,
-                file_size=os.path.getsize(os.path.join(UPLOAD_DIR, stored_name)),
+                file_size=_stored_file_size(stored_name),
                 mime_type="application/pdf",
                 uploaded_by=request.state.current_user["id"],
             )
@@ -593,9 +607,7 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
                         thesis_id=id,
                         filename=_original_upload_name(new_pdf_url),
                         file_path=new_pdf_url,
-                        file_size=os.path.getsize(
-                            os.path.join(UPLOAD_DIR, stored_name)
-                        ),
+                        file_size=_stored_file_size(stored_name),
                         mime_type="application/pdf",
                         uploaded_by=request.state.current_user["id"],
                     )

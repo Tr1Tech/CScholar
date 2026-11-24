@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart'
@@ -20,11 +21,13 @@ class NeumorphField extends FormField<String> {
     super.key,
     TextEditingController? controller,
     this.label,
+    this.labelStyle,
     this.hintText,
     this.prefixIcon,
     this.suffixIcon,
     this.errorText,
     this.obscureText = false,
+    this.mobile = false,
     super.enabled,
     this.previewState,
     this.keyboardType,
@@ -50,11 +53,13 @@ class NeumorphField extends FormField<String> {
            field: field,
            controller: controller,
            label: label,
+           labelStyle: labelStyle,
            hintText: hintText,
            prefixIcon: prefixIcon,
            suffixIcon: suffixIcon,
            errorText: errorText,
            obscureText: obscureText,
+           mobile: mobile,
            // A super parameter is in scope for the initializer list, so this
            // is FormField's value (default true) — not a second flag.
            enabled: enabled,
@@ -73,6 +78,10 @@ class NeumorphField extends FormField<String> {
 
   /// Uppercase label above the field. Also the field's semantic label.
   final String? label;
+
+  /// Overrides the label type. Mobile dialogs pass the DM Sans eyebrow so the
+  /// well matches the mobile sheet instead of the web clay form.
+  final TextStyle? labelStyle;
   final String? hintText;
   final IconData? prefixIcon;
 
@@ -82,6 +91,11 @@ class NeumorphField extends FormField<String> {
   /// Explicit error, merged with any [FormField.validator] result.
   final String? errorText;
   final bool obscureText;
+
+  /// Resolve the well, glyphs and ink from the mobile theme so the field
+  /// follows the mobile sheet (including dark mode) instead of the static
+  /// web clay tokens.
+  final bool mobile;
 
   /// Renders one state on purpose. Design lab only — leave null in the app.
   final NeumorphState? previewState;
@@ -105,11 +119,13 @@ class _NeumorphFieldBody extends StatefulWidget {
     required this.field,
     required this.controller,
     required this.label,
+    required this.labelStyle,
     required this.hintText,
     required this.prefixIcon,
     required this.suffixIcon,
     required this.errorText,
     required this.obscureText,
+    required this.mobile,
     required this.enabled,
     required this.previewState,
     required this.keyboardType,
@@ -126,11 +142,13 @@ class _NeumorphFieldBody extends StatefulWidget {
   final FormFieldState<String> field;
   final TextEditingController? controller;
   final String? label;
+  final TextStyle? labelStyle;
   final String? hintText;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final String? errorText;
   final bool obscureText;
+  final bool mobile;
   final bool enabled;
   final NeumorphState? previewState;
   final TextInputType? keyboardType;
@@ -184,6 +202,15 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
     final hasError = (error ?? '').isNotEmpty;
     final radius = BorderRadius.circular(CScholarRadius.well);
     final animate = motionEnabled(context);
+    // Mobile resolves its own palette so the well follows light/dark instead
+    // of painting the static clay fill on a dark sheet.
+    final mt = widget.mobile ? CScholarMobileTheme.of(context) : null;
+    final wellFill = mt?.surfaceSoft ?? CScholarMaterial.clayDeep;
+    final inkColor = mt?.ink ?? CScholarMaterial.textPrimary;
+    final hintColor = mt?.muted ?? CScholarMaterial.textFaint;
+    final glyphColor = mt?.muted ?? CScholarMaterial.textMuted;
+    final focusColor = mt?.green ?? CScholarMaterial.gelTop;
+    final errorColor = mt?.dangerInk ?? CScholarColors.error;
 
     // No outline at rest: the tonal well IS the affordance, and a drawn rim on
     // every field is exactly what the clay pass removed. Focus and error still
@@ -200,9 +227,9 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
     final Color? borderColor = flat
         ? CScholarMaterial.rimStrong
         : hasError
-        ? CScholarColors.error
+        ? errorColor
         : focused
-        ? CScholarMaterial.gelTop
+        ? focusColor
         : null;
 
     // The placeholder lifts 2px on focus — a transform, so layout never
@@ -217,12 +244,13 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
           if (widget.label != null) ...[
             Text(
               widget.label!.toUpperCase(),
-              style: CScholarTextStyles.body(
-                11,
-                FontWeight.w700,
-                CScholarMaterial.textMuted,
-                letterSpacing: 0.5,
-              ),
+              style: widget.labelStyle ??
+                  CScholarTextStyles.body(
+                    11,
+                    FontWeight.w700,
+                    glyphColor,
+                    letterSpacing: 0.5,
+                  ),
             ),
             const SizedBox(height: 6),
           ],
@@ -231,7 +259,7 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
             curve: CScholarCurves.standard,
             decoration: BoxDecoration(
               // Same recessed fill as the segmented track and filter pills.
-              color: CScholarMaterial.clayDeep,
+              color: wellFill,
               borderRadius: radius,
               border: borderColor == null
                   ? null
@@ -258,11 +286,11 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                 // in Flutter's TextField, so obscure wins.
                 maxLines: widget.obscureText ? 1 : widget.maxLines,
                 minLines: widget.minLines,
-                cursorColor: CScholarMaterial.gelTop,
+                cursorColor: focusColor,
                 style: CScholarTextStyles.body(
                   14,
                   FontWeight.w400,
-                  CScholarMaterial.textPrimary,
+                  inkColor,
                 ),
                 onChanged: (v) {
                   field.didChange(v);
@@ -280,14 +308,14 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                   hintStyle: CScholarTextStyles.body(
                     13.5,
                     FontWeight.w400,
-                    CScholarMaterial.textFaint,
+                    hintColor,
                   ),
                   prefixIcon: widget.prefixIcon == null
                       ? null
                       : Icon(
                           widget.prefixIcon,
                           size: 18,
-                          color: CScholarMaterial.textMuted,
+                          color: glyphColor,
                         ),
                   suffixIcon: widget.suffixIcon,
                   contentPadding: const EdgeInsets.symmetric(
@@ -316,7 +344,7 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
                   style: CScholarTextStyles.body(
                     12,
                     FontWeight.w500,
-                    CScholarColors.error,
+                    errorColor,
                   ),
                 ),
               ),

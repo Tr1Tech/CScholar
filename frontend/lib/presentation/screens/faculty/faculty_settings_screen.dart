@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
+import 'package:frontend/presentation/widgets/common/change_password_dialog.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
@@ -14,7 +13,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
 import 'package:frontend/presentation/widgets/faculty_topbar.dart';
 
-/// Faculty: account profile + session actions.
+/// Faculty: account profile + password. Sign-out lives in the sidebar.
 class FacultySettingsScreen extends ConsumerWidget {
   const FacultySettingsScreen({super.key});
 
@@ -93,7 +92,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const Divider(color: CScholarMaterial.rim, height: 32),
+                  Divider(color: CScholarMaterial.rim, height: 32),
                   _infoRow('Username', user?.username ?? '—'),
                   _infoRow('Email', user?.email ?? '—'),
                   _infoRow('Role', user?.role ?? '—'),
@@ -110,49 +109,29 @@ class FacultySettingsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Session',
+                    'Security',
                     style: CScholarTextStyles.heading(
                       15,
                       FontWeight.w700,
                       CScholarColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: NeumorphButton(
-                      onPressed: () async {
-                        final token = ref.read(apiServiceProvider).token;
-                        if (token != null) {
-                          await Clipboard.setData(ClipboardData(text: token));
-                        }
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Session token copied (for API debugging)',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      icon: Icons.key_outlined,
-                      label: 'Copy session token',
-                      gel: false,
-                      expand: true,
+                  const SizedBox(height: 6),
+                  Text(
+                    'Change the password used to sign in to this account.',
+                    style: CScholarTextStyles.body(
+                      13,
+                      FontWeight.w400,
+                      CScholarColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
                     child: NeumorphButton(
-                      onPressed: () {
-                        ref.read(authProvider.notifier).logout();
-                        context.go('/login');
-                      },
-                      danger: true,
-                      icon: Icons.logout,
-                      label: 'Log Out',
+                      onPressed: () => showChangePasswordDialog(context),
+                      icon: Icons.lock_reset_outlined,
+                      label: 'Change password',
                       expand: true,
                     ),
                   ),

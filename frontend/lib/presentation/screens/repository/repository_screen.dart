@@ -792,7 +792,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         children: [
           Expanded(
             child: segment(
-              'Keyword',
+              'Normal',
               !_isSemantic,
               null,
               () => setState(() => _isSemantic = false),
@@ -1560,7 +1560,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                 ),
             ],
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: CScholarMaterial.rim, height: 1),
           ),
@@ -1692,7 +1692,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.close,
                             size: 14,
                             color: CScholarColors.primaryGreen,
@@ -2058,7 +2058,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline,
             size: 18,
             color: CScholarColors.noteIcon,

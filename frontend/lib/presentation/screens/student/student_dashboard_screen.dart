@@ -277,8 +277,8 @@ class _StudentDashboardScreenState
                                     title: 'Your Saved',
                                     value: '${savedIds.length}',
                                     icon: Icons.bookmark_outline,
-                                    iconBg: CScholarColors.capstoneChipBg,
-                                    iconColor: CScholarColors.warningFg,
+                                    iconBg: CScholarColors.cyanTint,
+                                    iconColor: CScholarColors.cyanInk,
                                   ),
                                 ][i],
                               ),
@@ -836,7 +836,7 @@ class _StudentDashboardScreenState
               ),
             ],
           ),
-          const Divider(color: CScholarMaterial.rim, height: 16),
+          Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
           asyncSlot(
             recentTheses,
@@ -960,7 +960,9 @@ class _StudentDashboardScreenState
     );
   }
 
-  Widget _recommendedStudiesCard(AsyncValue<RecommendationFeed> recommendations) {
+  Widget _recommendedStudiesCard(
+    AsyncValue<RecommendationFeed> recommendations,
+  ) {
     return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -991,7 +993,7 @@ class _StudentDashboardScreenState
               ),
             ],
           ),
-          const Divider(color: CScholarMaterial.rim, height: 16),
+          Divider(color: CScholarMaterial.rim, height: 16),
           const SizedBox(height: 6),
           asyncSlot(
             recommendations,
@@ -1030,121 +1032,125 @@ class _StudentDashboardScreenState
                       ),
                     ),
                   ...feed.items.asMap().entries.map((entry) {
-                  final r = entry.value;
-                  final score = r.score;
-                  final hasPct = score != null && score >= 0.5;
-                  final program = r.thesis.program?.name ?? '';
-                  final detail = hasPct
-                      ? '${(score * 100).round()}% match'
-                      : (r.reason == 'new' ? 'New' : 'Related');
-                  return Stagger(
-                    index: entry.key,
-                    step: MotionPitch.result.step,
-                    max: MotionPitch.result.max,
-                    rise: MotionPitch.result.rise,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(CScholarRadius.md),
-                        onTap: () => context.go(
-                          '/thesis/${r.thesis.id}',
-                          extra: score,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: CScholarMaterial.clayDeep,
-                            borderRadius: BorderRadius.circular(
-                              CScholarRadius.md,
-                            ),
+                    final r = entry.value;
+                    final score = r.score;
+                    final hasPct = score != null && score >= 0.5;
+                    final program = r.thesis.program?.name ?? '';
+                    final detail = hasPct
+                        ? '${(score * 100).round()}% match'
+                        : (r.reason == 'new' ? 'New' : 'Related');
+                    return Stagger(
+                      index: entry.key,
+                      step: MotionPitch.result.step,
+                      max: MotionPitch.result.max,
+                      rise: MotionPitch.result.rise,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(
+                            CScholarRadius.md,
                           ),
-                          child: Row(
-                            children: [
-                              ClayIconTile(
-                                icon: Icons.auto_awesome,
-                                size: 36,
-                                gel: false,
-                                background: CScholarColors.goldSoft,
-                                tint: CScholarColors.warningFg,
+                          onTap: () => context.go(
+                            '/thesis/${r.thesis.id}',
+                            extra: score,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: CScholarMaterial.clayDeep,
+                              borderRadius: BorderRadius.circular(
+                                CScholarRadius.md,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      r.thesis.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: CScholarTextStyles.body(
-                                        13.5,
-                                        FontWeight.w600,
-                                        CScholarColors.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$program${program.isEmpty ? '' : ' • '}$detail',
-                                      style: CScholarTextStyles.body(
-                                        11.5,
-                                        FontWeight.w400,
-                                        CScholarColors.textMuted,
-                                      ),
-                                    ),
-                                  ],
+                            ),
+                            child: Row(
+                              children: [
+                                ClayIconTile(
+                                  icon: Icons.auto_awesome,
+                                  size: 36,
+                                  gel: false,
+                                  background: CScholarColors.primaryGreenLight,
+                                  tint: CScholarColors.primaryGreen,
                                 ),
-                              ),
-                              Tooltip(
-                                message: hasPct
-                                    ? 'Semantically similar to the studies you saved or opened — ${(score * 100).round()}%.'
-                                    : (r.reason == 'new'
-                                          ? 'New in the repository.'
-                                          : 'Related to the studies you saved or opened.'),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: CScholarColors.goldSoft,
-                                    borderRadius: BorderRadius.circular(
-                                      CScholarRadius.full,
-                                    ),
-                                    border: Border.all(
-                                      color: CScholarMaterial.rimDraft,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(
-                                        Icons.auto_awesome,
-                                        size: 11,
-                                        color: CScholarColors.warningFg,
-                                      ),
-                                      const SizedBox(width: 4),
                                       Text(
-                                        hasPct
-                                            ? '${(score * 100).round()}%'
-                                            : (r.reason == 'new'
-                                                  ? 'New'
-                                                  : 'Related'),
+                                        r.thesis.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: CScholarTextStyles.body(
-                                          11,
-                                          FontWeight.w700,
-                                          CScholarColors.warningFg,
+                                          13.5,
+                                          FontWeight.w600,
+                                          CScholarColors.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '$program${program.isEmpty ? '' : ' • '}$detail',
+                                        style: CScholarTextStyles.body(
+                                          11.5,
+                                          FontWeight.w400,
+                                          CScholarColors.textMuted,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ],
+                                Tooltip(
+                                  message: hasPct
+                                      ? 'Semantically similar to the studies you saved or opened — ${(score * 100).round()}%.'
+                                      : (r.reason == 'new'
+                                            ? 'New in the repository.'
+                                            : 'Related to the studies you saved or opened.'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: CScholarColors.primaryGreenLight,
+                                      borderRadius: BorderRadius.circular(
+                                        CScholarRadius.full,
+                                      ),
+                                      border: Border.all(
+                                        color: CScholarColors.primaryGreen
+                                            .withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.auto_awesome,
+                                          size: 11,
+                                          color: CScholarColors.primaryGreen,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          hasPct
+                                              ? '${(score * 100).round()}%'
+                                              : (r.reason == 'new'
+                                                    ? 'New'
+                                                    : 'Related'),
+                                          style: CScholarTextStyles.body(
+                                            11,
+                                            FontWeight.w700,
+                                            CScholarColors.primaryGreen,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
+                    );
                   }),
                 ],
               );

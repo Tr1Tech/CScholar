@@ -308,7 +308,7 @@ class _AdminAddEditThesisScreenState
                             FontWeight.w500,
                             CScholarColors.textMuted,
                           ),
-                          children: const [
+                          children: [
                             TextSpan(text: 'Fields marked with '),
                             TextSpan(
                               text: '*',
@@ -596,7 +596,7 @@ class _AdminAddEditThesisScreenState
           ),
         ),
         if (isRequired)
-          const Text(
+          Text(
             ' *',
             style: TextStyle(
               color: CScholarColors.error,
@@ -625,7 +625,7 @@ class _AdminAddEditThesisScreenState
                     color: CScholarColors.primaryGreenVeryLight,
                     borderRadius: BorderRadius.circular(CScholarRadius.md),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.picture_as_pdf,
                     size: 24,
                     color: CScholarColors.primaryGreen,

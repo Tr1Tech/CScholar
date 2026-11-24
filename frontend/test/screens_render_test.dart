@@ -27,6 +27,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_thesis_management_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/presentation/screens/auth/login_screen.dart';
@@ -63,6 +64,7 @@ final Map<String, Widget Function()> _screens = <String, Widget Function()>{
   'admin edit thesis': () => const AdminAddEditThesisScreen(thesisId: 1),
   'admin programs': () => const AdminProgramsScreen(),
   'admin users': () => const AdminUserManagementScreen(),
+  'admin settings': () => const AdminSettingsScreen(),
   'faculty dashboard': () => const FacultyDashboardScreen(),
   'faculty theses': () => const FacultyThesesScreen(),
   'faculty thesis form': () => const FacultyThesisFormScreen(),

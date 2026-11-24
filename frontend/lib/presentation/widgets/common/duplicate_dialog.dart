@@ -82,7 +82,7 @@ Future<bool> showDuplicateConfirmDialog(
               borderRadius: BorderRadius.circular(CScholarRadius.md),
               border: Border.all(color: CScholarMaterial.rimDraft),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.warning_amber_outlined,
               size: 20,
               color: CScholarColors.warningFg,

@@ -2,7 +2,7 @@
 
 > ## API surface is locked — do not add endpoints
 >
-> The API documented in the Swagger UI (`/docs`) is **final**. Its 61 documented
+> The API documented in the Swagger UI (`/docs`) is **final**. Its 62 documented
 > operations are frozen in [`backend/api_contract.json`](../backend/api_contract.json);
 > the server will not start if a route is added, removed, re-tagged, or has its
 > allowed roles changed. Do not add endpoints as a shortcut for a feature — use
@@ -45,6 +45,7 @@ Capstone documentation lives here:
 | [normalization.md](normalization.md) | 1NF/2NF/3NF verification + BCNF evaluation for all 16 domain relations (plus 2 operational tables) | 1.1 — 2026-11-21 |
 | [data_dictionary.md](data_dictionary.md) | All 84 domain attributes (+ `accession_no` = 85) across 16 domain tables, plus 2 operational tables (type, key, constraint, description) | 1.1 — 2026-11-21 |
 | [requirements_traceability.md](requirements_traceability.md) | 20 functional requirements mapped to tables and columns | 1.1 — 2026-11-21 |
+| [DEPLOY_RENDER_NEON.md](DEPLOY_RENDER_NEON.md) | Free public deployment (Render Free + Neon Postgres/Object Storage + GitHub Pages): setup, data copy, phone use, limits | 1.0 — 2026-11-25 |
 | [DESIGN_IMPROVEMENT_PROMPT.md](DESIGN_IMPROVEMENT_PROMPT.md) | Frontend design-improvement working notes | — |
 
 ## Defense materials

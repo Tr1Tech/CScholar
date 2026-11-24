@@ -43,7 +43,7 @@ class FacultySidebar extends ConsumerWidget {
                 child: Material(
                   type: MaterialType.transparency,
                   child: ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.logout,
                       size: 20,
                       color: CScholarColors.textSecondary,

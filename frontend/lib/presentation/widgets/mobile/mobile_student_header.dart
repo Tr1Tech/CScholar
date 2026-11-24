@@ -26,8 +26,11 @@ class MobileStudentHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The PAINTED mode comes from the scope, not the provider: the provider
+    // flips on tap, the colours flip at the midpoint of the root transition.
+    // The glyph uses the provider so the button answers the tap immediately.
+    final t = CScholarMobileTheme.of(context);
     final isDark = ref.watch(mobileThemeModeProvider);
-    final t = CScholarMobileTheme(isDark: isDark);
     final user = ref.watch(currentUserProvider);
     final bg = t.paper.withValues(alpha: 0.88);
 

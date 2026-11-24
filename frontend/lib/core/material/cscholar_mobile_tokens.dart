@@ -35,6 +35,10 @@ class CScholarMobileColors {
   /// ~2.4:1 on paper); body copy and small labels use these instead.
   static const Color mutedInk = Color(0xFF5A665F);
   static const Color coralInk = Color(0xFFA63E25);
+
+  /// Destructive ink on the dark surfaces. Vivid enough to read as "danger"
+  /// (not a pale tint) and 6.2:1 on surfaceDark, so small labels clear AA.
+  static const Color coralInkDark = Color(0xFFFF8F7A);
   static const Color lilacInk = Color(0xFF5B5194);
   static const Color greenDeep = Color(0xFF0F3B2E);
 
@@ -204,6 +208,10 @@ class CScholarMobileTheme {
   Color get surfaceSoft => isDark ? CScholarMobileColors.surfaceSoftDark : CScholarMobileColors.surfaceSoft;
   Color get line => isDark ? CScholarMobileColors.lineDark : CScholarMobileColors.line;
   Color get coralSoft => isDark ? CScholarMobileColors.coralSoftDark : CScholarMobileColors.coralSoft;
+
+  /// Destructive text/icon ink: deep rust on light, vivid coral on dark.
+  Color get dangerInk =>
+      isDark ? CScholarMobileColors.coralInkDark : CScholarMobileColors.coralInk;
   Color get lilacSoft => isDark ? CScholarMobileColors.lilacSoftDark : CScholarMobileColors.lilacSoft;
 
   TextStyle manrope(double size, FontWeight weight, Color color,
