@@ -1,0 +1,64 @@
+# Build the Flutter web app and publish it to GitHub Pages.
+
+name: Deploy web app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require API_BASE_URL
+        run: |
+          if [ -z "${{ vars.API_BASE_URL }}" ]; then
+            echo "::error::Set the repository variable API_BASE_URL to the Render service URL."
+            exit 1
+          fi
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.7"
+          cache: true
+
+      - name: Dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Build web
+        working-directory: frontend
+        run: >
+          flutter build web --release
+          --base-href /CScholar/
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
