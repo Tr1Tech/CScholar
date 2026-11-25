@@ -170,8 +170,8 @@ class _NeumorphBaseState extends State<_NeumorphBase>
         borderRadius: BorderRadius.circular(widget.radius),
         color: widget.gel
             ? (widget.danger
-                ? CScholarMaterial.dangerFill
-                : CScholarMaterial.actionFill)
+                  ? CScholarMaterial.dangerFill
+                  : CScholarMaterial.actionFill)
             : (widget.flatFill ?? CScholarMaterial.clay),
         border: widget.gel
             ? null
@@ -190,7 +190,7 @@ class _NeumorphBaseState extends State<_NeumorphBase>
           : CScholarMaterial.actionFill;
       final bottom = widget.danger
           ? CScholarMaterial.dangerFillPressed
-          : CScholarMaterial.actionFillPressed;
+          : CScholarMaterial.actionFillRest;
       final deep = widget.danger
           ? CScholarMaterial.dangerFillPressed
           : CScholarMaterial.actionFillDeep;
@@ -514,6 +514,13 @@ class NeumorphIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A11Y-1: the hit area is never smaller than 44×44, even when a dense row
+    // asks for a 36px tile. The glyph keeps the requested size; only the
+    // pressable box grows, so the control stays visually tight.
+    final target = size < CScholarTapTarget.minimum
+        ? CScholarTapTarget.minimum
+        : size;
+    final glyphSize = size * 0.42;
     final foreground = gel
         ? Colors.white
         : (color ?? CScholarMaterial.textPrimary);
@@ -521,24 +528,24 @@ class NeumorphIconButton extends StatelessWidget {
         ? Colors.white
         : (selectedColor ?? foreground);
     final glyph = selectedIcon == null
-        ? Icon(icon, size: size * 0.42, color: foreground)
+        ? Icon(icon, size: glyphSize, color: foreground)
         : MorphIcon(
             icon: icon,
             selectedIcon: selectedIcon!,
             selected: selected,
             color: foreground,
             selectedColor: selectedForeground,
-            size: size * 0.42,
+            size: glyphSize,
           );
     final button = _NeumorphBase(
-      radius: size / 2,
+      radius: target / 2,
       gel: gel,
       onTap: onPressed,
       previewState: previewState,
       semanticLabel: tooltip,
       // Square tile, so the 90-degree press turn reads as the glyph turning.
       spinContent: true,
-      child: SizedBox(width: size, height: size, child: glyph),
+      child: SizedBox(width: target, height: target, child: glyph),
     );
     if (tooltip == null) return button;
     // The base already carries the tooltip as its semantic label.

@@ -28,7 +28,7 @@ import 'package:frontend/presentation/screens/faculty/faculty_students_screen.da
 import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
-import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 
 /// True on native mobile builds (Android/iOS). Web — even a narrow
 /// browser window — keeps the full role-separated router; the
@@ -76,6 +76,56 @@ Widget page(WidgetBuilder builder) => CScholarPaletteRebuild(builder: builder);
 /// and disappears from `flutter build --release`.
 const bool kEnableDesignLab = !bool.fromEnvironment('dart.vm.product');
 
+/// The signed-in role's landing route. Used by deep-link failure screens so a
+/// bad link returns the user to a list they can actually use (NAV-5) instead
+/// of always dumping them on sign-in.
+String homeRouteForRole(String? role) {
+  if (role == 'admin') return '/admin/dashboard';
+  if (role == 'faculty') return '/faculty/dashboard';
+  return '/student/dashboard';
+}
+
+/// The nearest valid list for the role. A missing thesis resolves to the
+/// repository for students, the faculty's own list for faculty, and thesis
+/// management for admins.
+String nearestListForRole(String? role) {
+  if (role == 'admin') return '/admin/thesis/management';
+  if (role == 'faculty') return '/faculty/theses';
+  return '/repository';
+}
+
+/// Shared deep-link failure page: safe-area aware, centred, capped reading
+/// width and always carrying a way out (CNT-3, NAV-5).
+Widget routeErrorPage(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String actionLabel,
+  required String location,
+  IconData icon = Icons.error_outline,
+}) {
+  return Scaffold(
+    backgroundColor: CScholarColors.backgroundLight,
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: EmptyState(
+              icon: icon,
+              title: title,
+              message: message,
+              actionLabel: actionLabel,
+              onAction: () => context.go(location),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 final appRouter = Provider<GoRouter>((ref) {
   // The router outlives auth changes: a provider that `ref.watch`es the auth
   // state rebuilds the whole GoRouter on every login/register/logout, and a
@@ -114,7 +164,9 @@ final appRouter = Provider<GoRouter>((ref) {
             (kEnableDesignLab && loc == '/design-lab')) {
           return null;
         }
-        return '/login';
+        // Keep the attempted destination so sign-in can return there (NAV-5).
+        final attempted = state.uri.toString();
+        return '/login?from=${Uri.encodeComponent(attempted)}';
       }
 
       // Signed in: don't let them sit on login/register. On mobile the
@@ -172,6 +224,7 @@ final appRouter = Provider<GoRouter>((ref) {
           (_) => LoginScreen(
             reason: state.uri.queryParameters['reason'],
             initialEmail: state.uri.queryParameters['email'],
+            initialFrom: state.uri.queryParameters['from'],
           ),
         ),
       ),
@@ -213,32 +266,18 @@ final appRouter = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '');
               if (id == null || id <= 0) {
+                final target = nearestListForRole(
+                  ref.read(authProvider).value?.role,
+                );
                 return page(
-                  (_) => Scaffold(
-                    body: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: CScholarColors.textMuted,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Invalid thesis id: ${state.pathParameters['id']}',
-                            style: TextStyle(
-                              color: CScholarColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          NeumorphButton(
-                            onPressed: () => context.go('/repository'),
-                            label: 'Back to Repository',
-                          ),
-                        ],
-                      ),
-                    ),
+                  (_) => routeErrorPage(
+                    context,
+                    title: 'This study link is not valid',
+                    message:
+                        'The link is missing a valid study number, so the study cannot be opened. '
+                        'The list is the fastest way back.',
+                    actionLabel: 'Back to studies',
+                    location: target,
                   ),
                 );
               }
@@ -256,8 +295,7 @@ final appRouter = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/saved',
-            builder: (context, state) =>
-                page((_) => const SavedThesesScreen()),
+            builder: (context, state) => page((_) => const SavedThesesScreen()),
           ),
           GoRoute(
             path: '/profile',
@@ -269,8 +307,7 @@ final appRouter = Provider<GoRouter>((ref) {
       // Admin routes
       GoRoute(
         path: '/admin/dashboard',
-        builder: (context, state) =>
-            page((_) => const AdminDashboardScreen()),
+        builder: (context, state) => page((_) => const AdminDashboardScreen()),
       ),
       GoRoute(
         path: '/admin/thesis/management',
@@ -284,8 +321,7 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/import',
-        builder: (context, state) =>
-            page((_) => const AdminBulkImportScreen()),
+        builder: (context, state) => page((_) => const AdminBulkImportScreen()),
       ),
       GoRoute(
         path: '/admin/thesis/:id/edit',
@@ -293,13 +329,14 @@ final appRouter = Provider<GoRouter>((ref) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
             return page(
-              (_) => Scaffold(
-                body: Center(
-                  child: Text(
-                    'Invalid thesis id: ${state.pathParameters['id']}',
-                    style: TextStyle(color: CScholarColors.textPrimary),
-                  ),
-                ),
+              (_) => routeErrorPage(
+                context,
+                title: 'This study link is not valid',
+                message:
+                    'The link is missing a valid study number, so there is nothing to edit. '
+                    'Open thesis management to choose a study.',
+                actionLabel: 'Open thesis management',
+                location: nearestListForRole('admin'),
               ),
             );
           }
@@ -308,8 +345,7 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/programs',
-        builder: (context, state) =>
-            page((_) => const AdminProgramsScreen()),
+        builder: (context, state) => page((_) => const AdminProgramsScreen()),
       ),
       GoRoute(
         path: '/admin/users',
@@ -318,8 +354,7 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/settings',
-        builder: (context, state) =>
-            page((_) => const AdminSettingsScreen()),
+        builder: (context, state) => page((_) => const AdminSettingsScreen()),
       ),
 
       // Faculty routes
@@ -330,8 +365,7 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/faculty/theses',
-        builder: (context, state) =>
-            page((_) => const FacultyThesesScreen()),
+        builder: (context, state) => page((_) => const FacultyThesesScreen()),
       ),
       GoRoute(
         path: '/faculty/thesis/new',
@@ -344,13 +378,14 @@ final appRouter = Provider<GoRouter>((ref) {
           final id = int.tryParse(state.pathParameters['id'] ?? '');
           if (id == null || id <= 0) {
             return page(
-              (_) => Scaffold(
-                body: Center(
-                  child: Text(
-                    'Invalid thesis id: ${state.pathParameters['id']}',
-                    style: TextStyle(color: CScholarColors.textPrimary),
-                  ),
-                ),
+              (_) => routeErrorPage(
+                context,
+                title: 'This study link is not valid',
+                message:
+                    'The link is missing a valid study number, so there is nothing to edit. '
+                    'Open your studies to choose one.',
+                actionLabel: 'Back to my studies',
+                location: nearestListForRole('faculty'),
               ),
             );
           }
@@ -359,8 +394,7 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/faculty/students',
-        builder: (context, state) =>
-            page((_) => const FacultyStudentsScreen()),
+        builder: (context, state) => page((_) => const FacultyStudentsScreen()),
       ),
       GoRoute(
         path: '/faculty/analytics',
@@ -369,39 +403,28 @@ final appRouter = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/faculty/settings',
-        builder: (context, state) =>
-            page((_) => const FacultySettingsScreen()),
+        builder: (context, state) => page((_) => const FacultySettingsScreen()),
       ),
 
       // Fallback — must be last (matches any unmatched location)
       GoRoute(
         path: '/:unmatched',
-        builder: (context, state) => page(
-          (_) => Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: CScholarColors.textMuted,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Page not found: ${state.matchedLocation}',
-                    style: TextStyle(color: CScholarColors.textPrimary),
-                  ),
-                  const SizedBox(height: 16),
-                  NeumorphButton(
-                    onPressed: () => context.go('/login'),
-                    label: 'Back to Sign In',
-                  ),
-                ],
-              ),
+        builder: (context, state) {
+          final role = ref.read(authProvider).value?.role;
+          final signedIn = role != null;
+          return page(
+            (_) => routeErrorPage(
+              context,
+              icon: Icons.search_off,
+              title: 'We could not find that page',
+              message:
+                  'The address may be mistyped, or the page may have moved. '
+                  '${signedIn ? 'Your dashboard is the quickest way back.' : 'Sign in to continue.'}',
+              actionLabel: signedIn ? 'Go to dashboard' : 'Go to sign in',
+              location: signedIn ? homeRouteForRole(role) : '/login',
             ),
-          ),
-        ),
+          );
+        },
       ),
     ],
   );

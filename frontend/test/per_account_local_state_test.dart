@@ -42,15 +42,17 @@ void main() {
       container.read(savedThesisIdsProvider);
       container.read(recommendationAnchorProvider);
       container.read(recentSearchesProvider);
+      container.read(viewedThesisIdsProvider);
       await pumpEventQueue();
     }
 
-    // Account A acts on all three pieces of device-local state.
+    // Account A acts on all four pieces of device-local state.
     auth.signIn(1);
     container.read(savedThesisIdsProvider.notifier).toggle(46);
     container
         .read(recommendationAnchorProvider.notifier)
         .setAnchor(59, 'viewed');
+    container.read(viewedThesisIdsProvider.notifier).record(59);
     container.read(recentSearchesProvider.notifier).record('machine learning');
     await pumpEventQueue();
 
@@ -60,6 +62,7 @@ void main() {
     expect(container.read(savedThesisIdsProvider), isEmpty);
     expect(container.read(recommendationAnchorProvider), isNull);
     expect(container.read(recentSearchesProvider), isEmpty);
+    expect(container.read(viewedThesisIdsProvider), isEmpty);
 
     // A brand-new account starts clean instead of inheriting A's activity.
     auth.signIn(2);
@@ -67,6 +70,7 @@ void main() {
     expect(container.read(savedThesisIdsProvider), isEmpty);
     expect(container.read(recommendationAnchorProvider), isNull);
     expect(container.read(recentSearchesProvider), isEmpty);
+    expect(container.read(viewedThesisIdsProvider), isEmpty);
 
     // A's data is still A's when A signs back in.
     auth.signIn(1);
@@ -74,6 +78,7 @@ void main() {
     expect(container.read(savedThesisIdsProvider), {46});
     expect(container.read(recommendationAnchorProvider)?.id, 59);
     expect(container.read(recentSearchesProvider), ['machine learning']);
+    expect(container.read(viewedThesisIdsProvider), [59]);
   });
 
   test('each account persists under its own prefs key', () async {
@@ -93,6 +98,28 @@ void main() {
     expect(prefs.getStringList('recent_search_queries:u7'), ['iot']);
     expect(prefs.getStringList('saved_thesis_ids'), isNull);
     expect(prefs.getStringList('recent_search_queries'), isNull);
+  });
+
+  test('viewed history counts distinct studies, newest first', () async {
+    final container = ProviderContainer(
+      overrides: [authProvider.overrideWith(_SwitchableAuth.new)],
+    );
+    addTearDown(container.dispose);
+    final auth = container.read(authProvider.notifier) as _SwitchableAuth;
+
+    auth.signIn(3);
+    final viewed = container.read(viewedThesisIdsProvider.notifier);
+    viewed.record(11);
+    viewed.record(22);
+    // Re-opening a study already counted must not inflate the tally.
+    viewed.record(11);
+    await pumpEventQueue();
+
+    expect(container.read(viewedThesisIdsProvider), [22, 11]);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('viewed_thesis_ids:u3'), ['22', '11']);
+    expect(prefs.getStringList('viewed_thesis_ids'), isNull);
   });
 
   test('signed-out state still restores the device-scope keys', () async {

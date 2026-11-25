@@ -42,7 +42,7 @@ void main() {
     );
     expect(
       (decoration.gradient! as LinearGradient).colors.last,
-      CScholarMaterial.actionFillPressed,
+      CScholarMaterial.actionFillRest,
     );
     expect(
       decoration.boxShadow,

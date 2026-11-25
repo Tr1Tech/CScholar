@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/utils/relative_time.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
@@ -205,7 +206,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       skeleton: const SkeletonList(count: 1, cardHeight: 180),
       data: (theses) {
         final items = theses ?? <Thesis>[];
-        if (items.isEmpty) return const SizedBox.shrink();
+        if (items.isEmpty) {
+          return EmptyState(
+            compact: true,
+            icon: Icons.bar_chart_outlined,
+            title: 'No studies to analyze yet',
+            message: 'Add or import a study to see the status breakdown.',
+            actionLabel: 'Add a thesis',
+            onAction: () => context.go('/admin/thesis/new'),
+          );
+        }
         final counts = <String, int>{};
         for (final t in items) {
           final key = t.status.toLowerCase();
@@ -280,7 +290,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           ),
         );
       },
-      error: (err, _) => const SizedBox.shrink(),
+      error: (err, _) => EmptyState(
+        compact: true,
+        icon: Icons.error_outline,
+        title: "Couldn't load analytics",
+        message: userFacingError(
+          err,
+          fallback: 'Repository analytics could not be loaded. Try again.',
+        ),
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(
+          thesisListProvider(const ThesisListParams(showAll: true)),
+        ),
+      ),
     );
   }
 
@@ -409,9 +431,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             final item = entry.value;
             final widgets = <Widget>[];
             if (idx > 0) {
-              widgets.add(
-                Divider(color: CScholarMaterial.rim, height: 16),
-              );
+              widgets.add(Divider(color: CScholarMaterial.rim, height: 16));
             }
             // Dense feed rows step on the tight rhythm — one gesture, not a
             // second cascade competing with the page.

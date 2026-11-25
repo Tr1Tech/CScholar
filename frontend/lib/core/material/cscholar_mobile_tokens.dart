@@ -67,52 +67,24 @@ class CScholarMobileRadius {
 
 class CScholarMobileShadows {
   static List<BoxShadow> get soft => const [
-        BoxShadow(
-          color: Color(0x1723382D),
-          blurRadius: 42,
-          offset: Offset(0, 18),
-        ),
-        BoxShadow(
-          color: Color(0x0A23382D),
-          blurRadius: 10,
-          offset: Offset(0, 3),
-        ),
-      ];
+    BoxShadow(color: Color(0x1723382D), blurRadius: 42, offset: Offset(0, 18)),
+    BoxShadow(color: Color(0x0A23382D), blurRadius: 10, offset: Offset(0, 3)),
+  ];
 
   static List<BoxShadow> get card => const [
-        BoxShadow(
-          color: Color(0x1323382D),
-          blurRadius: 28,
-          offset: Offset(0, 12),
-        ),
-        BoxShadow(
-          color: Color(0x0923382D),
-          blurRadius: 6,
-          offset: Offset(0, 2),
-        ),
-      ];
+    BoxShadow(color: Color(0x1323382D), blurRadius: 28, offset: Offset(0, 12)),
+    BoxShadow(color: Color(0x0923382D), blurRadius: 6, offset: Offset(0, 2)),
+  ];
 
   static List<BoxShadow> get pressed => const [
-        BoxShadow(
-          color: Color(0x1423382D),
-          blurRadius: 12,
-          offset: Offset(0, 5),
-        ),
-      ];
+    BoxShadow(color: Color(0x1423382D), blurRadius: 12, offset: Offset(0, 5)),
+  ];
 
   /// Floating chrome / dialogs: deeper than a card, still diffuse.
   static List<BoxShadow> get overlay => const [
-        BoxShadow(
-          color: Color(0x1F23382D),
-          blurRadius: 54,
-          offset: Offset(0, 22),
-        ),
-        BoxShadow(
-          color: Color(0x0D23382D),
-          blurRadius: 14,
-          offset: Offset(0, 4),
-        ),
-      ];
+    BoxShadow(color: Color(0x1F23382D), blurRadius: 54, offset: Offset(0, 22)),
+    BoxShadow(color: Color(0x0D23382D), blurRadius: 14, offset: Offset(0, 4)),
+  ];
 }
 
 class CScholarMobileTextStyles {
@@ -122,14 +94,13 @@ class CScholarMobileTextStyles {
     Color color, {
     double height = 1.3,
     double? letterSpacing,
-  }) =>
-      GoogleFonts.manrope(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        height: height,
-        letterSpacing: letterSpacing,
-      );
+  }) => GoogleFonts.manrope(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 
   static TextStyle dmSans(
     double size,
@@ -137,33 +108,43 @@ class CScholarMobileTextStyles {
     Color color, {
     double height = 1.5,
     double? letterSpacing,
-  }) =>
-      GoogleFonts.dmSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        height: height,
-        letterSpacing: letterSpacing,
-      );
+  }) => GoogleFonts.dmSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 
-  static TextStyle get pageTitle =>
-      manrope(29, FontWeight.w700, CScholarMobileColors.ink,
-          height: 1.15, letterSpacing: -0.45);
+  static TextStyle get pageTitle => manrope(
+    29,
+    FontWeight.w700,
+    CScholarMobileColors.ink,
+    height: 1.15,
+    letterSpacing: -0.45,
+  );
 
-  static TextStyle get sectionTitle =>
-      manrope(18, FontWeight.w700, CScholarMobileColors.ink,
-          height: 1.2, letterSpacing: -0.36);
+  static TextStyle get sectionTitle => manrope(
+    18,
+    FontWeight.w700,
+    CScholarMobileColors.ink,
+    height: 1.2,
+    letterSpacing: -0.36,
+  );
 
   static TextStyle get cardTitle =>
       manrope(14, FontWeight.w700, CScholarMobileColors.ink, height: 1.35);
 
-  static TextStyle get eyebrow =>
-      dmSans(10, FontWeight.w800, CScholarMobileColors.green2,
-          height: 1.2, letterSpacing: 1.15);
+  static TextStyle get eyebrow => dmSans(
+    10,
+    FontWeight.w800,
+    CScholarMobileColors.green2,
+    height: 1.2,
+    letterSpacing: 1.15,
+  );
 
-  static TextStyle get body => dmSans(
-      13, FontWeight.w400, CScholarMobileColors.ink,
-      height: 1.5);
+  static TextStyle get body =>
+      dmSans(13, FontWeight.w400, CScholarMobileColors.ink, height: 1.5);
 
   static TextStyle get bodyMuted =>
       dmSans(12, FontWeight.w400, CScholarMobileColors.muted, height: 1.6);
@@ -188,49 +169,82 @@ class CScholarMobileTheme {
     if (scope != null) {
       return CScholarMobileTheme(isDark: scope.isDark);
     }
-    return CScholarMobileTheme(
-      isDark: _isDarkOf(context),
-    );
+    return CScholarMobileTheme(isDark: _isDarkOf(context));
   }
 
-  static bool _isDarkOf(BuildContext context) =>
-      ProviderScope.containerOf(context, listen: false)
-          .read(mobileThemeModeProvider);
+  static bool _isDarkOf(BuildContext context) => ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(mobileThemeModeProvider);
 
-  Color get ink => isDark ? CScholarMobileColors.inkDark : CScholarMobileColors.ink;
-  Color get muted => isDark ? CScholarMobileColors.mutedDark : CScholarMobileColors.muted;
-  Color get green => isDark ? CScholarMobileColors.greenDark : CScholarMobileColors.green;
-  Color get green2 => isDark ? CScholarMobileColors.green2Dark : CScholarMobileColors.green2;
-  Color get mint => isDark ? CScholarMobileColors.mintDark : CScholarMobileColors.mint;
-  Color get cream => isDark ? CScholarMobileColors.creamDark : CScholarMobileColors.cream;
-  Color get paper => isDark ? CScholarMobileColors.paperDark : CScholarMobileColors.paper;
-  Color get surface => isDark ? CScholarMobileColors.surfaceDark : CScholarMobileColors.surface;
-  Color get surfaceSoft => isDark ? CScholarMobileColors.surfaceSoftDark : CScholarMobileColors.surfaceSoft;
-  Color get line => isDark ? CScholarMobileColors.lineDark : CScholarMobileColors.line;
-  Color get coralSoft => isDark ? CScholarMobileColors.coralSoftDark : CScholarMobileColors.coralSoft;
+  Color get ink =>
+      isDark ? CScholarMobileColors.inkDark : CScholarMobileColors.ink;
+  Color get muted =>
+      isDark ? CScholarMobileColors.mutedDark : CScholarMobileColors.muted;
+  Color get green =>
+      isDark ? CScholarMobileColors.greenDark : CScholarMobileColors.green;
+  Color get green2 =>
+      isDark ? CScholarMobileColors.green2Dark : CScholarMobileColors.green2;
+  Color get mint =>
+      isDark ? CScholarMobileColors.mintDark : CScholarMobileColors.mint;
+  Color get cream =>
+      isDark ? CScholarMobileColors.creamDark : CScholarMobileColors.cream;
+  Color get paper =>
+      isDark ? CScholarMobileColors.paperDark : CScholarMobileColors.paper;
+  Color get surface =>
+      isDark ? CScholarMobileColors.surfaceDark : CScholarMobileColors.surface;
+  Color get surfaceSoft => isDark
+      ? CScholarMobileColors.surfaceSoftDark
+      : CScholarMobileColors.surfaceSoft;
+  Color get line =>
+      isDark ? CScholarMobileColors.lineDark : CScholarMobileColors.line;
+  Color get coralSoft => isDark
+      ? CScholarMobileColors.coralSoftDark
+      : CScholarMobileColors.coralSoft;
 
   /// Destructive text/icon ink: deep rust on light, vivid coral on dark.
-  Color get dangerInk =>
-      isDark ? CScholarMobileColors.coralInkDark : CScholarMobileColors.coralInk;
-  Color get lilacSoft => isDark ? CScholarMobileColors.lilacSoftDark : CScholarMobileColors.lilacSoft;
+  Color get dangerInk => isDark
+      ? CScholarMobileColors.coralInkDark
+      : CScholarMobileColors.coralInk;
+  Color get lilacSoft => isDark
+      ? CScholarMobileColors.lilacSoftDark
+      : CScholarMobileColors.lilacSoft;
 
-  TextStyle manrope(double size, FontWeight weight, Color color,
-          {double height = 1.3, double? letterSpacing}) =>
-      CScholarMobileTextStyles.manrope(size, weight, color,
-          height: height, letterSpacing: letterSpacing);
+  TextStyle manrope(
+    double size,
+    FontWeight weight,
+    Color color, {
+    double height = 1.3,
+    double? letterSpacing,
+  }) => CScholarMobileTextStyles.manrope(
+    size,
+    weight,
+    color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 
-  TextStyle dmSans(double size, FontWeight weight, Color color,
-          {double height = 1.5, double? letterSpacing}) =>
-      CScholarMobileTextStyles.dmSans(size, weight, color,
-          height: height, letterSpacing: letterSpacing);
+  TextStyle dmSans(
+    double size,
+    FontWeight weight,
+    Color color, {
+    double height = 1.5,
+    double? letterSpacing,
+  }) => CScholarMobileTextStyles.dmSans(
+    size,
+    weight,
+    color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 
-  TextStyle get pageTitle => manrope(29, FontWeight.w700, ink,
-      height: 1.15, letterSpacing: -0.45);
+  TextStyle get pageTitle =>
+      manrope(29, FontWeight.w700, ink, height: 1.15, letterSpacing: -0.45);
   TextStyle get sectionTitle =>
       manrope(18, FontWeight.w700, ink, height: 1.2, letterSpacing: -0.36);
   TextStyle get cardTitle => manrope(14, FontWeight.w700, ink, height: 1.35);
-  TextStyle get eyebrow => dmSans(10, FontWeight.w800, green2,
-      height: 1.2, letterSpacing: 1.15);
+  TextStyle get eyebrow =>
+      dmSans(10, FontWeight.w800, green2, height: 1.2, letterSpacing: 1.15);
   TextStyle get body => dmSans(13, FontWeight.w400, ink, height: 1.5);
   TextStyle get bodyMuted => dmSans(12, FontWeight.w400, muted, height: 1.6);
   TextStyle get caption => dmSans(10, FontWeight.w400, muted, height: 1.4);
@@ -257,6 +271,5 @@ class CScholarMobileThemeScope extends InheritedWidget {
       context.dependOnInheritedWidgetOfExactType<CScholarMobileThemeScope>();
 
   @override
-  bool updateShouldNotify(CScholarMobileThemeScope old) =>
-      old.isDark != isDark;
+  bool updateShouldNotify(CScholarMobileThemeScope old) => old.isDark != isDark;
 }

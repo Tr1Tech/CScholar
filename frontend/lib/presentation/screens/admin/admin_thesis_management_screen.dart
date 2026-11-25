@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -274,7 +275,11 @@ class _AdminThesisManagementScreenState
                         icon: Icons.error_outline,
                         compact: true,
                         title: 'Could not load theses',
-                        message: err.toString(),
+                        message: userFacingError(
+                          err,
+                          fallback:
+                              'The thesis list could not be loaded. Try again.',
+                        ),
                         actionLabel: 'Retry',
                         onAction: () =>
                             ref.invalidate(thesisListProvider(_params())),
@@ -453,6 +458,37 @@ class _AdminThesisManagementScreenState
       if (reviewNotes == null || !context.mounted) return;
     }
 
+    // Archive and publish both change who can see the study, so they name the
+    // consequence before it happens (FB-3). Draft/approve stay one tap: they
+    // are internal review states and remain reversible from this menu.
+    if (newStatus == 'archived' || newStatus == 'published') {
+      final publishing = newStatus == 'published';
+      final confirmed = await showClayDialog<bool>(
+        context: context,
+        builder: (ctx) => GlassDialog(
+          title: Text(publishing ? 'Publish thesis?' : 'Archive thesis?'),
+          content: Text(
+            publishing
+                ? '"${thesis.title}" will appear in the public repository immediately.'
+                : '"${thesis.title}" will leave the public repository. You can restore it later from Archived.',
+          ),
+          actions: [
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              label: publishing ? 'Keep unpublished' : 'Keep published',
+              gel: false,
+            ),
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              label: publishing ? 'Publish' : 'Archive',
+              danger: !publishing,
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
+
     try {
       await ref
           .read(thesisApiProvider)
@@ -491,8 +527,17 @@ class _AdminThesisManagementScreenState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback:
+                    "The status couldn't be changed. Refresh and try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -583,7 +628,9 @@ class _AdminThesisManagementScreenState
     final confirmed = await showClayDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
-        title: Text(status == 'approved' ? 'Approve selected?' : 'Publish selected?'),
+        title: Text(
+          status == 'approved' ? 'Approve selected?' : 'Publish selected?',
+        ),
         content: Text(
           'You are about to $verb ${ids.length} studies. '
           '${status == 'approved' ? 'Approved studies are still internal until published.' : 'Published studies become visible in the public repository.'}',
@@ -605,9 +652,7 @@ class _AdminThesisManagementScreenState
 
     setState(() => _bulkRunning = true);
     try {
-      final result = await ref
-          .read(thesisApiProvider)
-          .bulkStatus(ids, status);
+      final result = await ref.read(thesisApiProvider).bulkStatus(ids, status);
       final updated = (result['updated'] as List?)?.length ?? 0;
       final skipped = (result['skipped'] as List?)?.length ?? 0;
       for (final id in ids) {
@@ -631,13 +676,19 @@ class _AdminThesisManagementScreenState
           ? ' $skipped skipped — only a draft can be approved, and only '
                 'an approved study can be published.'
           : '';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$updated $past.$skipNote')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$updated $past.$skipNote')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bulk update failed: $e')),
+        SnackBar(
+          content: Text(
+            userFacingError(
+              e,
+              fallback: "Nothing was changed. The server could not complete the bulk update; try again.",
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _bulkRunning = false);
@@ -766,9 +817,16 @@ class _AdminThesisManagementScreenState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to delete thesis: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The thesis couldn't be deleted. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }

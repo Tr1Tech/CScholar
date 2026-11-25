@@ -2,8 +2,10 @@
 // Production implementation: replace mock_service calls with these
 
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:frontend/core/config.dart';
 
@@ -18,6 +20,10 @@ class ApiException implements Exception {
 class ApiService {
   final String baseUrl;
   String? _token;
+
+  /// Called once when an authenticated request comes back 401: the session is
+  /// gone and the app should return to sign-in instead of showing a raw error.
+  void Function()? onUnauthorized;
 
   ApiService({String? baseUrl}) : baseUrl = baseUrl ?? AppConfig.apiBaseUrl;
 
@@ -34,7 +40,10 @@ class ApiService {
   }
 
   Future<dynamic> get(String endpoint) async {
-    final res = await http.get(Uri.parse('$baseUrl$endpoint'), headers: _headers);
+    final res = await http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _headers,
+    );
     _checkError(res);
     return jsonDecode(res.body);
   }
@@ -60,11 +69,21 @@ class ApiService {
   }
 
   Future<void> delete(String endpoint) async {
-    final res = await http.delete(Uri.parse('$baseUrl$endpoint'), headers: _headers);
+    final res = await http.delete(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: _headers,
+    );
     _checkError(res);
   }
 
   void _checkError(http.Response res) {
+    if (res.statusCode == 401 && _token != null) {
+      // An expired/revoked token is not a screen-level error: clear it and let
+      // the app return to sign-in (TRU-4). The callback is wired by the
+      // provider; the service never imports auth state itself.
+      clearToken();
+      onUnauthorized?.call();
+    }
     if (res.statusCode >= 400) {
       throw ApiException(res.statusCode, res.body);
     }
@@ -133,7 +152,9 @@ class ThesisApi {
     if (categoryId != null) params['category_id'] = categoryId.toString();
     if (keyword != null && keyword.isNotEmpty) params['keyword'] = keyword;
     if (sortBy != null && sortBy.isNotEmpty) params['sort_by'] = sortBy;
-    if (researchType != null && researchType.isNotEmpty) params['research_type'] = researchType;
+    if (researchType != null && researchType.isNotEmpty) {
+      params['research_type'] = researchType;
+    }
     if (status != null && status.isNotEmpty) params['status'] = status;
     final uri = Uri.parse('/api/theses').replace(queryParameters: params);
     final data = await _api.get(uri.toString());
@@ -173,10 +194,7 @@ class ThesisApi {
   /// Move many studies through the lifecycle in one admin action.
   /// The server applies the same per-row transition guard as the single row
   /// control and returns which ids were updated or skipped.
-  Future<Map<String, dynamic>> bulkStatus(
-    List<int> ids,
-    String status,
-  ) async {
+  Future<Map<String, dynamic>> bulkStatus(List<int> ids, String status) async {
     return await _api.post('/api/theses/bulk-status', {
       'ids': ids,
       'status': status,
@@ -207,14 +225,22 @@ class UploadApi {
 
   // Step 1: Upload PDF → backend extracts text + generates embedding
   // Optionally pass thesisId to associate the PDF with a thesis record
-  Future<UploadPreview> uploadPdf(List<int> pdfBytes, String filename, {int? thesisId}) async {
+  Future<UploadPreview> uploadPdf(
+    List<int> pdfBytes,
+    String filename, {
+    int? thesisId,
+  }) async {
     final uri = Uri.parse('${_api.baseUrl}/api/upload/pdf');
     final request = http.MultipartRequest('POST', uri);
-    if (_api._token != null) request.headers['Authorization'] = 'Bearer ${_api._token}';
+    if (_api._token != null) {
+      request.headers['Authorization'] = 'Bearer ${_api._token}';
+    }
     if (thesisId != null) {
       request.fields['thesis_id'] = thesisId.toString();
     }
-    request.files.add(http.MultipartFile.fromBytes('file', pdfBytes, filename: filename));
+    request.files.add(
+      http.MultipartFile.fromBytes('file', pdfBytes, filename: filename),
+    );
 
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
@@ -245,7 +271,8 @@ class UploadPreview {
   factory UploadPreview.fromJson(Map<String, dynamic> json) => UploadPreview(
     extractedText: json['extracted_text'] as String? ?? '',
     suggestedTitle: json['suggested_title'] as String? ?? '',
-    suggestedKeywords: (json['suggested_keywords'] as List<dynamic>?)?.cast<String>() ?? [],
+    suggestedKeywords:
+        (json['suggested_keywords'] as List<dynamic>?)?.cast<String>() ?? [],
     pdfUrl: json['pdf_url'] as String?,
   );
 }
@@ -301,13 +328,20 @@ class MetaApi {
   final ApiService _api;
   MetaApi(this._api);
 
-  Future<List<dynamic>> programs() async => (await _api.get('/api/programs')) as List<dynamic>;
-  Future<List<dynamic>> academicYears() async => (await _api.get('/api/academic-years')) as List<dynamic>;
-  Future<List<dynamic>> categories() async => (await _api.get('/api/categories')) as List<dynamic>;
-  Future<List<dynamic>> keywords() async => (await _api.get('/api/keywords')) as List<dynamic>;
-  Future<List<dynamic>> researchTypes() async => (await _api.get('/api/research-types')) as List<dynamic>;
-  Future<List<dynamic>> authors() async => (await _api.get('/api/authors')) as List<dynamic>;
-  Future<List<dynamic>> advisers() async => (await _api.get('/api/advisers')) as List<dynamic>;
+  Future<List<dynamic>> programs() async =>
+      (await _api.get('/api/programs')) as List<dynamic>;
+  Future<List<dynamic>> academicYears() async =>
+      (await _api.get('/api/academic-years')) as List<dynamic>;
+  Future<List<dynamic>> categories() async =>
+      (await _api.get('/api/categories')) as List<dynamic>;
+  Future<List<dynamic>> keywords() async =>
+      (await _api.get('/api/keywords')) as List<dynamic>;
+  Future<List<dynamic>> researchTypes() async =>
+      (await _api.get('/api/research-types')) as List<dynamic>;
+  Future<List<dynamic>> authors() async =>
+      (await _api.get('/api/authors')) as List<dynamic>;
+  Future<List<dynamic>> advisers() async =>
+      (await _api.get('/api/advisers')) as List<dynamic>;
 }
 
 // --- Admin bulk import ----------------------------------------------------
@@ -442,7 +476,8 @@ class ImportJob {
     errorCount: (json['error_count'] as num?)?.toInt() ?? 0,
     indexedCount: (json['indexed_count'] as num?)?.toInt() ?? 0,
     message: json['message'] as String?,
-    rows: (json['rows'] as List?)
+    rows:
+        (json['rows'] as List?)
             ?.map((e) => ImportRow.fromJson(e as Map<String, dynamic>))
             .toList() ??
         const [],
@@ -455,12 +490,9 @@ class ImportJob {
   bool get isRunning => status == 'queued' || status == 'running';
   bool get isFinished => status == 'completed' || status == 'failed';
 
-  int get readyCount =>
-      rows.where((r) => r.action == 'would_create').length;
-  int get updateCount =>
-      rows.where((r) => r.action == 'would_update').length;
-  int get alreadyCount =>
-      rows.where((r) => r.action == 'would_skip').length;
+  int get readyCount => rows.where((r) => r.action == 'would_create').length;
+  int get updateCount => rows.where((r) => r.action == 'would_update').length;
+  int get alreadyCount => rows.where((r) => r.action == 'would_skip').length;
   int get invalidCount => rows.where((r) => r.hasError).length;
 
   double get progress =>

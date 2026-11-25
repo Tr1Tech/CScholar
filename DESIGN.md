@@ -124,7 +124,7 @@ PDF flow: pick → `uploadApi.uploadPdf(bytes, name, thesisId?)` → `pdfUrl` st
 
 ## 8. Design Tokens (Soft UI v4 — mobile is the source of truth)
 
-The web and mobile now share **one** surface system. `frontend/lib/core/material/cscholar_mobile_tokens.dart` is the single source of truth; `CScholarColors` and `CScholarMaterial` alias it, so the two can never drift. Gold and glass are retired — coral carries attention/AI, panels are flat with soft green-tinted shadows. Desktop is light-only in this pass; the mobile shell keeps its dark toggle.
+The web and mobile now share **one** surface system. `frontend/lib/core/material/cscholar_mobile_tokens.dart` is the single source of truth; `CScholarColors` and `CScholarMaterial` alias it, so the two can never drift. Gold and glass are retired — coral carries attention/AI, panels are flat with soft green-tinted shadows. **Web and mobile both run light and dark**, from one switch and one palette (`frontend/lib/core/material/cscholar_palette.dart`).
 
 ### Color
 
@@ -150,6 +150,19 @@ The web and mobile now share **one** surface system. `frontend/lib/core/material
 Semantic: `info` = `green2`, `infoLight` = `mint`, `warningFg` / `error` = `coralInk`, `errorLight` = `coralSoft`, `success` = `green`. Role accents: student `green2`, faculty `lilacInk`, admin `coralInk`. Status fills: published `green`, approved `green2`, draft `coralInk`, archived `mutedInk`.
 
 Raw accents are **fills**. Body copy and small labels use the text-safe inks (`mutedInk`, `coralInk`, `lilacInk`), which clear 4.5:1 on paper and on their own tints.
+
+### Light / dark
+
+One mode for the whole app, web and mobile, in `core/material/cscholar_palette.dart`.
+
+- **One switch, top-right.** Every desktop topbar carries `ThemeModeButton` in its top-right cluster, immediately LEFT of the identity pill — the same order as the mobile header; the auth screens float the same control in the corner.
+- **Persisted** under `cscholar-theme-dark` (`SharedPreferences`), falling back to the retired mobile-only key. Read once in `main()` before `runApp`, so start-up never flashes the wrong mode.
+- **Tokens, not branches.** `CScholarColors` / `CScholarMaterial` are getters over `CScholarPalette.active`; screens keep naming tokens and never ask about the mode. Note that these are values read at paint time — never cache one in a `const` or a long-lived field.
+- **Ink and fill are split.** Light reuses one green for both; dark cannot. `primaryGreen` / `gelTop` are text-safe inks (light mint at night), `primaryFill` / `actionFill` are the solids that carry white labels (deep green at night). A white glyph always rides a fill token.
+- **Dark palette** (`paperDark #17201C`, `surfaceDark #202A25`, `well #26312B`, ink `#EDF5EF`, accent `#80C4A6`, action `#2E7D63`, danger ink `#FF8F7A`): body copy ≥ 14:1, secondary and accent inks ≥ 7:1, white on the action fill ≥ 5:1. Pinned by `test/theme_mode_test.dart`.
+- **Mode-stable art.** Cover gradients and `bannerPalette` never flip — white glyphs sit on them in both modes.
+- **Iris wipe** (`CScholarMotion.themeSwap`, 720 ms). The frame on screen is captured, the palette flips, and the captured (old-theme) frame stays on top with an expanding circular hole cut out of it — centred on the switch itself, because the button reports its icon centre. The circle ends once it has passed the farthest corner, then the frozen frame is dropped. Only the clip changes per frame, and the app sits in its own repaint boundary, so a wipe never re-rasterizes the page. If the platform cannot rasterize the frame, or the capture misses `CScholarMotion.themeCapture` (90 ms), the palette flips under a covering disc that dissolves instead. Reduced motion swaps instantly.
+- **Route rebuild.** The Navigator caches the page it was handed, so a root rebuild never repaints a route. Every route body in `app_router.dart` is wrapped in `CScholarPaletteRebuild`, which subscribes to `CScholarPaletteScope` and rebuilds the page exactly when the painted mode flips.
 
 ### Typography
 

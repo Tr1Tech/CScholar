@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/vocabulary.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/change_password_dialog.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -95,7 +96,7 @@ class FacultySettingsScreen extends ConsumerWidget {
                   Divider(color: CScholarMaterial.rim, height: 32),
                   _infoRow('Username', user?.username ?? '—'),
                   _infoRow('Email', user?.email ?? '—'),
-                  _infoRow('Role', user?.role ?? '—'),
+                  _infoRow('Role', roleLabel(user?.role)),
                   _infoRow(
                     'Status',
                     (user?.isActive ?? true) ? 'Active' : 'Inactive',

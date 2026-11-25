@@ -131,7 +131,9 @@ class CScholarColors {
   static const Color white = Color(0xFFFFFFFF);
   static Color get backgroundLight => _p.paper;
   static Color get backgroundSoft => _p.paper;
-  static Color get backgroundDark => CScholarMobileColors.inkDark;
+
+  /// A fixed ink slab (cover art / contrast fixtures) — never flips.
+  static const Color backgroundDark = CScholarMobileColors.ink;
   static Color get surfaceWhite => _p.surface;
   static Color get surfaceLight => _p.surfaceSoft;
   static Color get cardBg => _p.surface;
@@ -308,6 +310,26 @@ class CScholarSpacing {
   static const double xxl = 48;
 }
 
+/// The interaction floor (A11Y-1).
+///
+/// Every pressable surface — icon buttons, pagers, filter chips, search-clear
+/// buttons, close buttons, inline links — must expose at least
+/// [minimum]×[minimum] logical pixels of HIT AREA, not just a glyph that size.
+/// [primary] is the minimum height for a primary action.
+///
+/// Use these instead of re-typing 44/48 at call sites: a raw number is how a
+/// target quietly shrinks during a later "tighten the row" pass.
+class CScholarTapTarget {
+  /// Absolute floor for any interactive target.
+  static const double minimum = 44;
+
+  /// Primary actions (submit, sign in, save) should clear this.
+  static const double primary = 48;
+
+  /// Small square target used by icon actions in dense rows.
+  static const Size square = Size(minimum, minimum);
+}
+
 class CScholarDurations {
   static const Duration fast = Duration(milliseconds: 150);
   static const Duration normal = Duration(milliseconds: 250);
@@ -361,9 +383,19 @@ class CScholarMotion {
   ///
   /// Deliberately OUTSIDE the interaction budget: this is not a control
   /// answering a tap (the switch pops its glyph immediately), it is the whole
-  /// interface changing material. The curtain covers for the first 62% and
-  /// dissolves for the rest, so the flip itself is never seen.
-  static const Duration themeSwap = Duration(milliseconds: 480);
+  /// interface changing material. An iris wipe expands from the switch until it
+  /// has passed the farthest corner; nothing fades.
+  ///
+  /// 720 ms is the measured "swell": at 480 ms the circle crossed the viewport
+  /// before the eye had read it as a wipe, which is what made the switch feel
+  /// like a cut with a flicker on it.
+  static const Duration themeSwap = Duration(milliseconds: 720);
+
+  /// How long the theme wipe will wait for the frame it freezes before falling
+  /// back to a simpler transition. A capture is normally 5–20 ms; waiting
+  /// longer leaves the tap with no visible answer for longer than it takes the
+  /// eye to notice.
+  static const Duration themeCapture = Duration(milliseconds: 90);
 
   // ---------------------------------------------------------------- ambient
   /// Slow breath: a halo deepening, an icon tile floating ±2px.
@@ -466,6 +498,14 @@ class CScholarCurves {
   /// Mirrored exit. Leaving must be faster and less fussy than arriving, so
   /// entrances use [settle] while exits use this.
   static const Curve exit = Cubic(0.4, 0.0, 1.0, 1.0);
+
+  /// Iris-wipe expansion: a swell, not a swipe.
+  ///
+  /// [settle] front-loads — it is built for a control that must answer
+  /// immediately — which on a full-viewport wipe covers half the screen before
+  /// the eye has read it as a wipe. This curve spends its time in the middle,
+  /// where the circle is crossing actual content, and lands slowly.
+  static const Curve reveal = Cubic(0.32, 0.0, 0.18, 1.0);
 
   /// Ease-in-out for something that LOOPS (breathe, drift, pulse): the two
   /// halves must be symmetric or the loop visibly hitches at the turnaround.

@@ -13,7 +13,9 @@ import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/status_chips.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
+import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
 import 'package:frontend/presentation/widgets/faculty_sidebar.dart';
@@ -57,15 +59,17 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
   }
 
   void _scheduleViewRecord() {
-    // The last-opened study becomes the dashboard feed's anchor. Local-only
-    // (SharedPreferences); the id is sent to the server only when the
-    // dashboard asks for recommendations. Deferred to after the frame because
-    // Riverpod forbids state writes during initState/build.
+    // Opening a study is a view: it counts on the dashboard strip and becomes
+    // the dashboard feed's anchor. Both are local-only (SharedPreferences);
+    // the anchor id is sent to the server only when the dashboard asks for
+    // recommendations. Deferred to after the frame because Riverpod forbids
+    // state writes during initState/build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref
           .read(recommendationAnchorProvider.notifier)
           .setAnchor(thesisId, 'viewed');
+      ref.read(viewedThesisIdsProvider.notifier).record(thesisId);
     });
   }
 
@@ -170,23 +174,26 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                       children: [
                         InkWell(
                           onTap: () => context.go(homeRoute),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.home_outlined,
-                                size: 16,
-                                color: CScholarColors.textMuted,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Home',
-                                style: CScholarTextStyles.body(
-                                  12.5,
-                                  FontWeight.w500,
-                                  CScholarColors.textMuted,
+                          child: SizedBox(
+                            height: CScholarTapTarget.minimum,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.home_outlined,
+                                  size: 16,
+                                  color: CScholarColors.textMuted,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Home',
+                                  style: CScholarTextStyles.body(
+                                    12.5,
+                                    FontWeight.w500,
+                                    CScholarColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         Text(
@@ -199,12 +206,18 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                         ),
                         InkWell(
                           onTap: () => context.go(listRoute),
-                          child: Text(
-                            listLabel,
-                            style: CScholarTextStyles.body(
-                              12.5,
-                              FontWeight.w500,
-                              CScholarColors.primaryGreen,
+                          child: SizedBox(
+                            height: CScholarTapTarget.minimum,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                listLabel,
+                                style: CScholarTextStyles.body(
+                                  12.5,
+                                  FontWeight.w500,
+                                  CScholarColors.primaryGreen,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -503,9 +516,8 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                                                               Icons
                                                                   .auto_awesome,
                                                               size: 11,
-                                                              color:
-                                                                  CScholarColors
-                                                                      .primaryGreen,
+                                                              color: CScholarColors
+                                                                  .primaryGreen,
                                                             ),
                                                             const SizedBox(
                                                               width: 4,
@@ -537,13 +549,30 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 24,
                                       ),
-                                      child: Text(
-                                        'Unable to load recommendations: $err',
-                                        style: CScholarTextStyles.body(
-                                          12,
-                                          FontWeight.w500,
-                                          CScholarColors.textMuted,
-                                        ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            userFacingError(
+                                              err,
+                                              fallback: 'Recommendations could not be loaded right now.',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            style: CScholarTextStyles.body(
+                                              12,
+                                              FontWeight.w500,
+                                              CScholarColors.textMuted,
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => ref.invalidate(
+                                              recommendedThesesProvider(
+                                                thesisId,
+                                              ),
+                                            ),
+                                            child: const Text('Retry'),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -561,7 +590,21 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
           ),
         );
       },
-      error: (err, _) => Center(child: Text('Error: $err')),
+      error: (err, _) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: EmptyState(
+            icon: Icons.error_outline,
+            title: 'Could not open this study',
+            message: userFacingError(
+              err,
+              fallback: 'This study could not be loaded. Try again.',
+            ),
+            actionLabel: 'Retry',
+            onAction: () => ref.invalidate(thesisDetailProvider(thesisId)),
+          ),
+        ),
+      ),
     );
 
     if (isStudent) {
@@ -596,10 +639,8 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
           backgroundColor: CScholarMaterial.clay,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: CScholarColors.textPrimary,
-            ),
+            tooltip: 'Back to $listLabel',
+            icon: Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
             onPressed: () => context.go(listRoute),
           ),
           title: Text(
@@ -649,7 +690,18 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
       ),
       data: (thesis) {
         if (thesis == null) {
-          return Center(child: Text('Thesis not found', style: t.body));
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: EmptyState(
+              mobile: true,
+              icon: Icons.search_off,
+              title: 'Study not found',
+              message:
+                  'This study may have been removed or is no longer public.',
+              actionLabel: 'Browse the repository',
+              onAction: () => context.go('/repository'),
+            ),
+          );
         }
         final authorsStr = thesis.authorsString;
         final programStr = thesis.program?.name ?? '';
@@ -905,8 +957,7 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                             _detailRow(
                               context,
                               'Status',
-                              '${thesis.status[0].toUpperCase()}'
-                                  '${thesis.status.substring(1)}',
+                              ThesisStatusStyle.of(thesis.status).displayLabel,
                             ),
                           if (thesis.keywords != null &&
                               thesis.keywords!.isNotEmpty)
@@ -977,14 +1028,45 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
                     ),
                   );
                 },
-                error: (_, _) =>
-                    Text('Unable to load related research', style: t.bodyMuted),
+                error: (err, _) => Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        userFacingError(
+                          err,
+                          fallback:
+                              'Related research could not be loaded right now.',
+                        ),
+                        style: t.bodyMuted,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.invalidate(recommendedThesesProvider(thesisId)),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
-      error: (err, _) => Center(child: Text('Error: $err')),
+      error: (err, _) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: EmptyState(
+            icon: Icons.error_outline,
+            title: 'Could not open this study',
+            message: userFacingError(
+              err,
+              fallback: 'This study could not be loaded. Try again.',
+            ),
+            actionLabel: 'Retry',
+            onAction: () => ref.invalidate(thesisDetailProvider(thesisId)),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1486,8 +1568,10 @@ class _ThesisDetailScreenState extends ConsumerState<ThesisDetailScreen> {
     'Dec',
   ];
 
-  String _formatDate(DateTime at) =>
-      '${_months[at.month - 1]} ${at.day}, ${at.year}';
+  String _formatDate(DateTime at) {
+    final local = at.toLocal();
+    return '${_months[local.month - 1]} ${local.day}, ${local.year}';
+  }
 
   /// "Approved by X on date" for staff, "Approved on date" for everyone else.
   String _approvalLine(Thesis thesis, {required bool isStaff}) {

@@ -158,21 +158,22 @@ class CScholarPalette {
   Color get specular => const Color(0xFFFFFFFF);
 
   // ---------------------------------------------------------------- recipes
-  /// Two diffuse layers, tinted green-black on paper and near-black on dark
-  /// (a green-tinted shadow is invisible once the canvas is already dark, so
-  /// the dark recipe trades hue for depth).
+  /// Two diffuse layers, tinted green-black on paper and a soft black lift on
+  /// dark. Dark needs more alpha than light to register at all, but a heavy
+  /// black halo reads as a smudge on the near-black canvas — the dark recipe
+  /// stops at roughly three times the light alphas, never the old 42%.
   List<BoxShadow> cardShadow({double depth = 1}) {
     if (isDark) {
       return [
         BoxShadow(
           color: const Color(0xFF000000)
-              .withValues(alpha: (0.42 * depth).clamp(0.0, 1.0)),
+              .withValues(alpha: (0.22 * depth).clamp(0.0, 1.0)),
           blurRadius: 28 * depth,
           offset: Offset(0, 12 * depth),
         ),
         BoxShadow(
           color: const Color(0xFF000000)
-              .withValues(alpha: (0.22 * depth).clamp(0.0, 1.0)),
+              .withValues(alpha: (0.10 * depth).clamp(0.0, 1.0)),
           blurRadius: 6 * depth,
           offset: Offset(0, 2 * depth),
         ),
@@ -265,9 +266,13 @@ class CScholarPalette {
     accent: CScholarMobileColors.greenDark,
     accentBright: CScholarMobileColors.green2Dark,
     accentDeep: Color(0xFF0B2A21),
-    action: Color(0xFF2E7D63),
-    actionPressed: Color(0xFF245F4C),
-    actionDeep: Color(0xFF1A4638),
+    // Solid fills match the mobile shell's forest green. The lighter #2E7D63
+    // this used to carry made every web fill (search CTA, primary buttons,
+    // active nav pill, cover gel) read a step brighter than the same control
+    // in the app — dark mode is one brand fill on both, white copy rides it.
+    action: CScholarMobileColors.green,
+    actionPressed: CScholarMobileColors.greenDeep,
+    actionDeep: Color(0xFF0A2C22),
     coral: CScholarMobileColors.coral,
     coralSoft: CScholarMobileColors.coralSoftDark,
     danger: CScholarMobileColors.coralInkDark,
@@ -321,10 +326,11 @@ class CScholarPaletteScope extends InheritedWidget {
 
   final bool isDark;
 
-  /// Flips the app-wide mode. Provided by the root shell; null in hosts that
-  /// render chrome without an app (tests, the design lab), where the switch is
-  /// visible but inert instead of crashing.
-  final VoidCallback? onToggle;
+  /// Flips the app-wide mode, optionally reporting WHERE the switch was tapped
+  /// (global logical pixels) so the iris can open from the icon itself. Null in
+  /// hosts that render chrome without an app (tests, the design lab), where the
+  /// switch is visible but inert instead of crashing.
+  final void Function(Offset? origin)? onToggle;
 
   static CScholarPaletteScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<CScholarPaletteScope>();
@@ -340,14 +346,54 @@ class CScholarPaletteScope extends InheritedWidget {
 /// keeps the widget it was handed for a route, so a root-level rebuild does not
 /// reach it; this widget is mounted INSIDE the route and subscribes to
 /// [CScholarPaletteScope], which is the one signal that the colours moved.
-class CScholarPaletteRebuild extends StatelessWidget {
+///
+/// ## Why the whole subtree is marked dirty
+///
+/// Rebuilding this widget alone is not enough. Route builders hand back a
+/// `const` page (`const AdminDashboardScreen()`), and Flutter short-circuits a
+/// child whose widget instance is `identical` to the one it already has — so
+/// the page (and every const widget inside it) kept painting the old palette
+/// until the next navigation remounted the route. Marking the descendant
+/// elements dirty rebuilds them in place: no `State` is disposed, scroll
+/// offsets and form input survive, and every const token read runs again
+/// against the palette that was just activated. The framework explicitly
+/// allows this during build because the marked elements are descendants of the
+/// element that is building.
+class CScholarPaletteRebuild extends StatefulWidget {
   const CScholarPaletteRebuild({super.key, required this.builder});
 
   final WidgetBuilder builder;
 
   @override
+  State<CScholarPaletteRebuild> createState() => _CScholarPaletteRebuildState();
+}
+
+class _CScholarPaletteRebuildState extends State<CScholarPaletteRebuild> {
+  /// The mode the current subtree was built for. Null until the first build.
+  bool? _paintedDark;
+
+  @override
   Widget build(BuildContext context) {
-    CScholarPaletteScope.maybeOf(context);
-    return builder(context);
+    final isDark =
+        CScholarPaletteScope.maybeOf(context)?.isDark ??
+        CScholarPalette.active.isDark;
+    final flipped = _paintedDark != null && _paintedDark != isDark;
+    _paintedDark = isDark;
+
+    final page = widget.builder(context);
+    if (flipped) _rebuildSubtree(context as Element);
+    return page;
+  }
+
+  /// Marks every mounted element below [root] dirty, keeping their widgets and
+  /// states. Elements that are already dirty — or no longer active — are left
+  /// to the framework.
+  static void _rebuildSubtree(Element root) {
+    root.visitChildren(_markDirty);
+  }
+
+  static void _markDirty(Element element) {
+    element.markNeedsBuild();
+    element.visitChildren(_markDirty);
   }
 }

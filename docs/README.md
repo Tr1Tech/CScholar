@@ -56,5 +56,6 @@ Capstone documentation lives here:
 | [api_testing_guide.md](api_testing_guide.md) | Every locked Swagger endpoint with the exact inputs to type, demo order, expected errors |
 | [qa_cheatsheet_20261204.md](qa_cheatsheet_20261204.md) | Spoken Q&A answers, exact numbers, failure fallbacks, don't-say list |
 | [evaluation/relevance_20261120.md](evaluation/relevance_20261120.md) | Keyword vs semantic relevance check (10 labeled queries) |
+| [evaluation/survey_questionnaire_20261125.md](evaluation/survey_questionnaire_20261125.md) | System context brief + post-build evaluation questionnaire for students, faculty, admin, and IT experts (ISO 25010 constructs, scoring, and administration plan) |
 
 Database schema and seed data live in `../db/` (`schema.sql`, `seed.sql`).

@@ -25,6 +25,32 @@ class ThesisStatusStyle {
   final Color fg;
   final Color rim;
 
+  /// Sentence-case name used in spoken/compound labels ("Status: Published")
+  /// and anywhere a status is referred to in help copy. The chip itself keeps
+  /// the uppercase micro-label.
+  String get displayLabel {
+    final lower = label.toLowerCase();
+    return lower.isEmpty ? lower : lower[0].toUpperCase() + lower.substring(1);
+  }
+
+  /// The shape that pairs with the colour for this status (A11Y-3). Reserve
+  /// the icon for surfaces that have room; the chip's text label already
+  /// carries the meaning on its own.
+  IconData get icon {
+    switch (label.toLowerCase()) {
+      case 'published':
+        return Icons.check_circle_outline;
+      case 'approved':
+        return Icons.verified_outlined;
+      case 'draft':
+        return Icons.edit_note;
+      case 'archived':
+        return Icons.inventory_2_outlined;
+      default:
+        return Icons.circle_outlined;
+    }
+  }
+
   factory ThesisStatusStyle.of(String status) {
     switch (status.toLowerCase()) {
       case 'published':
@@ -94,6 +120,9 @@ class ThesisStatusChip extends StatelessWidget {
       bg: style.bg,
       fg: style.fg,
       rim: style.rim,
+      // One semantic unit, and the colour is never the only carrier of
+      // meaning: the status name is spoken (A11Y-3, A11Y-6).
+      semanticLabel: 'Status: ${style.displayLabel}',
     );
   }
 }
@@ -131,6 +160,7 @@ class RoleChip extends StatelessWidget {
       fg: fg,
       rim: rim,
       isPill: true,
+      semanticLabel: 'Role: ${role.toLowerCase()}',
     );
   }
 }
@@ -154,6 +184,7 @@ class ActiveChip extends StatelessWidget {
       bg: bg,
       fg: fg,
       rim: rim,
+      semanticLabel: 'Account status: ${isActive ? 'Active' : 'Inactive'}',
     );
   }
 }
@@ -164,6 +195,7 @@ class _TactileChip extends StatelessWidget {
   final Color fg;
   final Color rim;
   final bool isPill;
+  final String? semanticLabel;
 
   const _TactileChip({
     required this.text,
@@ -171,39 +203,44 @@ class _TactileChip extends StatelessWidget {
     required this.fg,
     required this.rim,
     this.isPill = false,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     final highContrast = MediaQuery.maybeOf(context)?.highContrast == true;
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isPill ? 10 : 8,
-        vertical: isPill ? 3.5 : 3,
-      ),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(
-          isPill ? CScholarRadius.full : CScholarRadius.sm,
+    return Semantics(
+      label: semanticLabel ?? text,
+      excludeSemantics: true,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isPill ? 10 : 8,
+          vertical: isPill ? 3.5 : 3,
         ),
-        border: Border.all(
-          color: highContrast ? CScholarColors.textPrimary : rim,
-          width: highContrast ? 1.5 : 1,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(
+            isPill ? CScholarRadius.full : CScholarRadius.sm,
+          ),
+          border: Border.all(
+            color: highContrast ? CScholarColors.textPrimary : rim,
+            width: highContrast ? 1.5 : 1,
+          ),
+          // The shadow is the tinted clay token, never black. A 20px badge is too
+          // small for the shadow to define it, hence the hairline rim alongside.
+          boxShadow: highContrast
+              ? null
+              : CScholarMaterial.softShadow(depth: 0.3),
         ),
-        // The shadow is the tinted clay token, never black. A 20px badge is too
-        // small for the shadow to define it, hence the hairline rim alongside.
-        boxShadow: highContrast
-            ? null
-            : CScholarMaterial.softShadow(depth: 0.3),
-      ),
-      child: Text(
-        text,
-        style: CScholarTextStyles.body(
-          11,
-          FontWeight.w700,
-          highContrast ? CScholarMaterial.textPrimary : fg,
-          letterSpacing: isPill ? 0.2 : 0.4,
+        child: Text(
+          text,
+          style: CScholarTextStyles.body(
+            11,
+            FontWeight.w700,
+            highContrast ? CScholarMaterial.textPrimary : fg,
+            letterSpacing: isPill ? 0.2 : 0.4,
+          ),
         ),
       ),
     );

@@ -69,9 +69,13 @@ class _MobileStudentNavState extends State<MobileStudentNav> {
         ? Colors.white.withValues(alpha: 0.04)
         : Colors.white.withValues(alpha: 0.75);
 
-    // Exact prototype box: `height: 78px; padding: 7px 7px 13px`.
+    // Prototype box: `height: 78px; padding: 7px 7px 13px`. The bar grows with
+    // the OS text scale instead of clipping the label at 200% (A11Y-10); the
+    // extra height keeps the same bottom safe-area padding.
+    final labelHeight = MediaQuery.textScalerOf(context).scale(10) * 1.2;
+    final barHeight = 78 + (labelHeight - 12).clamp(0.0, 26.0);
     return SizedBox(
-      height: 78,
+      height: barHeight,
       child: DecoratedBox(
         // Shadow lives outside the clip so the rounded pill still casts it.
         decoration: BoxDecoration(
@@ -164,27 +168,33 @@ class _NavItem extends StatelessWidget {
     final fg = active
         ? t.green
         : (t.isDark ? t.muted : const Color(0xFF8A938E));
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      // The fill is painted behind the whole row by the nav, so the tab only
-      // carries its own glyph and label.
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Static glyph: the travelling fill is the only motion here. The
-            // old lift-and-scale made every tab jump as it became current.
-            Icon(icon, size: 21, color: fg),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.dmSans(10, FontWeight.w600, fg, height: 1.2),
-            ),
-          ],
+    return Semantics(
+      button: true,
+      selected: active,
+      label: label,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        // The fill is painted behind the whole row by the nav, so the tab only
+        // carries its own glyph and label.
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Static glyph: the travelling fill is the only motion here. The
+              // old lift-and-scale made every tab jump as it became current.
+              Icon(icon, size: 21, color: fg),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: t.dmSans(10, FontWeight.w600, fg, height: 1.2),
+              ),
+            ],
+          ),
         ),
       ),
     );

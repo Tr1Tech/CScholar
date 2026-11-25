@@ -87,21 +87,25 @@ class _ClayChipState extends State<ClayChip> {
                 child: AnimatedSwap(
                   style: SwapStyle.pop,
                   child: widget.selected
-                      ? Icon(Icons.check_rounded,
+                      ? Icon(
+                          Icons.check_rounded,
                           key: const ValueKey('check'),
                           size: 14,
-                          color: CScholarMaterial.gelTop)
+                          color: CScholarMaterial.gelTop,
+                        )
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
               ),
               const SizedBox(width: 6),
             ],
             if (widget.icon != null) ...[
-              Icon(widget.icon,
-                  size: 14,
-                  color: widget.selected
-                      ? CScholarMaterial.gelTop
-                      : CScholarMaterial.textMuted),
+              Icon(
+                widget.icon,
+                size: 14,
+                color: widget.selected
+                    ? CScholarMaterial.gelTop
+                    : CScholarMaterial.textMuted,
+              ),
               const SizedBox(width: 6),
             ],
             Text(
@@ -184,25 +188,26 @@ class ClayIconTile extends StatelessWidget {
         gradient: gold
             ? CScholarMaterial.goldGradient
             : gel
-                ? LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    // A gel tile carries a WHITE glyph, so it must stay a deep
-                    // fill in dark mode: gelTop is the accent INK and would turn
-                    // the tile pale.
-                    colors: [
-                      CScholarMaterial.actionFill,
-                      CScholarMaterial.actionFillPressed,
-                    ],
-                  )
-                : LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      CScholarMaterial.clayHigh,
-                      background ?? CScholarMaterial.clay,
-                    ],
-                  ),
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                // A gel tile carries a WHITE glyph, so it must stay a deep
+                // fill in dark mode: gelTop is the accent INK and would turn
+                // the tile pale. Light rests on the mobile shell's flat
+                // green; dark keeps the top-to-bottom gel.
+                colors: [
+                  CScholarMaterial.actionFill,
+                  CScholarMaterial.actionFillRest,
+                ],
+              )
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  CScholarMaterial.clayHigh,
+                  background ?? CScholarMaterial.clay,
+                ],
+              ),
         border: rimmed
             ? Border.all(
                 color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
@@ -211,10 +216,10 @@ class ClayIconTile extends StatelessWidget {
         boxShadow: flat
             ? null
             : gold
-                ? CScholarMaterial.goldGlow(strength: glowStrength)
-                : gel
-                    ? CScholarMaterial.gelDrop(depth: 0.7)
-                    : CScholarMaterial.softShadow(depth: 0.5),
+            ? CScholarMaterial.goldGlow(strength: glowStrength)
+            : gel
+            ? CScholarMaterial.gelDrop(depth: 0.7)
+            : CScholarMaterial.softShadow(depth: 0.5),
       ),
       child: Center(
         child: Icon(icon, size: size * 0.46, color: glyph),
@@ -250,7 +255,7 @@ class GelAvatar extends StatelessWidget {
           // White initials ride this: a deep fill in both modes.
           colors: [
             CScholarMaterial.actionFill,
-            CScholarMaterial.actionFillPressed,
+            CScholarMaterial.actionFillRest,
           ],
         ),
         boxShadow: CScholarMaterial.gelDrop(depth: 0.7),
@@ -259,10 +264,12 @@ class GelAvatar extends StatelessWidget {
         child: Text(
           _initials,
           style: CScholarTextStyles.body(
-              size * 0.34, FontWeight.w800, Colors.white),
+            size * 0.34,
+            FontWeight.w800,
+            Colors.white,
+          ),
         ),
       ),
     );
   }
 }
-

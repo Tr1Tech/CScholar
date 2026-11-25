@@ -11,18 +11,13 @@ import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 ///
 /// MATERIAL FUSION (see material_tokens.dart): the card is floating chrome, so
 /// per the fusion law it is GLASS (overlay recipe, same as dialogs); everything
-/// inside it — fields, buttons, the checkbox — stays clay. Ambient orbs are
-/// decoration: soft tinted washes that drift slowly behind the card so the
-/// glass has something real to refract.
+/// inside it — fields, buttons, the checkbox — stays clay. The canvas stays a
+/// clean field: no ambient washes behind the card.
 ///
 /// Both screens pass their form as [child]; the brand header and the campus
 /// affiliation footer live here so they can never drift apart.
 class AuthShell extends StatelessWidget {
-  const AuthShell({
-    super.key,
-    required this.child,
-    this.maxCardWidth = 480,
-  });
+  const AuthShell({super.key, required this.child, this.maxCardWidth = 480});
 
   final Widget child;
 
@@ -40,7 +35,6 @@ class AuthShell extends StatelessWidget {
         fit: StackFit.expand,
         clipBehavior: Clip.hardEdge,
         children: [
-          const _AmbientField(),
           // The switch floats in the corner here: the auth screens have no
           // topbar to carry it, and they are the first screens a visitor sees.
           const ThemeModeCorner(),
@@ -105,10 +99,13 @@ class AuthShell extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Gold on canvas is decoration (1.26:1); the copy
-                      // carries the meaning.
-                      Icon(Icons.school,
-                          size: 14, color: CScholarColors.gold),
+                      // Gold on canvas is decoration, so the glyph carries the
+                      // brand green rather than a separate accent colour.
+                      Icon(
+                        Icons.school,
+                        size: 14,
+                        color: CScholarColors.primaryGreen,
+                      ),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
@@ -129,126 +126,6 @@ class AuthShell extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Three tinted washes, placed asymmetrically so the canvas never reads as a
-/// flat void. Existing palette tints only (mint / sky / gold paper) — no new
-/// colour enters the system for decoration.
-class _AmbientField extends StatelessWidget {
-  const _AmbientField();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Align(
-          alignment: const Alignment(-0.85, -0.8),
-          child: _AmbientOrb(
-            size: 380,
-            color: CScholarColors.primaryGreenLight,
-            drift: const Offset(18, 12),
-            duration: const Duration(seconds: 11),
-          ),
-        ),
-        Align(
-          alignment: const Alignment(0.9, -0.45),
-          child: _AmbientOrb(
-            size: 240,
-            color: CScholarColors.violetTint,
-            drift: const Offset(-14, 16),
-            duration: const Duration(seconds: 9),
-          ),
-        ),
-        Align(
-          alignment: const Alignment(0.75, 0.9),
-          child: _AmbientOrb(
-            size: 320,
-            color: CScholarColors.cyanTint,
-            drift: const Offset(-16, -12),
-            duration: const Duration(seconds: 13),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Soft radial wash that breathes — a slow, small, transform-only drift.
-/// The controller is inert (static orb, no ticker) under reduced motion, and
-/// the drift amplitude is small enough that the motion reads as ambience, not
-/// animation.
-class _AmbientOrb extends StatefulWidget {
-  const _AmbientOrb({
-    required this.size,
-    required this.color,
-    required this.drift,
-    required this.duration,
-  });
-
-  final double size;
-  final Color color;
-  final Offset drift;
-  final Duration duration;
-
-  @override
-  State<_AmbientOrb> createState() => _AmbientOrbState();
-}
-
-class _AmbientOrbState extends State<_AmbientOrb>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: widget.duration);
-  late final Animation<double> _curve =
-      CurvedAnimation(parent: _c, curve: Curves.easeInOut);
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // motionEnabled() reads MediaQuery, which is only available here — and
-    // this also re-targets if the OS reduced-motion setting changes.
-    if (motionEnabled(context)) {
-      if (!_c.isAnimating) _c.repeat(reverse: true);
-    } else {
-      _c.stop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final orb = Container(
-      width: widget.size,
-      height: widget.size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            widget.color.withValues(alpha: 0.95),
-            widget.color.withValues(alpha: 0),
-          ],
-        ),
-      ),
-    );
-
-    if (!motionEnabled(context)) return orb;
-    return AnimatedBuilder(
-      animation: _curve,
-      child: orb,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(
-          widget.drift.dx * _curve.value,
-          widget.drift.dy * _curve.value,
-        ),
-        child: child,
       ),
     );
   }
@@ -285,29 +162,42 @@ class AuthErrorBanner extends StatelessWidget {
           ),
         ),
         child: hasError
-            ? Container(
-                key: ValueKey<String>(error!),
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: CScholarColors.errorLight,
-                  borderRadius: BorderRadius.circular(CScholarRadius.md),
-                  border: Border.all(
-                      color: CScholarColors.error.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline,
-                        size: 18, color: CScholarColors.error),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        error!,
-                        style: CScholarTextStyles.body(
-                            12, FontWeight.w500, CScholarColors.error),
-                      ),
+            ? Semantics(
+                liveRegion: true,
+                container: true,
+                label: 'Error: ${error!}',
+                excludeSemantics: true,
+                child: Container(
+                  key: ValueKey<String>(error!),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: CScholarColors.errorLight,
+                    borderRadius: BorderRadius.circular(CScholarRadius.md),
+                    border: Border.all(
+                      color: CScholarColors.error.withValues(alpha: 0.3),
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 18,
+                        color: CScholarColors.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          error!,
+                          style: CScholarTextStyles.body(
+                            12,
+                            FontWeight.w500,
+                            CScholarColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               )
             : const SizedBox(width: double.infinity),

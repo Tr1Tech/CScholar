@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
+import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/main.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/screens/repository/repository_screen.dart';
 import 'package:frontend/presentation/widgets/rec_rail.dart';
@@ -68,6 +71,79 @@ Widget _host() {
   );
 }
 
+/// Host that can flip the app palette exactly like the shipped theme switch:
+/// the MaterialApp theme changes too, which is what replaces the scroll
+/// position (the framework re-resolves scroll physics through `Theme.of`).
+class _ThemeHost extends StatefulWidget {
+  const _ThemeHost();
+
+  @override
+  State<_ThemeHost> createState() => ThemeHostState();
+}
+
+class ThemeHostState extends State<_ThemeHost> {
+  bool _dark = false;
+
+  late final GoRouter _router = GoRouter(
+    initialLocation: '/screen',
+    routes: [
+      GoRoute(
+        path: '/screen',
+        builder: (_, _) => CScholarPaletteRebuild(
+          builder: (context) => const RepositoryScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/:rest(.*)',
+        builder: (_, _) => CScholarPaletteRebuild(
+          builder: (context) => const RepositoryScreen(),
+        ),
+      ),
+    ],
+  );
+
+  void toggle() => setState(() => _dark = !_dark);
+
+  @override
+  Widget build(BuildContext context) {
+    CScholarPalette.activate(_dark);
+    return ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWithValue(_user()),
+        thesisPageProvider.overrideWith(
+          (ref, params) async => ThesisPage(
+            theses: [for (var i = 1; i <= 30; i++) _thesis(i)],
+            total: 30,
+            page: 1,
+            pages: 1,
+            pageSize: 30,
+          ),
+        ),
+      ],
+      child: CScholarPaletteScope(
+        isDark: _dark,
+        onToggle: (_) => toggle(),
+        child: CScholarMobileThemeScope(
+          isDark: _dark,
+          child: RepaintBoundary(
+            child: MaterialApp.router(
+              theme: cscholarThemeData(isDark: false),
+              darkTheme: cscholarThemeData(isDark: true),
+              themeMode: _dark ? ThemeMode.dark : ThemeMode.light,
+              themeAnimationDuration: Duration.zero,
+              routerConfig: _router,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                child: child!,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 void main() {
   setUpAll(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
   setUpAll(() => CScholarMotion.ambientEnabled = false);
@@ -109,6 +185,51 @@ void main() {
       reason: 'the rail must stay pinned below the top bar while scrolling',
     );
     expect(pinnedTop, lessThan(restingTop));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the rail keeps floating after a theme flip', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 1000);
+    addTearDown(tester.view.reset);
+    addTearDown(() => CScholarPalette.activate(false));
+
+    await tester.pumpWidget(const _ThemeHost());
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final screen = find.byType(SingleChildScrollView).first;
+    final viewportTop = tester.getRect(screen).top;
+    final railFinder = find.byType(RecRail);
+
+    await tester.dragFrom(
+      tester.getRect(screen).centerLeft + const Offset(200, 0),
+      const Offset(0, -800),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(
+      tester.getRect(railFinder).top,
+      moreOrLessEquals(viewportTop + 16, epsilon: 1),
+      reason: 'setup: the rail must be pinned before the flip',
+    );
+
+    // A theme flip swaps ThemeData, which makes the framework replace the
+    // ScrollPosition under the same ScrollableState. The rail must follow the
+    // new position, not keep listening to the retired one.
+    tester.state<ThemeHostState>(find.byType(_ThemeHost)).toggle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.dragFrom(
+      tester.getRect(screen).centerLeft + const Offset(200, 0),
+      const Offset(0, -200),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(
+      tester.getRect(railFinder).top,
+      moreOrLessEquals(viewportTop + 16, epsilon: 1),
+      reason: 'the rail froze after the theme flip',
+    );
     expect(tester.takeException(), isNull);
   });
 }

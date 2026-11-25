@@ -1,6 +1,9 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
@@ -11,6 +14,7 @@ import 'package:frontend/core/providers/mobile_theme_provider.dart';
 import 'package:frontend/core/router/app_router.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
+import 'package:frontend/presentation/widgets/common/theme_iris.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,39 +27,68 @@ Future<void> main() async {
 class CScholarApp extends ConsumerStatefulWidget {
   const CScholarApp({super.key});
 
+  /// Test seam: supplies the "captured" frame instead of the real raster.
+  ///
+  /// Widget tests run on a fake clock, and the engine's raster future never
+  /// completes there — so without this the wipe could not be exercised at all.
+  /// Production never sets it.
+  @visibleForTesting
+  static Future<ui.Image?> Function()? debugFrameCapture;
+
   @override
   ConsumerState<CScholarApp> createState() => _CScholarAppState();
 }
 
 class _CScholarAppState extends ConsumerState<CScholarApp>
     with SingleTickerProviderStateMixin {
-  /// The palette transition: ONE one-shot motion with two halves.
+  /// The theme transition: ONE one-shot iris wipe.
   ///
-  ///   0 → [_coverShare]  a disc of the DESTINATION canvas grows out of the
-  ///                      top-right corner (where the button lives) until it
-  ///                      covers the viewport;
-  /// [_coverShare]      the palette flips under full cover — no half-painted
-  ///                      frame is ever visible;
-  ///   [_coverShare] → 1  the disc dissolves, revealing the new palette.
+  /// The frame on screen is captured, the palette flips, and the captured
+  /// (old-theme) frame stays on top with an expanding circular hole cut out of
+  /// it — centred on the switch that was tapped. The live app, already painted
+  /// in the new palette, shows through that hole. The circle ends once it has
+  /// passed the farthest corner, and the frozen frame is dropped.
   ///
-  /// Only the curtain repaints while this runs: the page below rebuilds exactly
-  /// once, at the flip. That is what keeps a full-screen theme change inside
-  /// the frame budget.
-  late final AnimationController _transition = AnimationController(
-    vsync: this,
-    duration: CScholarMotion.themeSwap,
-  )..addListener(_onTransitionTick)..addStatusListener(_onTransitionStatus);
+  /// Only the clip changes from frame to frame: the app below sits in its own
+  /// repaint boundary, so a wipe never re-rasterizes the page underneath.
+  late final AnimationController _transition =
+      AnimationController(vsync: this, duration: CScholarMotion.themeSwap)
+        ..addListener(_onTransitionTick)
+        ..addStatusListener(_onTransitionStatus);
 
-  static const double _coverShare = 0.62;
+  /// Where the disc becomes opaque in the FALLBACK path (capture unavailable).
+  static const double _curtainSwapAt = 0.62;
+
+  /// The boundary the transition captures.
+  final GlobalKey _boundaryKey = GlobalKey();
 
   /// The mode currently PAINTED. It trails [themeModeProvider] by one flip:
-  /// the provider changes on tap, this changes when the curtain is closed.
+  /// the provider changes on tap, this changes when the iris opens.
   late bool _paintedDark = CScholarModeStore.initialDark;
 
-  /// The mode the curtain is travelling toward.
+  /// The mode the wipe is travelling toward.
   late bool _targetDark = CScholarModeStore.initialDark;
 
+  /// True once this run has committed its palette flip.
   bool _swapped = false;
+
+  /// Whether the wipe overlay is mounted. Set in the same frame as the flip and
+  /// cleared when the controller completes — never derived from the controller
+  /// value, which is still 0 on the frame the run starts.
+  bool _active = false;
+
+  /// The frozen old frame, painted outside the iris. Null on the fallback path.
+  ui.Image? _frozen;
+
+  /// Circle centre, in viewport coordinates: the switch's icon.
+  Offset _irisOrigin = Offset.zero;
+
+  /// Where the toggle was tapped, until the transition picks it up.
+  Offset? _pendingOrigin;
+
+  /// Bumped per transition so a capture that lands after a newer toggle (or
+  /// after dispose) is discarded instead of flashing a stale frame.
+  int _generation = 0;
 
   @override
   void initState() {
@@ -67,11 +100,12 @@ class _CScholarAppState extends ConsumerState<CScholarApp>
   @override
   void dispose() {
     _transition.dispose();
+    _frozen?.dispose();
     super.dispose();
   }
 
   void _onTransitionTick() {
-    if (_swapped || _transition.value < _coverShare) return;
+    if (_swapped || _transition.value < _curtainSwapAt) return;
     _swapped = true;
     // Fully covered: swap the palette. Every mounted route is wrapped in
     // CScholarPaletteRebuild, so the page repaints once, hidden.
@@ -80,37 +114,136 @@ class _CScholarAppState extends ConsumerState<CScholarApp>
 
   void _onTransitionStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed || !mounted) return;
-    // Unmount the curtain. It absorbs pointers, so leaving it parked at value 1
-    // would make the whole app dead to taps.
+    // Drop the frozen frame and unmount the overlay. It absorbs pointers, so
+    // leaving it parked would make the whole app dead to taps.
+    final old = _frozen;
     setState(() {
       _transition.value = 0;
       _swapped = false;
+      _active = false;
+      _frozen = null;
     });
+    if (old != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    }
   }
 
-  void _startTransition(bool next) {
+  /// Entry point from the switch: remembers where it was tapped, then flips the
+  /// provider. The listener in [build] turns that into a wipe.
+  void _requestToggle(Offset? origin) {
+    _pendingOrigin = origin;
+    ref.read(themeModeProvider.notifier).toggle();
+  }
+
+  Future<void> _startTransition(bool next) async {
+    _targetDark = next;
+    final generation = ++_generation;
+
     // The root sits above MediaQuery, so read the accessibility flag from the
-    // engine directly: reduced motion gets the swap with no curtain at all.
+    // engine directly: reduced motion gets the swap with no wipe at all.
     final reduceMotion = WidgetsBinding
         .instance
         .platformDispatcher
         .accessibilityFeatures
         .disableAnimations;
     if (reduceMotion || !CScholarMotion.ambientEnabled) {
+      _discardFrozen();
       _transition.value = 0;
       setState(() {
-        _targetDark = next;
+        _active = false;
+        _swapped = false;
         _paintedDark = next;
       });
       return;
     }
-    // The curtain's existence is decided in build(), so the state that decides
-    // it has to notify now — the controller's own ticks only repaint it.
+
+    _discardFrozen();
+    _transition.value = 0;
+
+    final shot = await _captureFrame();
+    if (!mounted || generation != _generation) {
+      shot?.dispose();
+      return;
+    }
+
+    final origin = _localOrigin(_pendingOrigin);
+    _pendingOrigin = null;
+
+    if (shot == null) {
+      // Nothing to freeze (a renderer that cannot rasterize, or a capture that
+      // blew its budget): cover the screen with the destination canvas and
+      // dissolve it instead.
+      if (kDebugMode) {
+        debugPrint(
+          'theme wipe: no frame captured — using the dissolving curtain',
+        );
+      }
+      setState(() {
+        _swapped = false;
+        _active = true;
+        _irisOrigin = origin;
+      });
+      _transition.forward(from: 0);
+      return;
+    }
+
+    // Both halves of the illusion land in ONE frame: the frozen old theme goes
+    // up and the palette flips underneath it, so no half-painted state shows.
     setState(() {
-      _targetDark = next;
-      _swapped = false;
+      _frozen = shot;
+      _irisOrigin = origin;
+      _paintedDark = next;
+      _swapped = true;
+      _active = true;
     });
     _transition.forward(from: 0);
+  }
+
+  /// Rasterizes the app as it is right now.
+  ///
+  /// Null means the host cannot produce an image (or took too long) and the
+  /// caller should fall back to the dissolving curtain. Captured at up to 2x so
+  /// the frozen frame stays sharp on a retina screen without paying for a 3-4x
+  /// buffer.
+  Future<ui.Image?> _captureFrame() async {
+    try {
+      final seam = CScholarApp.debugFrameCapture;
+      if (seam != null) return await seam();
+
+      final boundary = _boundaryKey.currentContext?.findRenderObject();
+      if (boundary is! RenderRepaintBoundary) return null;
+      final dpr = View.of(context).devicePixelRatio;
+      final ratio = dpr.isFinite ? dpr.clamp(1.0, 2.0) : 1.0;
+      return await boundary
+          .toImage(pixelRatio: ratio)
+          .timeout(
+            CScholarMotion.themeCapture,
+            onTimeout: () => throw const _CaptureMissed(),
+          );
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Where the toggle was, in this Stack's coordinates.
+  ///
+  /// A missing origin (keyboard activation, a host with no layout) falls back to
+  /// the top-right corner — where every shell keeps the switch anyway.
+  Offset _localOrigin(Offset? global) {
+    final box = context.findRenderObject();
+    if (global != null && box is RenderBox && box.hasSize) {
+      return box.globalToLocal(global);
+    }
+    final view = View.of(context);
+    final size = view.physicalSize / view.devicePixelRatio;
+    return Offset(size.width - 40, 40);
+  }
+
+  void _discardFrozen() {
+    final old = _frozen;
+    if (old == null) return;
+    _frozen = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
   }
 
   @override
@@ -127,23 +260,28 @@ class _CScholarAppState extends ConsumerState<CScholarApp>
 
     final app = CScholarMobileThemeScope(
       isDark: _paintedDark,
-      child: MaterialApp.router(
-        title: 'CScholar — CEIT Thesis Repository',
-        debugShowCheckedModeBanner: false,
-        theme: cscholarThemeData(isDark: false),
-        darkTheme: cscholarThemeData(isDark: true),
-        themeMode: _paintedDark ? ThemeMode.dark : ThemeMode.light,
-        // The curtain owns the transition; Material's own 200ms theme lerp
-        // would keep repainting framework widgets *after* the swap, which
-        // shows as a ghost of the old palette through the dissolve.
-        themeAnimationDuration: Duration.zero,
-        routerConfig: router,
+      // Isolated so the per-frame wipe never re-rasterizes the page, and so the
+      // transition has exactly one frame to capture.
+      child: RepaintBoundary(
+        key: _boundaryKey,
+        child: MaterialApp.router(
+          title: 'CScholar — CEIT Thesis Repository',
+          debugShowCheckedModeBanner: false,
+          theme: cscholarThemeData(isDark: false),
+          darkTheme: cscholarThemeData(isDark: true),
+          themeMode: _paintedDark ? ThemeMode.dark : ThemeMode.light,
+          // The wipe owns the transition; Material's own 200ms theme lerp
+          // would keep repainting framework widgets AFTER the flip, which shows
+          // as a ghost of the old palette inside the iris.
+          themeAnimationDuration: Duration.zero,
+          routerConfig: router,
+        ),
       ),
     );
 
     return CScholarPaletteScope(
       isDark: _paintedDark,
-      onToggle: () => ref.read(themeModeProvider.notifier).toggle(),
+      onToggle: _requestToggle,
       child: Stack(
         fit: StackFit.expand,
         // Non-directional so the stack is legal above MaterialApp, where no
@@ -151,20 +289,34 @@ class _CScholarAppState extends ConsumerState<CScholarApp>
         alignment: Alignment.topLeft,
         children: [
           app,
-          if (_transition.value > 0)
+          if (_active)
             Positioned.fill(
               child: AbsorbPointer(
                 key: themeCurtainKey,
+                // Only this subtree rebuilds per frame. The app below lives in
+                // its own repaint boundary, so the wipe never re-rasterizes it.
                 child: ListenableBuilder(
                   listenable: _transition,
-                  builder: (context, _) => _ThemeCurtain(
-                    progress: _transition.value,
-                    coverShare: _coverShare,
-                    color: (_targetDark
-                            ? CScholarPalette.dark
-                            : CScholarPalette.light)
-                        .paper,
-                  ),
+                  builder: (context, _) {
+                    final value = _transition.value;
+                    return _frozen != null
+                        ? ThemeIris(
+                            image: _frozen!,
+                            center: _irisOrigin,
+                            progress: CScholarCurves.reveal.transform(
+                              value.clamp(0.0, 1.0),
+                            ),
+                          )
+                        : _ThemeCurtain(
+                            progress: value,
+                            coverShare: _curtainSwapAt,
+                            color:
+                                (_targetDark
+                                        ? CScholarPalette.dark
+                                        : CScholarPalette.light)
+                                    .paper,
+                          );
+                  },
                 ),
               ),
             ),
@@ -198,7 +350,7 @@ class _ThemeCurtain extends StatelessWidget {
     final revealing = progress <= coverShare
         ? 0.0
         : ((progress - coverShare) / (1 - coverShare)).clamp(0.0, 1.0);
-    final grow = CScholarCurves.settle.transform(covering);
+    final grow = CScholarCurves.reveal.transform(covering);
     final alpha = 1 - CScholarCurves.entrance.transform(revealing);
 
     return CustomPaint(
@@ -230,8 +382,9 @@ class _ThemeCurtainPainter extends CustomPainter {
     if (grow <= 0 || fade <= 0) return;
     // Origin: the top-right corner, where every shell keeps the switch.
     final center = Offset(size.width - 32, 32);
-    final maxRadius =
-        math.sqrt(size.width * size.width + size.height * size.height);
+    final maxRadius = math.sqrt(
+      size.width * size.width + size.height * size.height,
+    );
     final radius = maxRadius * grow * (1 + drift * 0.06);
     final rect = Rect.fromCircle(center: center, radius: radius);
     final paint = Paint()
@@ -254,6 +407,11 @@ class _ThemeCurtainPainter extends CustomPainter {
       old.color != color;
 }
 
+/// Thrown internally when the frame capture exceeds its budget.
+class _CaptureMissed implements Exception {
+  const _CaptureMissed();
+}
+
 /// Identifies the theme-transition curtain, so tests can prove it unmounts
 /// (it absorbs pointers while it is up).
 const Key themeCurtainKey = ValueKey<String>('cscholar-theme-curtain');
@@ -267,7 +425,9 @@ ThemeData cscholarThemeData({required bool isDark}) {
   final snackbarFill = isDark
       ? CScholarMaterial.clayDeep
       : CScholarColors.textPrimary;
-  final snackbarInk = isDark ? CScholarColors.textPrimary : CScholarColors.white;
+  final snackbarInk = isDark
+      ? CScholarColors.textPrimary
+      : CScholarColors.white;
 
   return ThemeData(
     useMaterial3: true,
@@ -363,29 +523,17 @@ ThemeData cscholarThemeData({required bool isDark}) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(CScholarRadius.well),
-        borderSide: BorderSide(
-          color: CScholarMaterial.rimStrong,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: CScholarMaterial.rimStrong, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(CScholarRadius.well),
-        borderSide: BorderSide(
-          color: CScholarColors.error,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: CScholarColors.error, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(CScholarRadius.well),
-        borderSide: BorderSide(
-          color: CScholarColors.error,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: CScholarColors.error, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 12,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       hintStyle: GoogleFonts.dmSans(
         color: CScholarColors.textHint,
         fontSize: 14,
@@ -425,10 +573,7 @@ ThemeData cscholarThemeData({required bool isDark}) {
       style: OutlinedButton.styleFrom(
         foregroundColor: CScholarColors.primaryGreen,
         disabledForegroundColor: CScholarColors.textHint,
-        side: BorderSide(
-          color: CScholarColors.primaryGreen,
-          width: 1.5,
-        ),
+        side: BorderSide(color: CScholarColors.primaryGreen, width: 1.5),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(CScholarRadius.cta),

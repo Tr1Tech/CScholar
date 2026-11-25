@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -51,7 +52,10 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load analytics',
-                  message: err.toString(),
+                  message: userFacingError(
+                    err,
+                    fallback: 'Your analytics could not be loaded. Try again.',
+                  ),
                   actionLabel: 'Retry',
                   onAction: () => ref.invalidate(facultyAnalyticsProvider),
                 ),
@@ -77,11 +81,23 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('By Status',
-                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
+              Text(
+                'By Status',
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('$total supervised ${total == 1 ? 'study' : 'studies'}',
-                  style: CScholarTextStyles.body(12, FontWeight.w500, CScholarColors.textMuted)),
+              Text(
+                '$total supervised ${total == 1 ? 'study' : 'studies'}',
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w500,
+                  CScholarColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 16),
               // The chart draws 120ms after its card lands — never on the same
               // frame as the card entrance. Rise is 0: the delay is scheduling
@@ -97,14 +113,18 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                         compact: true,
                         icon: Icons.donut_small_outlined,
                         title: 'No status data',
-                        message:
-                            'Supervised studies appear here once linked.',
+                        message: 'Supervised studies appear here once linked.',
                       ),
                     for (final s in order)
-                      if ((byStatus[s] as num?)?.toInt() != null && (byStatus[s] as num).toInt() > 0)
-                        _barRow(s.toUpperCase(), (byStatus[s] as num).toInt(), total,
-                            CScholarColors.statusFill[s] ??
-                                CScholarColors.textSecondary),
+                      if ((byStatus[s] as num?)?.toInt() != null &&
+                          (byStatus[s] as num).toInt() > 0)
+                        _barRow(
+                          s.toUpperCase(),
+                          (byStatus[s] as num).toInt(),
+                          total,
+                          CScholarColors.statusFill[s] ??
+                              CScholarColors.textSecondary,
+                        ),
                   ],
                 ),
               ),
@@ -115,8 +135,14 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('By Program',
-                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
+              Text(
+                'By Program',
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 16),
               // Same +120 chart beat as the status card.
               EntranceReveal(
@@ -134,8 +160,10 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                             'Studies linked to a program will appear here.',
                       ),
                     for (final p in byProgram)
-                      _simpleRow((p as Map)['program']?.toString() ?? '—',
-                          ((p)['count'] as num?)?.toInt() ?? 0),
+                      _simpleRow(
+                        (p as Map)['program']?.toString() ?? '—',
+                        ((p)['count'] as num?)?.toInt() ?? 0,
+                      ),
                   ],
                 ),
               ),
@@ -146,8 +174,14 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('By Academic Year',
-                  style: CScholarTextStyles.heading(16, FontWeight.w700, CScholarColors.textPrimary)),
+              Text(
+                'By Academic Year',
+                style: CScholarTextStyles.heading(
+                  16,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 16),
               // Same +120 chart beat as the status card.
               EntranceReveal(
@@ -165,8 +199,10 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
                             'Studies from an academic year will appear here.',
                       ),
                     for (final y in byYear)
-                      _simpleRow((y as Map)['year']?.toString() ?? '—',
-                          ((y)['count'] as num?)?.toInt() ?? 0),
+                      _simpleRow(
+                        (y as Map)['year']?.toString() ?? '—',
+                        ((y)['count'] as num?)?.toInt() ?? 0,
+                      ),
                   ],
                 ),
               ),
@@ -190,7 +226,13 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
           );
         }
         return Column(
-          children: [statusCard, const SizedBox(height: 24), programCard, const SizedBox(height: 24), yearCard],
+          children: [
+            statusCard,
+            const SizedBox(height: 24),
+            programCard,
+            const SizedBox(height: 24),
+            yearCard,
+          ],
         );
       },
     );
@@ -198,7 +240,10 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
 
   Widget _card({required Widget child}) {
     // CScholarCard sizes to content — stretch it full width like before.
-    return SizedBox(width: double.infinity, child: CScholarCard(child: child));
+    return SizedBox(
+      width: double.infinity,
+      child: CScholarCard(child: child),
+    );
   }
 
   Widget _barRow(String label, int count, int total, Color color) {
@@ -211,10 +256,22 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.textPrimary)),
-              Text('$count',
-                  style: CScholarTextStyles.body(12, FontWeight.w600, CScholarColors.textMuted)),
+              Text(
+                label,
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
+              Text(
+                '$count',
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w600,
+                  CScholarColors.textMuted,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -231,9 +288,15 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Text(label,
-                style: CScholarTextStyles.body(13, FontWeight.w600, CScholarColors.textPrimary),
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              label,
+              style: CScholarTextStyles.body(
+                13,
+                FontWeight.w600,
+                CScholarColors.textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -241,8 +304,14 @@ class FacultyAnalyticsScreen extends ConsumerWidget {
               color: CScholarColors.primaryGreen.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text('$count',
-                style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.primaryGreen)),
+            child: Text(
+              '$count',
+              style: CScholarTextStyles.body(
+                12,
+                FontWeight.w700,
+                CScholarColors.primaryGreen,
+              ),
+            ),
           ),
         ],
       ),

@@ -76,7 +76,7 @@ void main() {
     await tester.enterText(fields.at(0), 'oldpass');
     await tester.enterText(fields.at(1), 'newpass1');
     await tester.enterText(fields.at(2), 'newpass2');
-    await tester.tap(find.text('Update password'));
+    await tester.tap(find.text('Update'));
     await tester.pump();
 
     expect(find.text('Passwords do not match'), findsOneWidget);
@@ -91,7 +91,7 @@ void main() {
     await tester.enterText(fields.at(0), 'oldpass');
     await tester.enterText(fields.at(1), 'newpass1');
     await tester.enterText(fields.at(2), 'newpass1');
-    await tester.tap(find.text('Update password'));
+    await tester.tap(find.text('Update'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -138,7 +138,7 @@ void main() {
 
     // Cancel left, Update right — never stacked.
     final cancelCenter = tester.getCenter(find.text('Cancel'));
-    final updateCenter = tester.getCenter(find.text('Update password'));
+    final updateCenter = tester.getCenter(find.text('Update'));
     expect(cancelCenter.dy, updateCenter.dy);
     expect(cancelCenter.dx, lessThan(updateCenter.dx));
   });
@@ -147,17 +147,14 @@ void main() {
     tester,
   ) async {
     final api = _FakeAuthApi()
-      ..error = ApiException(
-        401,
-        '{"detail":"Current password is incorrect"}',
-      );
+      ..error = ApiException(401, '{"detail":"Current password is incorrect"}');
     await _openDialog(tester, api);
 
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'wrongpass');
     await tester.enterText(fields.at(1), 'newpass1');
     await tester.enterText(fields.at(2), 'newpass1');
-    await tester.tap(find.text('Update password'));
+    await tester.tap(find.text('Update'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 

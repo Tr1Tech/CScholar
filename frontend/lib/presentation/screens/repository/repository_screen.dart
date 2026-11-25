@@ -8,6 +8,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -149,24 +150,40 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     VoidCallback onTap,
   ) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? t.green : t.surfaceSoft,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: active ? t.green : t.line),
-        ),
-        child: Text(
-          label,
-          style: t.dmSans(
-            10,
-            FontWeight.w700,
-            // Dark mode's "green" is a light mint accent, so white on it is
-            // unreadable: selected pills flip to ink there.
-            active
-                ? (t.isDark ? CScholarMobileColors.ink : CScholarColors.white)
-                : t.muted,
+      child: Padding(
+        // The chip itself stays compact; this transparent padding keeps the
+        // whole pill a comfortable 44px touch target.
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Container(
+          // No `alignment` here: an aligned Container expands to the max
+          // width it is offered, which turns each pill in the Wrap into a
+          // full-width row. Center with widthFactor keeps the label centered
+          // while the pill stays intrinsic.
+          constraints: const BoxConstraints(minHeight: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: active ? t.green : t.surfaceSoft,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: active ? t.green : t.line),
+          ),
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: t.dmSans(
+                10,
+                FontWeight.w700,
+                // Dark mode's "green" is a light mint accent, so white on it
+                // is unreadable: selected pills flip to ink there.
+                active
+                    ? (t.isDark
+                          ? CScholarMobileColors.ink
+                          : CScholarColors.white)
+                    : t.muted,
+              ),
+            ),
           ),
         ),
       ),
@@ -352,15 +369,29 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   ),
                 ),
                 if (_query.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _recentTimer?.cancel();
-                      setState(() {
-                        _query = '';
-                        _searchController.clear();
-                      });
-                    },
-                    child: Icon(Icons.close, size: 17, color: t.muted),
+                  Semantics(
+                    button: true,
+                    label: 'Clear search',
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _recentTimer?.cancel();
+                          setState(() {
+                            _query = '';
+                            _searchController.clear();
+                          });
+                        },
+                        child: SizedBox(
+                          width: CScholarTapTarget.minimum,
+                          height: CScholarTapTarget.minimum,
+                          child: Center(
+                            child: Icon(Icons.close, size: 17, color: t.muted),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -495,7 +526,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                                 const SizedBox(height: 8),
                                 Wrap(
                                   spacing: 7,
-                                  runSpacing: 7,
+                                  runSpacing: 0,
                                   children: [
                                     for (final (name, value) in options)
                                       _mobileChoicePill(
@@ -548,20 +579,36 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                                     ),
                                   ],
                                 ),
-                                GestureDetector(
-                                  onTap: () => Navigator.of(sheetContext).pop(),
-                                  // tile-exempt: bottom-sheet close affordance.
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: t.surfaceSoft,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.close,
-                                      size: 16,
-                                      color: t.muted,
+                                Semantics(
+                                  button: true,
+                                  label: 'Close filters',
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () =>
+                                          Navigator.of(sheetContext).pop(),
+                                      child: SizedBox(
+                                        width: CScholarTapTarget.minimum,
+                                        height: CScholarTapTarget.minimum,
+                                        child: Center(
+                                          child: Container(
+                                            // tile-exempt: bottom-sheet close
+                                            // affordance.
+                                            width: 32,
+                                            height: 32,
+                                            decoration: BoxDecoration(
+                                              color: t.surfaceSoft,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.close,
+                                              size: 16,
+                                              color: t.muted,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -870,7 +917,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         },
         error: (err, _) => _mobileEmpty(
           context,
-          message: err.toString(),
+          message: userFacingError(
+            err,
+            fallback: 'Semantic search is unavailable right now. Try again.',
+          ),
           error: true,
           semantic: true,
         ),
@@ -922,8 +972,14 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           ],
         );
       },
-      error: (err, _) =>
-          _mobileEmpty(context, message: err.toString(), error: true),
+      error: (err, _) => _mobileEmpty(
+        context,
+        message: userFacingError(
+          err,
+          fallback: 'Studies could not be loaded right now. Try again.',
+        ),
+        error: true,
+      ),
     );
   }
 
@@ -940,18 +996,34 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
         : page.page * page.pageSize;
 
     Widget chevron(IconData icon, bool enabled, VoidCallback onTap) {
-      return GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: Container(
-          // tile-exempt: round pager chevron, not an icon tile.
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: enabled ? t.surfaceSoft : t.paper,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: t.line),
+      final label = icon == Icons.chevron_left ? 'Previous page' : 'Next page';
+      return Semantics(
+        button: true,
+        enabled: enabled,
+        label: label,
+        child: MouseRegion(
+          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? onTap : null,
+            child: SizedBox(
+              width: CScholarTapTarget.minimum,
+              height: CScholarTapTarget.minimum,
+              child: Center(
+                child: Container(
+                  // tile-exempt: round pager chevron, not an icon tile.
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: enabled ? t.surfaceSoft : t.paper,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: t.line),
+                  ),
+                  child: Icon(icon, size: 18, color: enabled ? t.ink : t.muted),
+                ),
+              ),
+            ),
           ),
-          child: Icon(icon, size: 18, color: enabled ? t.ink : t.muted),
         ),
       );
     }
@@ -1124,7 +1196,11 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             error: (err, _) => EmptyState(
               icon: Icons.error_outline,
               title: 'Semantic search error',
-              message: err.toString(),
+              message: userFacingError(
+                err,
+                fallback:
+                    'Semantic search is unavailable right now. Try again.',
+              ),
               actionLabel: 'Retry',
               onAction: () =>
                   ref.invalidate(semanticSearchProvider(_query.trim())),
@@ -1188,7 +1264,10 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
             error: (err, _) => EmptyState(
               icon: Icons.error_outline,
               title: 'Could not load studies',
-              message: err.toString(),
+              message: userFacingError(
+                err,
+                fallback: 'Studies could not be loaded right now. Try again.',
+              ),
               actionLabel: 'Retry',
               onAction: () => ref.invalidate(thesisPageProvider(_pageParams)),
             ),
@@ -1539,8 +1618,11 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                     _submitHero();
                   },
                   child: Container(
+                    constraints: const BoxConstraints(
+                      minHeight: CScholarTapTarget.minimum,
+                    ),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
+                      horizontal: 14,
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
@@ -1548,12 +1630,15 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                       borderRadius: BorderRadius.circular(CScholarRadius.full),
                       border: Border.all(color: CScholarMaterial.rimPublished),
                     ),
-                    child: Text(
-                      topic,
-                      style: CScholarTextStyles.body(
-                        11.5,
-                        FontWeight.w600,
-                        CScholarColors.primaryGreen,
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        topic,
+                        style: CScholarTextStyles.body(
+                          11.5,
+                          FontWeight.w600,
+                          CScholarColors.primaryGreen,
+                        ),
                       ),
                     ),
                   ),
@@ -1667,8 +1752,12 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                     borderRadius: BorderRadius.circular(CScholarRadius.full),
                     onTap: pill.clear,
                     child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(
+                        minHeight: CScholarTapTarget.minimum,
+                      ),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
+                        horizontal: 14,
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
@@ -1822,6 +1911,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                             ),
                           ),
                           IconButton(
+                            tooltip: 'Close filters',
                             icon: const Icon(Icons.close),
                             onPressed: () => Navigator.pop(context),
                           ),
@@ -1934,6 +2024,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
           },
           suffixIcon: _keyword.isNotEmpty
               ? IconButton(
+                  tooltip: 'Clear keyword',
                   icon: const Icon(Icons.clear, size: 16),
                   onPressed: () {
                     _keywordController.clear();
@@ -2058,11 +2149,7 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            size: 18,
-            color: CScholarColors.noteIcon,
-          ),
+          Icon(Icons.info_outline, size: 18, color: CScholarColors.noteIcon),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -2103,9 +2190,29 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
   }
 
   Widget _noResultsFound() {
+    // Three different situations, three different answers (STA-3): a narrowed
+    // search is not the same as an empty repository, and the first must offer
+    // the way out of the narrowing.
+    final narrowed =
+        _query.trim().isNotEmpty ||
+        _selectedProgramId != null ||
+        _selectedYearId != null ||
+        _selectedCategoryId != null ||
+        _keyword.trim().isNotEmpty ||
+        _selectedType != null;
+    if (!narrowed) {
+      return EmptyState(
+        icon: Icons.library_books_outlined,
+        title: 'No studies in the repository yet',
+        message: 'Published studies will appear here once they are added. Refresh to check again.',
+        actionLabel: 'Refresh',
+        onAction: () => ref.invalidate(thesisPageProvider(_pageParams)),
+      );
+    }
     return EmptyState(
       icon: Icons.search_off,
-      title: 'No studies found matching your filters',
+      title: 'No studies match these filters',
+      message: 'Try a broader keyword, or reset the filters to see everything.',
       actionLabel: 'Reset all filters',
       onAction: _clearFilters,
     );
@@ -2144,6 +2251,15 @@ class _StickyRailState extends State<_StickyRail> {
   final ValueNotifier<double> _translation = ValueNotifier<double>(0);
   ScrollableState? _scrollable;
 
+  /// The scroll position this rail is listening to.
+  ///
+  /// The ScrollableState survives a theme flip, but the framework replaces its
+  /// ScrollPosition when ThemeData changes (physics are re-resolved through
+  /// `Theme.of`). Tracking only the Scrollable would leave the listener on the
+  /// retired position: it never fires again, so the rail freezes where it was
+  /// and stops floating. Compare the position too, and re-subscribe.
+  ScrollPosition? _position;
+
   /// Scroll offset at which the rail's top reaches the pin.
   double? _stickOffset;
 
@@ -2156,17 +2272,20 @@ class _StickyRailState extends State<_StickyRail> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final scrollable = Scrollable.maybeOf(context);
-    if (!identical(scrollable, _scrollable)) {
-      _scrollable?.position.removeListener(_followScroll);
+    final position = scrollable?.position;
+    if (!identical(scrollable, _scrollable) ||
+        !identical(position, _position)) {
+      _position?.removeListener(_followScroll);
       _scrollable = scrollable;
-      _scrollable?.position.addListener(_followScroll);
+      _position = position;
+      _position?.addListener(_followScroll);
     }
     _scheduleMeasure();
   }
 
   @override
   void dispose() {
-    _scrollable?.position.removeListener(_followScroll);
+    _position?.removeListener(_followScroll);
     _translation.dispose();
     super.dispose();
   }
@@ -2186,13 +2305,19 @@ class _StickyRailState extends State<_StickyRail> {
     final anchor = _anchorKey.currentContext?.findRenderObject() as RenderBox?;
     final row = widget.rowKey.currentContext?.findRenderObject() as RenderBox?;
     final scrollable = _scrollable;
-    if (anchor == null || row == null || scrollable == null) return;
+    final position = _position;
+    if (anchor == null ||
+        row == null ||
+        scrollable == null ||
+        position == null) {
+      return;
+    }
     if (!anchor.attached || !anchor.hasSize) return;
 
     final viewport = scrollable.context.findRenderObject() as RenderBox?;
     if (viewport == null || !viewport.hasSize) return;
 
-    final pixels = scrollable.position.pixels;
+    final pixels = position.pixels;
     final viewportTop = viewport.localToGlobal(Offset.zero).dy;
     // Everything below is in scroll-content coordinates, where the slider's
     // own paint offset no longer matters.
@@ -2212,7 +2337,7 @@ class _StickyRailState extends State<_StickyRail> {
 
   void _followScroll() {
     final stickOffset = _stickOffset;
-    final position = _scrollable?.position;
+    final position = _position;
     if (stickOffset == null || position == null) return;
     final next = (position.pixels - stickOffset).clamp(0.0, _maxTranslation);
     if (next != _translation.value) _translation.value = next;

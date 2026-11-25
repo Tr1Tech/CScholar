@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/vocabulary.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -103,7 +104,7 @@ class AdminSettingsScreen extends ConsumerWidget {
                   Divider(color: CScholarMaterial.rim, height: 32),
                   _infoRow('Username', user?.username ?? '—'),
                   _infoRow('Email', user?.email ?? '—'),
-                  _infoRow('Role', user?.role ?? '—'),
+                  _infoRow('Role', roleLabel(user?.role)),
                   _infoRow(
                     'Status',
                     (user?.isActive ?? true) ? 'Active' : 'Inactive',

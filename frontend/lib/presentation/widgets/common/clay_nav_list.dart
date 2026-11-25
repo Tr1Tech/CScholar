@@ -269,6 +269,7 @@ class _ClayNavListState extends State<ClayNavList> {
       onKeyEvent: (_, event) => _onKey(index, event),
       child: PressableSurface(
         semanticLabel: link.label,
+        selected: isSelected,
         radius: ClayNavList.radius,
         // The sink is small here: a nav row that scaled much would read as a
         // button.

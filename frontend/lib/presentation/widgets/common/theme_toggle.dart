@@ -7,15 +7,12 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 /// The one light/dark switch — top-right of every shell, on web and mobile.
 ///
 /// It reads the PAINTED mode ([CScholarPalette.of]) and calls the scope's
-/// toggle, so it needs no provider scope of its own: the chrome renders and
-/// reports in any host (tests, the design lab, a sheet), and simply stays inert
-/// when no app shell is above it.
+/// toggle — reporting the icon's own centre, which is where the iris wipe
+/// opens from. It needs no provider scope of its own: the chrome renders in any
+/// host (tests, the design lab, a sheet) and simply stays inert when no app
+/// shell is above it.
 class ThemeModeButton extends StatelessWidget {
-  const ThemeModeButton({
-    super.key,
-    this.size = 38,
-    this.tooltip,
-  });
+  const ThemeModeButton({super.key, this.size = 38, this.tooltip});
 
   /// Diameter of the round chrome button. The mobile header draws its own
   /// 34px version, so this defaults to the desktop's larger hit target.
@@ -29,7 +26,6 @@ class ThemeModeButton extends StatelessWidget {
     final isDark = CScholarPalette.of(context).isDark;
     final flat = MediaQuery.highContrastOf(context);
     final label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-
     return Semantics(
       button: true,
       toggled: isDark,
@@ -39,33 +35,49 @@ class ThemeModeButton extends StatelessWidget {
         child: _HoverPop(
           onTap: () {
             selectionHaptic();
-            scope?.onToggle?.call();
+            scope?.onToggle?.call(_iconCentre(context));
           },
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: CScholarMaterial.clay,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: flat ? CScholarMaterial.rimStrong : CScholarMaterial.rim,
-                width: flat ? 1.5 : 1,
-              ),
-              boxShadow: flat ? null : CScholarMaterial.softShadow(depth: 0.5),
-            ),
-            alignment: Alignment.center,
-            child: AnimatedSwap(
-              style: SwapStyle.pop,
-              // The swap is keyed on the mode so the glyph POPS in rather than
-              // hard-cutting — the only motion the button itself needs, because
-              // the screen behind it is doing the dramatic part.
-              child: Icon(
-                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                key: ValueKey<bool>(isDark),
-                size: size * 0.47,
-                color: isDark
-                    ? CScholarColors.primaryGreenHover
-                    : CScholarColors.primaryGreen,
+          child: SizedBox(
+            // 44px hit area; the visible circle keeps its design size.
+            width: size < CScholarTapTarget.minimum
+                ? CScholarTapTarget.minimum
+                : size,
+            height: size < CScholarTapTarget.minimum
+                ? CScholarTapTarget.minimum
+                : size,
+            child: Center(
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: CScholarMaterial.clay,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: flat
+                        ? CScholarMaterial.rimStrong
+                        : CScholarMaterial.rim,
+                    width: flat ? 1.5 : 1,
+                  ),
+                  boxShadow: flat
+                      ? null
+                      : CScholarMaterial.softShadow(depth: 0.5),
+                ),
+                alignment: Alignment.center,
+                child: AnimatedSwap(
+                  style: SwapStyle.pop,
+                  // The swap is keyed on the mode so the glyph POPS in rather
+                  // than hard-cutting — the only motion the button itself
+                  // needs, because the screen behind it is doing the dramatic
+                  // part.
+                  child: Icon(
+                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    key: ValueKey<bool>(isDark),
+                    size: size * 0.47,
+                    color: isDark
+                        ? CScholarColors.primaryGreenHover
+                        : CScholarColors.primaryGreen,
+                  ),
+                ),
               ),
             ),
           ),
@@ -114,6 +126,15 @@ class _HoverPopState extends State<_HoverPop> {
       ),
     );
   }
+}
+
+/// Centre of the button on screen — the point the iris wipe opens from.
+Offset _iconCentre(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is RenderBox && box.hasSize) {
+    return box.localToGlobal(box.size.center(Offset.zero));
+  }
+  return Offset.zero;
 }
 
 /// The auth screens (login / register) own the whole viewport, so the switch

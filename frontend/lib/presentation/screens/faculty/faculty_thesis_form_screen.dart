@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
+import 'package:frontend/presentation/widgets/common/inline_retry.dart';
+import 'package:frontend/presentation/widgets/common/discard_guard.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -57,6 +60,18 @@ class _FacultyThesisFormScreenState
     _keywordsCtrl.dispose();
     super.dispose();
   }
+
+  /// True when the form holds typed work worth protecting.
+  bool get _hasDraftInput =>
+      _titleCtrl.text.trim().isNotEmpty ||
+      _abstractCtrl.text.trim().isNotEmpty ||
+      _keywordsCtrl.text.trim().isNotEmpty ||
+      _researchType != null ||
+      _programId != null ||
+      _yearId != null ||
+      _authorIds.isNotEmpty ||
+      _categoryIds.isNotEmpty ||
+      _pdfUrl != null;
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +129,12 @@ class _FacultyThesisFormScreenState
           ),
           const SizedBox(height: 20),
           if (notMine)
-            const EmptyState(
+            EmptyState(
               icon: Icons.lock_outline,
               title: 'Not editable',
               message: 'Only drafts you submitted can be edited.',
+              actionLabel: 'Back to my theses',
+              onAction: () => context.go('/faculty/theses'),
             )
           else
             CScholarCard(
@@ -174,7 +191,18 @@ class _FacultyThesisFormScreenState
                           child: NeumorphButton(
                             onPressed: _submitting
                                 ? null
-                                : () => context.go('/faculty/theses'),
+                                : () async {
+                                    if (!await confirmDiscardChanges(
+                                      context,
+                                      hasChanges: _hasDraftInput,
+                                      actionLabel: 'my theses',
+                                    )) {
+                                      return;
+                                    }
+                                    if (context.mounted) {
+                                      context.go('/faculty/theses');
+                                    }
+                                  },
                             label: 'Cancel',
                             gel: false,
                             expand: true,
@@ -243,9 +271,12 @@ class _FacultyThesisFormScreenState
             validator: (v) => v == null ? 'Select a research type' : null,
           ),
           loading: () => const ClayLoader(height: 8),
-          error: (e, _) => Text(
-            'Could not load types: $e',
-            style: TextStyle(color: CScholarColors.error, fontSize: 12),
+          error: (e, _) => InlineRetry(
+            message: userFacingError(
+              e,
+              fallback: 'Research types could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(researchTypesProvider),
           ),
         ),
       ],
@@ -269,9 +300,12 @@ class _FacultyThesisFormScreenState
             validator: (v) => v == null ? 'Select a program' : null,
           ),
           loading: () => const ClayLoader(height: 8),
-          error: (e, _) => Text(
-            'Could not load programs: $e',
-            style: TextStyle(color: CScholarColors.error, fontSize: 12),
+          error: (e, _) => InlineRetry(
+            message: userFacingError(
+              e,
+              fallback: 'Programs could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(programsProvider),
           ),
         ),
       ],
@@ -295,9 +329,12 @@ class _FacultyThesisFormScreenState
             validator: (v) => v == null ? 'Select an academic year' : null,
           ),
           loading: () => const ClayLoader(height: 8),
-          error: (e, _) => Text(
-            'Could not load years: $e',
-            style: TextStyle(color: CScholarColors.error, fontSize: 12),
+          error: (e, _) => InlineRetry(
+            message: userFacingError(
+              e,
+              fallback: 'Academic years could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(academicYearsProvider),
           ),
         ),
       ],
@@ -377,9 +414,7 @@ class _FacultyThesisFormScreenState
       children: [
         Row(
           children: [
-            Expanded(
-              child: _label('Authors (${_authorIds.length} selected)'),
-            ),
+            Expanded(child: _label('Authors (${_authorIds.length} selected)')),
             Flexible(
               child: TextButton.icon(
                 style: TextButton.styleFrom(
@@ -412,9 +447,12 @@ class _FacultyThesisFormScreenState
                 : '${_authorIds.length} chosen',
           ),
           loading: () => const ClayLoader(height: 8),
-          error: (e, _) => Text(
-            'Could not load authors: $e',
-            style: TextStyle(color: CScholarColors.error, fontSize: 12),
+          error: (e, _) => InlineRetry(
+            message: userFacingError(
+              e,
+              fallback: 'Authors could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(authorsProvider),
           ),
         ),
       ],
@@ -441,9 +479,12 @@ class _FacultyThesisFormScreenState
                 : '${_categoryIds.length} chosen',
           ),
           loading: () => const ClayLoader(height: 8),
-          error: (e, _) => Text(
-            'Could not load categories: $e',
-            style: TextStyle(color: CScholarColors.error, fontSize: 12),
+          error: (e, _) => InlineRetry(
+            message: userFacingError(
+              e,
+              fallback: 'Categories could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(categoriesProvider),
           ),
         ),
       ],
@@ -567,8 +608,16 @@ class _FacultyThesisFormScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('PDF upload failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingError(
+              e,
+              fallback: "The PDF couldn't be uploaded. Check the file and your connection, then try again.",
+            ),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _uploadingPdf = false);
     }
@@ -725,8 +774,16 @@ class _FacultyThesisFormScreenState
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Submission failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "We couldn't submit this draft. Your work is still here; check your connection and try again.",
+              ),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

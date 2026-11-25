@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -145,7 +146,10 @@ class _AdminUserManagementScreenState
           icon: Icons.error_outline,
           compact: true,
           title: 'Failed to load users',
-          message: err.toString(),
+          message: userFacingError(
+            err,
+            fallback: 'The user list could not be loaded. Try again.',
+          ),
           actionLabel: 'Retry',
           onAction: () => ref.invalidate(usersProvider),
         ),
@@ -459,6 +463,7 @@ class _AdminUserManagementScreenState
                   label: 'Password (min 6 characters)',
                   obscureText: obscure,
                   suffixIcon: IconButton(
+                    tooltip: obscure ? 'Show password' : 'Hide password',
                     // Outline <-> filled morphs instead of hard-swapping.
                     icon: MorphIcon(
                       icon: Icons.visibility,
@@ -569,8 +574,16 @@ class _AdminUserManagementScreenState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The account change couldn't be saved. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -633,8 +646,16 @@ class _AdminUserManagementScreenState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The account change couldn't be saved. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -712,8 +733,16 @@ class _AdminUserManagementScreenState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The account change couldn't be saved. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -727,6 +756,7 @@ class _AdminUserManagementScreenState
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(
+          tooltip: 'Back to dashboard',
           icon: Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),
@@ -758,7 +788,10 @@ class _AdminUserManagementScreenState
                 child: EmptyState(
                   icon: Icons.error_outline,
                   title: 'Unable to load users',
-                  message: err.toString(),
+                  message: userFacingError(
+                    err,
+                    fallback: 'The user list could not be loaded. Try again.',
+                  ),
                   actionLabel: 'Retry',
                   onAction: () => ref.invalidate(usersProvider),
                 ),
@@ -780,6 +813,8 @@ class _AdminUserManagementScreenState
                       icon: Icons.group_off_outlined,
                       title: 'No users found',
                       message: 'No users matching "$_selectedRole".',
+                      actionLabel: 'Show all roles',
+                      onAction: () => setState(() => _selectedRole = 'All'),
                     ),
                   );
                 }

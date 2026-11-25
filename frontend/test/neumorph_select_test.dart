@@ -142,6 +142,37 @@ void main() {
   });
 
   group('NeumorphSelect well invariants', () {
+    testWidgets('the dropdown owns an ink boundary inside the scroll view', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          NeumorphSelectField<String>(
+            value: 'Thesis',
+            items: _typeItems(),
+            onChanged: (_) {},
+          ),
+        ),
+      );
+
+      // Ink effects go to the NEAREST Material. If that is the Scaffold's, the
+      // highlight is painted on an ink layer the page's scroll view cannot
+      // clip — it survives scrolling and floats over the top bar. The select
+      // therefore provides its own transparent Material.
+      final nearest = tester
+          .element(find.byType(DropdownButton<String>))
+          .findAncestorWidgetOfExactType<Material>();
+      expect(nearest, isNotNull);
+      expect(
+        nearest!.type,
+        MaterialType.transparency,
+        reason:
+            'the dropdown must supply its own ink surface, not borrow the '
+            'Scaffold Material across the scroll boundary',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('rest state is a tonal clay well with no outline', (
       tester,
     ) async {

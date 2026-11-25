@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -25,7 +26,8 @@ class FacultyStudentsScreen extends ConsumerStatefulWidget {
   const FacultyStudentsScreen({super.key});
 
   @override
-  ConsumerState<FacultyStudentsScreen> createState() => _FacultyStudentsScreenState();
+  ConsumerState<FacultyStudentsScreen> createState() =>
+      _FacultyStudentsScreenState();
 }
 
 class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
@@ -92,7 +94,11 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load advisees',
-                  message: err.toString(),
+                  message: userFacingError(
+                    err,
+                    fallback:
+                        'The advisee list could not be loaded. Try again.',
+                  ),
                   actionLabel: 'Retry',
                   onAction: () => ref.invalidate(facultyAdviseesProvider),
                 ),
@@ -134,9 +140,15 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
           spacing: 10,
           runSpacing: 10,
           children: [
-            _metaPill('${list.length} ${list.length == 1 ? 'advisee' : 'advisees'}'),
-            _metaPill('${theses.length} ${theses.length == 1 ? 'study' : 'studies'}'),
-            _metaPill('${programs.length} ${programs.length == 1 ? 'program' : 'programs'}'),
+            _metaPill(
+              '${list.length} ${list.length == 1 ? 'advisee' : 'advisees'}',
+            ),
+            _metaPill(
+              '${theses.length} ${theses.length == 1 ? 'study' : 'studies'}',
+            ),
+            _metaPill(
+              '${programs.length} ${programs.length == 1 ? 'program' : 'programs'}',
+            ),
             const SizedBox(width: 4),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 340),
@@ -154,7 +166,8 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
           EmptyState(
             icon: Icons.search_off,
             title: 'No matching advisees',
-            message: 'Nobody matches "$_query". Try a name, a program, or a study title.',
+            message:
+                'Nobody matches "$_query". Try a name, a program, or a study title.',
             actionLabel: 'Clear search',
             onAction: () {
               _searchController.clear();
@@ -168,7 +181,10 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               step: MotionPitch.tight.step,
               max: MotionPitch.tight.max,
               rise: MotionPitch.tight.rise,
-              child: _adviseeRow(entry.value, byAuthor[entry.value['id']] ?? const <Thesis>[]),
+              child: _adviseeRow(
+                entry.value,
+                byAuthor[entry.value['id']] ?? const <Thesis>[],
+              ),
             ),
             if (entry.key != filtered.length - 1) const SizedBox(height: 10),
           ],
@@ -195,7 +211,8 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
     ].join(' · ');
 
     return InkWell(
-      onTap: () => _showAdviseeTheses(context, advisee['id'] as int, name, count),
+      onTap: () =>
+          _showAdviseeTheses(context, advisee['id'] as int, name, count),
       borderRadius: BorderRadius.circular(CScholarRadius.xl),
       child: CScholarCard(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -207,7 +224,11 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
               backgroundColor: CScholarColors.thesisChipBg,
               child: Text(
                 _initials(name),
-                style: CScholarTextStyles.body(12, FontWeight.w700, CScholarColors.primaryGreen),
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w700,
+                  CScholarColors.primaryGreen,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -228,13 +249,21 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
                   const SizedBox(height: 3),
                   Text(
                     meta,
-                    style: CScholarTextStyles.body(11.5, FontWeight.w500, CScholarColors.textMuted),
+                    style: CScholarTextStyles.body(
+                      11.5,
+                      FontWeight.w500,
+                      CScholarColors.textMuted,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right, size: 20, color: CScholarColors.textMuted),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: CScholarColors.textMuted,
+            ),
           ],
         ),
       ),
@@ -250,20 +279,34 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
       ),
       child: Text(
         label,
-        style: CScholarTextStyles.body(11.5, FontWeight.w600, CScholarColors.textSecondary),
+        style: CScholarTextStyles.body(
+          11.5,
+          FontWeight.w600,
+          CScholarColors.textSecondary,
+        ),
       ),
     );
   }
 
-  void _showAdviseeTheses(BuildContext context, int authorId, String name, int count) {
+  void _showAdviseeTheses(
+    BuildContext context,
+    int authorId,
+    String name,
+    int count,
+  ) {
     final theses = ref.read(facultyThesesProvider).value ?? [];
-    final mine = theses.where((t) => (t.authors ?? []).any((a) => a.id == authorId)).toList();
+    final mine = theses
+        .where((t) => (t.authors ?? []).any((a) => a.id == authorId))
+        .toList();
     final total = mine.isEmpty ? count : mine.length;
 
     showClayDialog(
       context: context,
       builder: (ctx) => GlassDialog(
-        title: Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text(
+          name,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         content: SizedBox(
           width: 440,
           child: Column(
@@ -272,7 +315,11 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
             children: [
               Text(
                 '$total supervised ${total == 1 ? 'study' : 'studies'}',
-                style: CScholarTextStyles.body(11.5, FontWeight.w500, CScholarColors.textMuted),
+                style: CScholarTextStyles.body(
+                  11.5,
+                  FontWeight.w500,
+                  CScholarColors.textMuted,
+                ),
               ),
               const SizedBox(height: 10),
               if (mine.isEmpty)
@@ -333,7 +380,10 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
                               Navigator.pop(ctx);
                               context.go('/thesis/${study.id}');
                             },
-                            child: const Text('View', style: TextStyle(fontSize: 12)),
+                            child: const Text(
+                              'View',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                         ],
                       );
@@ -344,7 +394,10 @@ class _FacultyStudentsScreenState extends ConsumerState<FacultyStudentsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );

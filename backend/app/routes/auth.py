@@ -72,8 +72,11 @@ def login(data: LoginRequest = Body(default=None)):
     user = db.get_user_by_email(email)
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    # Do not confirm that an account exists just because it was deactivated:
+    # the same generic response as a wrong password (TRU-3). An admin can tell
+    # the difference in the user table.
     if not user["is_active"]:
-        raise HTTPException(status_code=403, detail="Account is deactivated")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user)
     return {
         "token": token,

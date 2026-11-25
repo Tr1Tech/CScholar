@@ -11,6 +11,7 @@ import 'package:frontend/presentation/widgets/common/empty_state.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -145,7 +146,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 final leftPanel = EntranceReveal(
                   delay: const Duration(milliseconds: 120),
                   rise: 0,
-                  child: _recentActivityPanel(context, recentActivity),
+                  child: _recentActivityPanel(context, ref, recentActivity),
                 );
                 final rightPanel = EntranceReveal(
                   delay: const Duration(milliseconds: 180),
@@ -180,6 +181,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
 
   Widget _recentActivityPanel(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<List<Map<String, dynamic>>> activity,
   ) {
     return CScholarCard(
@@ -249,18 +251,16 @@ class FacultyDashboardScreen extends ConsumerWidget {
                 }).toList(),
               );
             },
-            error: (err, _) => Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'Could not load activity: $err',
-                  style: CScholarTextStyles.body(
-                    12,
-                    FontWeight.w500,
-                    CScholarColors.textMuted,
-                  ),
-                ),
+            error: (err, _) => EmptyState(
+              compact: true,
+              icon: Icons.error_outline,
+              title: "Couldn't load recent activity",
+              message: userFacingError(
+                err,
+                fallback: 'Recent activity could not be loaded. Try again.',
               ),
+              actionLabel: 'Retry',
+              onAction: () => ref.invalidate(facultyActivityProvider),
             ),
           ),
         ],
@@ -310,19 +310,16 @@ class FacultyDashboardScreen extends ConsumerWidget {
               );
             },
             loading: () => const ClayLoader(height: 8),
-            error: (err, _) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text(
-                  'Could not load advisees: $err',
-                  style: CScholarTextStyles.body(
-                    13,
-                    FontWeight.w400,
-                    CScholarColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+            error: (err, _) => EmptyState(
+              compact: true,
+              icon: Icons.error_outline,
+              title: "Couldn't load advisees",
+              message: userFacingError(
+                err,
+                fallback: 'Your advisees could not be loaded. Try again.',
               ),
+              actionLabel: 'Retry',
+              onAction: () => ref.invalidate(facultyStatsProvider),
             ),
           ),
           const SizedBox(height: 8),

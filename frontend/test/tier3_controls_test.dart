@@ -1095,6 +1095,9 @@ void main() {
         'lib/presentation/screens/landing_screen.dart',
         'lib/presentation/screens/repository/repository_screen.dart',
         'lib/presentation/widgets/common/topbar.dart',
+        // MobileAuthField is the phone primitive: it owns the well, the label,
+        // the error slot and validation, exactly like NeumorphField on web.
+        'lib/presentation/widgets/mobile/mobile_auth.dart',
       };
       final offences = <String>[];
       for (final file in libSources()) {
@@ -1212,6 +1215,9 @@ void main() {
       const allowed = {
         'lib/presentation/widgets/material/neumorph_controls.dart',
         'lib/main.dart',
+        // The mobile primitive layer: MobileAuthButton/Ghost draw the paper
+        // system's pill actions, the phone equivalent of NeumorphButton.
+        'lib/presentation/widgets/mobile/mobile_auth.dart',
       };
       final pattern = RegExp(
         r'(^|[^_A-Za-z])(ElevatedButton|FilledButton|OutlinedButton)\s*[.(<]',

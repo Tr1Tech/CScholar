@@ -8,6 +8,7 @@ import 'package:frontend/core/config.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -36,12 +37,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
   late TabController _tabCtrl;
   int _tabIndex = 0;
 
-  static const _tabs = [
-    'Programs',
-    'Academic Years',
-    'Categories',
-    'Advisers',
-  ];
+  static const _tabs = ['Programs', 'Academic Years', 'Categories', 'Advisers'];
   static const _addLabels = [
     'Add Program',
     'Add Academic Year',
@@ -237,9 +233,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                                   ),
                                 ),
                                 Text(
-                                  linked
-                                      ? email
-                                      : 'No email — not linked to a faculty account',
+                                  linked ? email : 'No email — not linked to a faculty account',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: CScholarTextStyles.body(
@@ -293,7 +287,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           ],
         );
       },
-      error: (_, _) => const Center(child: Text('Could not load advisers')),
+      error: (err, _) => EmptyState(
+        compact: true,
+        icon: Icons.error_outline,
+        title: "Couldn't load advisers",
+        message: userFacingError(
+          err,
+          fallback: 'The adviser list could not be loaded. Try again.',
+        ),
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(advisersProvider),
+      ),
     );
   }
 
@@ -392,7 +396,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           },
         );
       },
-      error: (_, _) => const Center(child: Text('Could not load programs')),
+      error: (err, _) => EmptyState(
+        compact: true,
+        icon: Icons.error_outline,
+        title: "Couldn't load programs",
+        message: userFacingError(
+          err,
+          fallback: 'Programs could not be loaded. Try again.',
+        ),
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(programsProvider),
+      ),
     );
   }
 
@@ -515,8 +529,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           },
         );
       },
-      error: (_, _) =>
-          const Center(child: Text('Could not load academic years')),
+      error: (err, _) => EmptyState(
+        compact: true,
+        icon: Icons.error_outline,
+        title: "Couldn't load academic years",
+        message: userFacingError(
+          err,
+          fallback: 'Academic years could not be loaded. Try again.',
+        ),
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(academicYearsProvider),
+      ),
     );
   }
 
@@ -613,7 +636,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
           },
         );
       },
-      error: (_, _) => const Center(child: Text('Could not load categories')),
+      error: (err, _) => EmptyState(
+        compact: true,
+        icon: Icons.error_outline,
+        title: "Couldn't load categories",
+        message: userFacingError(
+          err,
+          fallback: 'Categories could not be loaded. Try again.',
+        ),
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(categoriesProvider),
+      ),
     );
   }
 
@@ -661,8 +694,16 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The change couldn't be saved. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -705,8 +746,16 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The change couldn't be saved. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -1044,6 +1093,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
         elevation: 0,
         toolbarHeight: 64,
         leading: IconButton(
+          tooltip: 'Back to dashboard',
           icon: Icon(Icons.arrow_back, color: CScholarColors.textPrimary),
           onPressed: () => context.go('/admin/dashboard'),
         ),

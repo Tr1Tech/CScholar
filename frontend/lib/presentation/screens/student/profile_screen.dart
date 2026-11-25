@@ -6,6 +6,8 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
+import 'package:frontend/core/utils/vocabulary.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/change_password_dialog.dart';
@@ -69,10 +71,7 @@ class ProfileScreen extends ConsumerWidget {
                     ? Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            flex: 7,
-                            child: _leftColumn(context, user),
-                          ),
+                          Expanded(flex: 7, child: _leftColumn(context, user)),
                           const SizedBox(width: 24),
                           Expanded(
                             flex: 4,
@@ -153,7 +152,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 13),
               Text(
-                name.isEmpty ? 'Alex Santos' : name,
+                name.isEmpty ? 'Your account' : name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -161,9 +160,9 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                (user?.email ?? '').toString().isEmpty
-                    ? 'BS Computer Science · 4th year'
-                    : (user?.email ?? '').toString(),
+                (user?.email ?? '').trim().isEmpty
+                    ? 'Email not provided'
+                    : user!.email,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -180,7 +179,7 @@ class ProfileScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  'Student',
+                  roleLabel(user?.role),
                   style: t.dmSans(
                     8,
                     FontWeight.w800,
@@ -205,9 +204,13 @@ class ProfileScreen extends ConsumerWidget {
                   child: _profileStat(context, '${saved.length}', 'Saved'),
                 ),
                 _profileDivider(context),
-                Expanded(child: _profileStat(context, '12', 'Viewed')),
-                _profileDivider(context),
-                Expanded(child: _profileStat(context, '3', 'Topics')),
+                Expanded(
+                  child: _profileStat(
+                    context,
+                    user?.createdAt.year.toString() ?? '—',
+                    'Member since',
+                  ),
+                ),
               ],
             ),
           ),
@@ -351,7 +354,9 @@ class ProfileScreen extends ConsumerWidget {
                           width: 88,
                           height: 88,
                           decoration: BoxDecoration(
-                            color: CScholarColors.primaryGreen,
+                            // A solid brand block with WHITE initials: must be
+                            // the fill green, not the light accent ink.
+                            color: CScholarColors.primaryFill,
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: CScholarMaterial.gelDrop(depth: 0.8),
                           ),
@@ -547,7 +552,7 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       children: [
         // Saved Studies Widget
-        CScholarCard(child: _savedStudiesList(savedTheses, context)),
+        CScholarCard(child: _savedStudiesList(ref, savedTheses, context)),
 
         const SizedBox(height: 20),
 
@@ -580,11 +585,18 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               if (queries.isNotEmpty)
-                GestureDetector(
-                  onTap: () =>
+                TextButton(
+                  onPressed: () =>
                       ref.read(recentSearchesProvider.notifier).clear(),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(
+                      CScholarTapTarget.minimum,
+                      CScholarTapTarget.minimum,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
                   child: Text(
-                    'Clear',
+                    'Clear all',
                     style: CScholarTextStyles.body(
                       12,
                       FontWeight.w600,
@@ -622,11 +634,7 @@ class ProfileScreen extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
         child: Row(
           children: [
-            Icon(
-              Icons.history,
-              size: 16,
-              color: CScholarColors.textMuted,
-            ),
+            Icon(Icons.history, size: 16, color: CScholarColors.textMuted),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -641,17 +649,25 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Tooltip(
-              message: 'Remove "$query"',
-              child: GestureDetector(
-                onTap: () =>
-                    ref.read(recentSearchesProvider.notifier).remove(query),
-                child: Padding(
-                  padding: EdgeInsets.all(2),
-                  child: Icon(
-                    Icons.close,
-                    size: 15,
-                    color: CScholarColors.textMuted,
+            Semantics(
+              button: true,
+              label: 'Remove "$query" from recent searches',
+              child: Tooltip(
+                message: 'Remove "$query"',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () =>
+                      ref.read(recentSearchesProvider.notifier).remove(query),
+                  child: SizedBox(
+                    width: CScholarTapTarget.minimum,
+                    height: CScholarTapTarget.minimum,
+                    child: Center(
+                      child: Icon(
+                        Icons.close,
+                        size: 15,
+                        color: CScholarColors.textMuted,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -663,6 +679,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _savedStudiesList(
+    WidgetRef ref,
     AsyncValue<List<Thesis>> savedTheses,
     BuildContext context,
   ) {
@@ -711,20 +728,31 @@ class ProfileScreen extends ConsumerWidget {
             padding: EdgeInsets.symmetric(vertical: 16),
             child: ClayLoader(height: 8),
           ),
-          error: (err, _) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Text(
-              'Unable to load saved studies: $err',
-              style: TextStyle(color: CScholarColors.error, fontSize: 13),
-            ),
+          error: (err, _) => Column(
+            children: [
+              Text(
+                userFacingError(
+                  err,
+                  fallback:
+                      'Your saved studies could not be loaded. Try again.',
+                ),
+                style: TextStyle(color: CScholarColors.error, fontSize: 13),
+              ),
+              TextButton(
+                onPressed: () => ref.invalidate(savedThesesProvider),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
           data: (list) {
             if (list.isEmpty) {
-              return const EmptyState(
+              return EmptyState(
                 compact: true,
                 icon: Icons.bookmark_border,
                 title: 'No saved studies',
                 message: 'Bookmark a study to keep it here.',
+                actionLabel: 'Browse studies',
+                onAction: () => context.go('/repository'),
               );
             }
             return Column(
@@ -936,6 +964,22 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[local.month - 1]} ${local.day}, ${local.year}';
+  }
 }

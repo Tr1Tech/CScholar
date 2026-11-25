@@ -28,19 +28,17 @@ class ThesisCover extends StatelessWidget {
     this.iconSize = 40,
   });
 
-  /// The gel fill of [ClayIconTile]: a flat green reads as a painted swatch
-  /// next to the dashboard's stat tile, whose top-to-bottom lightening is what
-  /// makes it look moulded. Same two stops, same axis.
+  /// The gel fill of [ClayIconTile]. A light tile is the mobile shell's flat
+  /// green (its old top-to-bottom gradient ended on the pressed green, which
+  /// read a step darker than the app); dark keeps the two-stop gel so the
+  /// 52–92px tile still looks moulded on the near-black canvas.
   ///
   /// A GETTER, not a static field: a field would freeze the mode it was first
   /// read in, and every cover would then ignore the switch.
   static Gradient get fill => LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      CScholarMaterial.actionFill,
-      CScholarMaterial.actionFillPressed,
-    ],
+    colors: [CScholarMaterial.actionFill, CScholarMaterial.actionFillRest],
   );
 
   /// Also the dashboard's metric glyph for published studies.

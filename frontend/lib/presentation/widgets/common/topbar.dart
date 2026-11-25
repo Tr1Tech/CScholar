@@ -34,9 +34,9 @@ class Topbar extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
 
-  /// The light/dark switch sits here, at the top-right of every role shell —
-  /// one place, so admin, faculty and student can never disagree about where
-  /// it lives. Set false for a bar that must not carry it.
+  /// The light/dark switch sits here, in the top-right cluster of every role
+  /// shell — one place, so admin, faculty and student can never disagree about
+  /// where it lives. Set false for a bar that must not carry it.
   final bool showThemeToggle;
 
   final EdgeInsetsGeometry padding;
@@ -44,6 +44,8 @@ class Topbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trailingRow = <Widget>[
+      // Switch FIRST, identity pill beside it: the same order the mobile header
+      // uses, so the control does not move between phone and desktop.
       if (showThemeToggle) const ThemeModeButton(),
       if (showThemeToggle && trailing != null) const SizedBox(width: 10),
       ?trailing,

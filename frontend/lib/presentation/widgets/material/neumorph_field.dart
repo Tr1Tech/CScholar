@@ -242,15 +242,21 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.label != null) ...[
-            Text(
-              widget.label!.toUpperCase(),
-              style: widget.labelStyle ??
-                  CScholarTextStyles.body(
-                    11,
-                    FontWeight.w700,
-                    glyphColor,
-                    letterSpacing: 0.5,
-                  ),
+            // The visual label is excluded from semantics because the same
+            // text is attached to the field itself below; otherwise a screen
+            // reader announces "Full name, Full name" before the input.
+            ExcludeSemantics(
+              child: Text(
+                widget.label!.toUpperCase(),
+                style:
+                    widget.labelStyle ??
+                    CScholarTextStyles.body(
+                      11,
+                      FontWeight.w700,
+                      glyphColor,
+                      letterSpacing: 0.5,
+                    ),
+              ),
             ),
             const SizedBox(height: 6),
           ],
@@ -273,54 +279,54 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
               duration: animate ? CScholarMotion.micro : Duration.zero,
               curve: CScholarCurves.standard,
               transform: Matrix4.translationValues(0, lift, 0),
-              child: TextField(
-                controller: widget.controller,
-                focusNode: _focus,
-                enabled: !disabled,
-                obscureText: widget.obscureText,
-                keyboardType: widget.keyboardType,
-                textInputAction: widget.textInputAction,
-                autofillHints: widget.autofillHints,
-                textCapitalization: widget.textCapitalization,
-                // A multiline maxLines and obscureText are mutually exclusive
-                // in Flutter's TextField, so obscure wins.
-                maxLines: widget.obscureText ? 1 : widget.maxLines,
-                minLines: widget.minLines,
-                cursorColor: focusColor,
-                style: CScholarTextStyles.body(
-                  14,
-                  FontWeight.w400,
-                  inkColor,
-                ),
-                onChanged: (v) {
-                  field.didChange(v);
-                  widget.onChanged?.call(v);
-                },
-                onSubmitted: widget.onSubmitted,
-                decoration: InputDecoration(
-                  isDense: true,
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  hintText: widget.hintText,
-                  hintStyle: CScholarTextStyles.body(
-                    13.5,
-                    FontWeight.w400,
-                    hintColor,
-                  ),
-                  prefixIcon: widget.prefixIcon == null
-                      ? null
-                      : Icon(
-                          widget.prefixIcon,
-                          size: 18,
-                          color: glyphColor,
-                        ),
-                  suffixIcon: widget.suffixIcon,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
+              // Programmatic label (A11Y-12): attached to the field's own
+              // semantics node, so the field is announced by name rather than
+              // as "text field" next to a visual label it has no relationship
+              // with. `container: false` (the default) merges this label into
+              // the TextField node instead of creating a second stop.
+              child: Semantics(
+                label: widget.label,
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focus,
+                  enabled: !disabled,
+                  obscureText: widget.obscureText,
+                  keyboardType: widget.keyboardType,
+                  textInputAction: widget.textInputAction,
+                  autofillHints: widget.autofillHints,
+                  textCapitalization: widget.textCapitalization,
+                  // A multiline maxLines and obscureText are mutually exclusive
+                  // in Flutter's TextField, so obscure wins.
+                  maxLines: widget.obscureText ? 1 : widget.maxLines,
+                  minLines: widget.minLines,
+                  cursorColor: focusColor,
+                  style: CScholarTextStyles.body(14, FontWeight.w400, inkColor),
+                  onChanged: (v) {
+                    field.didChange(v);
+                    widget.onChanged?.call(v);
+                  },
+                  onSubmitted: widget.onSubmitted,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    hintText: widget.hintText,
+                    hintStyle: CScholarTextStyles.body(
+                      13.5,
+                      FontWeight.w400,
+                      hintColor,
+                    ),
+                    prefixIcon: widget.prefixIcon == null
+                        ? null
+                        : Icon(widget.prefixIcon, size: 18, color: glyphColor),
+                    suffixIcon: widget.suffixIcon,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -339,12 +345,17 @@ class _NeumorphFieldBodyState extends State<_NeumorphFieldBody> {
               child: Padding(
                 key: ValueKey(error),
                 padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  error!,
-                  style: CScholarTextStyles.body(
-                    12,
-                    FontWeight.w500,
-                    errorColor,
+                // Polite live region: a validation message that appears after
+                // submit must be announced, without moving focus (A11Y-14).
+                child: Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    error!,
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w500,
+                      errorColor,
+                    ),
                   ),
                 ),
               ),

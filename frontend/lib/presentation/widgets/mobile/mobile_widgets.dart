@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
@@ -31,126 +32,170 @@ class MobileThesisCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = CScholarMobileTheme.of(context);
-    return GestureDetector(
-      onTap: onOpen,
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: t.surface,
-          borderRadius: BorderRadius.circular(CScholarMobileRadius.card),
-          border: Border.all(color: t.line),
-          boxShadow: CScholarMobileShadows.card,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
+    // The save toggle is a Stack SIBLING of the card, never a descendant of
+    // the card's GestureDetector: nested tap recognizers both fire, so a
+    // toggle inside the card subtree would also open the study. A sibling is
+    // exclusive — the topmost opaque hit wins and the card never hears it.
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: onOpen,
+          child: Container(
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: BorderRadius.circular(CScholarMobileRadius.card),
+              border: Border.all(color: t.line),
+              boxShadow: CScholarMobileShadows.card,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    (thesis.program?.name ?? '').toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.dmSans(
-                      9,
-                      FontWeight.w800,
-                      t.green2,
-                      height: 1.2,
-                      letterSpacing: 0.72,
-                    ),
+                // The eyebrow row reserves the save target's width so the program
+                // name never runs under the bookmark.
+                Padding(
+                  padding: const EdgeInsets.only(
+                    right: CScholarTapTarget.minimum,
                   ),
-                ),
-                const SizedBox(width: 8),
-                if (matchPercent != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.mint,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, size: 10, color: t.green),
-                        const SizedBox(width: 3),
-                        Text(
-                          '$matchPercent%',
-                          style: t.dmSans(8, FontWeight.w800, t.green),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          (thesis.program?.name ?? '').toUpperCase(),
+                          // Long program names ("...Information Technology")
+                          // do not fit one 9px tracked line on a phone: wrap to
+                          // a second line instead of clipping the degree.
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.dmSans(
+                            9,
+                            FontWeight.w800,
+                            t.green2,
+                            height: 1.2,
+                            letterSpacing: 0.62,
+                          ),
+                        ),
+                      ),
+                      if (matchPercent != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: t.mint,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                size: 10,
+                                color: t.green,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                '$matchPercent%',
+                                style: t.dmSans(8, FontWeight.w800, t.green),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                ],
-                GestureDetector(
-                  onTap: () {
-                    selectionHaptic();
-                    onSave();
-                  },
-                  child: Container(
-                    // tile-exempt: compact save toggle.
-                    width: 29,
-                    height: 29,
-                    decoration: BoxDecoration(
-                      color: saved ? t.mint : t.surfaceSoft,
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Icon(
-                      saved ? Icons.bookmark : Icons.bookmark_border,
-                      size: 18,
-                      color: saved ? t.green : t.muted,
-                    ),
+                ),
+                const SizedBox(height: 7),
+                Padding(
+                  padding: const EdgeInsets.only(right: 40),
+                  child: Text(
+                    thesis.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.cardTitle,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${thesis.authorsString} · ${thesis.academicYear?.label ?? ''}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.dmSans(10, FontWeight.w400, t.muted),
+                ),
+                const SizedBox(height: 11),
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children: [
+                    for (final tag
+                        in (thesis.keywords ?? []).take(2).map((k) => k.term))
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: t.surfaceSoft,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          tag,
+                          style: t.dmSans(8, FontWeight.w600, t.muted),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 7),
-            Padding(
-              padding: const EdgeInsets.only(right: 28),
-              child: Text(
-                thesis.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: t.cardTitle,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${thesis.authorsString} · ${thesis.academicYear?.label ?? ''}',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: t.dmSans(10, FontWeight.w400, t.muted),
-            ),
-            const SizedBox(height: 11),
-            Wrap(
-              spacing: 5,
-              runSpacing: 5,
-              children: [
-                for (final tag
-                    in (thesis.keywords ?? []).take(2).map((k) => k.term))
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: t.surfaceSoft,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      tag,
-                      style: t.dmSans(8, FontWeight.w600, t.muted),
+          ),
+        ),
+        // Save toggle rides the top-right corner. Positioned against the CARD
+        // — not tucked inside the eyebrow row — because a Positioned child of
+        // that row was clipped to the row's own height: only the top sliver of
+        // the 44px target was hittable and the rest fell through to the card.
+        Positioned(
+          top: 7.5,
+          right: 7.5,
+          child: Semantics(
+            button: true,
+            toggled: saved,
+            label: saved ? 'Remove from saved' : 'Save study',
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  selectionHaptic();
+                  onSave();
+                },
+                child: SizedBox(
+                  width: CScholarTapTarget.minimum,
+                  height: CScholarTapTarget.minimum,
+                  child: Center(
+                    child: Container(
+                      // tile-exempt: compact save toggle.
+                      width: 29,
+                      height: 29,
+                      decoration: BoxDecoration(
+                        color: saved ? t.mint : t.surfaceSoft,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Icon(
+                        saved ? Icons.bookmark : Icons.bookmark_border,
+                        size: 18,
+                        color: saved ? t.green : t.muted,
+                      ),
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

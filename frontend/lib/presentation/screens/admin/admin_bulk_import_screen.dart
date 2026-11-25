@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/admin_sidebar.dart';
 import 'package:frontend/presentation/widgets/admin_topbar.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -103,9 +104,7 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
       _job = null;
     });
     try {
-      final preview = await ref
-          .read(importApiProvider)
-          .preview(_csv!, _pdfs);
+      final preview = await ref.read(importApiProvider).preview(_csv!, _pdfs);
       if (!mounted) return;
       setState(() => _preview = preview);
     } catch (e) {
@@ -216,6 +215,31 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
   Future<void> _discardPreview() async {
     final preview = _preview;
     if (preview == null) return;
+    // Discarding removes the staged upload, so it names that loss rather than
+    // silently dropping files the librarian just selected (FB-3).
+    final confirmed = await showClayDialog<bool>(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: const Text('Discard this preview?'),
+        content: const Text(
+          'The uploaded files are removed and nothing will be imported. '
+          'You will need to select the files again.',
+        ),
+        actions: [
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            label: 'Keep preview',
+            gel: false,
+          ),
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            label: 'Discard',
+            danger: true,
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     try {
       await ref.read(importApiProvider).discard(preview.id);
     } catch (_) {
@@ -283,7 +307,10 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
         // Fall through to the raw exception.
       }
     }
-    return error.toString();
+    return userFacingError(
+      error,
+      fallback: 'The import could not be completed. Try again.',
+    );
   }
 
   @override
@@ -312,7 +339,10 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
             ),
             const SizedBox(height: 20),
             if (_error != null) ...[
-              _ErrorBanner(message: _error!, onDismiss: () => setState(() => _error = null)),
+              _ErrorBanner(
+                message: _error!,
+                onDismiss: () => setState(() => _error = null),
+              ),
               const SizedBox(height: 16),
             ],
             _introCard(),
@@ -322,10 +352,7 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
               const SizedBox(height: 16),
               _previewCard(_preview!),
             ],
-            if (job != null) ...[
-              const SizedBox(height: 16),
-              _jobCard(job),
-            ],
+            if (job != null) ...[const SizedBox(height: 16), _jobCard(job)],
             const SizedBox(height: 32),
           ],
         ),
@@ -400,7 +427,9 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
           _fileSlot(
             icon: Icons.description_outlined,
             label: _csv?.name ?? 'No CSV selected',
-            detail: _csv == null ? 'The spreadsheet with one row per study' : 'CSV ready',
+            detail: _csv == null
+                ? 'The spreadsheet with one row per study'
+                : 'CSV ready',
             buttonLabel: _csv == null ? 'Choose CSV' : 'Change CSV',
             onPressed: _pickCsv,
           ),
@@ -514,7 +543,8 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
   }
 
   Widget _previewCard(ImportJob preview) {
-    final canImport = preview.invalidCount == 0 &&
+    final canImport =
+        preview.invalidCount == 0 &&
         (preview.readyCount + preview.updateCount) > 0;
     return CScholarCard(
       padding: const EdgeInsets.all(20),
@@ -539,13 +569,25 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _countChip('${preview.readyCount} ready', CScholarColors.primaryGreen),
+              _countChip(
+                '${preview.readyCount} ready',
+                CScholarColors.primaryGreen,
+              ),
               if (preview.updateCount > 0)
-                _countChip('${preview.updateCount} will update', CScholarColors.violetInk),
+                _countChip(
+                  '${preview.updateCount} will update',
+                  CScholarColors.violetInk,
+                ),
               if (preview.alreadyCount > 0)
-                _countChip('${preview.alreadyCount} already imported', CScholarColors.textMuted),
+                _countChip(
+                  '${preview.alreadyCount} already imported',
+                  CScholarColors.textMuted,
+                ),
               if (preview.invalidCount > 0)
-                _countChip('${preview.invalidCount} errors', CScholarColors.error),
+                _countChip(
+                  '${preview.invalidCount} errors',
+                  CScholarColors.error,
+                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -624,7 +666,9 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: CScholarMaterial.rim, width: 1)),
+        border: Border(
+          bottom: BorderSide(color: CScholarMaterial.rim, width: 1),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,13 +784,25 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _countChip('${job.createdCount} created', CScholarColors.primaryGreen),
+                _countChip(
+                  '${job.createdCount} created',
+                  CScholarColors.primaryGreen,
+                ),
                 if (job.updatedCount > 0)
-                  _countChip('${job.updatedCount} updated', CScholarColors.violetInk),
+                  _countChip(
+                    '${job.updatedCount} updated',
+                    CScholarColors.violetInk,
+                  ),
                 if (job.skippedCount > 0)
-                  _countChip('${job.skippedCount} skipped', CScholarColors.textMuted),
+                  _countChip(
+                    '${job.skippedCount} skipped',
+                    CScholarColors.textMuted,
+                  ),
                 if (job.indexedCount > 0)
-                  _countChip('${job.indexedCount} indexed', CScholarColors.primaryGreen),
+                  _countChip(
+                    '${job.indexedCount} indexed',
+                    CScholarColors.primaryGreen,
+                  ),
                 if (job.errorCount > 0)
                   _countChip('${job.errorCount} errors', CScholarColors.error),
               ],
@@ -766,7 +822,9 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
             children: [
               Icon(
                 completed ? Icons.check_circle_outline : Icons.error_outline,
-                color: completed ? CScholarColors.primaryGreen : CScholarColors.error,
+                color: completed
+                    ? CScholarColors.primaryGreen
+                    : CScholarColors.error,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -845,7 +903,11 @@ class _AdminBulkImportScreenState extends ConsumerState<AdminBulkImportScreen> {
 
   Widget _sectionTitle(String text) => Text(
     text,
-    style: CScholarTextStyles.body(15, FontWeight.w700, CScholarColors.textPrimary),
+    style: CScholarTextStyles.body(
+      15,
+      FontWeight.w700,
+      CScholarColors.textPrimary,
+    ),
   );
 
   Widget _headerLabel(String text) => Text(

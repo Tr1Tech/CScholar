@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
+import 'package:frontend/presentation/widgets/common/inline_retry.dart';
+import 'package:frontend/presentation/widgets/common/discard_guard.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_field.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
@@ -58,6 +61,19 @@ class _AdminAddEditThesisScreenState
     super.dispose();
   }
 
+  /// True when the form holds typed work worth protecting.
+  bool get _hasDraftInput =>
+      _titleCtrl.text.trim().isNotEmpty ||
+      _abstractCtrl.text.trim().isNotEmpty ||
+      _keywordsCtrl.text.trim().isNotEmpty ||
+      _program != null ||
+      _year != null ||
+      _researchType != null ||
+      _adviser != null ||
+      _category != null ||
+      _authorIds.isNotEmpty ||
+      _pdfUrl != null;
+
   @override
   void initState() {
     super.initState();
@@ -102,7 +118,12 @@ class _AdminAddEditThesisScreenState
       // instead of throwing out of a post-frame callback nobody awaits (which
       // is an unhandled async error, not a red banner).
       if (!mounted) return;
-      setState(() => _submitError = 'Could not load this thesis: $e');
+      setState(
+        () => _submitError = userFacingError(
+          e,
+          fallback: 'This thesis could not be loaded. It may have been removed, or the connection failed.',
+        ),
+      );
     }
   }
 
@@ -182,7 +203,12 @@ class _AdminAddEditThesisScreenState
       context.go('/admin/thesis/management');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitError = 'Error: $e');
+      setState(
+        () => _submitError = userFacingError(
+          e,
+          fallback: "We couldn't save this thesis. Check your connection and try again.",
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -548,7 +574,18 @@ class _AdminAddEditThesisScreenState
                       children: [
                         Flexible(
                           child: NeumorphButton(
-                            onPressed: () => context.go('/admin/dashboard'),
+                            onPressed: () async {
+                              if (!await confirmDiscardChanges(
+                                context,
+                                hasChanges: _hasDraftInput,
+                                actionLabel: 'thesis management',
+                              )) {
+                                return;
+                              }
+                              if (context.mounted) {
+                                context.go('/admin/thesis/management');
+                              }
+                            },
                             label: 'Cancel',
                             gel: false,
                           ),
@@ -748,8 +785,16 @@ class _AdminAddEditThesisScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed to upload PDF: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingError(
+              e,
+              fallback: "The PDF couldn't be uploaded. Check the file and your connection, then try again.",
+            ),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isUploadingPdf = false);
     }
@@ -787,7 +832,13 @@ class _AdminAddEditThesisScreenState
             );
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load programs: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Programs could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(programsProvider),
+          ),
         );
       },
     );
@@ -813,7 +864,13 @@ class _AdminAddEditThesisScreenState
             );
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load academic years: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Academic years could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(academicYearsProvider),
+          ),
         );
       },
     );
@@ -837,7 +894,13 @@ class _AdminAddEditThesisScreenState
             );
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load research types: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Research types could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(researchTypesProvider),
+          ),
         );
       },
     );
@@ -865,7 +928,13 @@ class _AdminAddEditThesisScreenState
             );
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load advisers: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Advisers could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(advisersProvider),
+          ),
         );
       },
     );
@@ -895,7 +964,13 @@ class _AdminAddEditThesisScreenState
             );
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load categories here: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Categories could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(categoriesProvider),
+          ),
         );
       },
     );
@@ -919,7 +994,13 @@ class _AdminAddEditThesisScreenState
             return _authorChips(authors);
           },
           loading: _formLoading,
-          error: (err, _) => Text('Could not load authors: $err'),
+          error: (err, _) => InlineRetry(
+            message: userFacingError(
+              err,
+              fallback: 'Authors could not be loaded.',
+            ),
+            onRetry: () => ref.invalidate(authorsProvider),
+          ),
         );
       },
     );

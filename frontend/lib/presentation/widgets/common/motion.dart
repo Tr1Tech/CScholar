@@ -437,6 +437,7 @@ class PressableSurface extends StatefulWidget {
     this.sink = 1.5,
     this.scale = 0.96,
     this.semanticLabel,
+    this.selected,
   });
 
   final Widget child;
@@ -445,6 +446,10 @@ class PressableSurface extends StatefulWidget {
   final double sink;
   final double scale;
   final String? semanticLabel;
+
+  /// Current-page state for navigation rows. Screen readers announce
+  /// "selected" instead of leaving every destination indistinguishable.
+  final bool? selected;
 
   @override
   State<PressableSurface> createState() => _PressableSurfaceState();
@@ -474,6 +479,7 @@ class _PressableSurfaceState extends State<PressableSurface> {
     if (widget.onTap == null) return content;
     return Semantics(
       button: true,
+      selected: widget.selected,
       label: widget.semanticLabel,
       // A labeled surface drops the child's own text so the row is announced
       // once, not as "Users Users".

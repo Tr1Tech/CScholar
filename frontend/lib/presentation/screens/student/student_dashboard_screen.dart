@@ -5,6 +5,7 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
@@ -14,7 +15,6 @@ import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/common/loading_skeleton.dart';
-import 'package:frontend/presentation/widgets/common/motion_ambient.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_student_scaffold.dart';
 import 'package:frontend/presentation/widgets/mobile/mobile_widgets.dart';
 import 'package:frontend/presentation/widgets/student_layout.dart';
@@ -37,6 +37,7 @@ class _StudentDashboardScreenState
     final recentTheses = ref.watch(recentThesesProvider);
     final stats = ref.watch(publicStatsProvider);
     final savedIds = ref.watch(savedThesisIdsProvider);
+    final viewedIds = ref.watch(viewedThesisIdsProvider);
     final academicYears = ref.watch(academicYearsProvider);
 
     // Personalized feed: the profile is built from what this device has
@@ -48,8 +49,10 @@ class _StudentDashboardScreenState
         currentIndex: 0,
         child: _mobileBody(
           context,
-          userName: user?.username ?? 'Alex',
+          userName: user?.username ?? '',
           savedIds: savedIds,
+          viewedCount: viewedIds.length,
+          studiesCount: stats.value?['studies'] as int?,
           recentTheses: recentTheses,
           recommendations: recommendations,
         ),
@@ -81,78 +84,73 @@ class _StudentDashboardScreenState
                       rise: 0,
                       child: ClaySurface(
                         padding: const EdgeInsets.all(28),
-                        // The screen's one ambient gesture, living on the hero
-                        // panel's own surface (never behind glass or a list).
-                        // Gated and bounded inside DriftingWash itself.
-                        child: DriftingWash(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final isNarrow = constraints.maxWidth < 760;
-                              // The orbit stays in the hero at every width.
-                              // Below the two-column breakpoint it sits beside
-                              // the greeting and scales with the content width
-                              // (the mobile composition anchors it right too),
-                              // instead of being dropped and leaving the hero
-                              // without its illustration.
-                              final orbitSize = isNarrow
-                                  ? (constraints.maxWidth * 0.30)
-                                        .clamp(96.0, 128.0)
-                                        .toDouble()
-                                  : 128.0;
-                              final left = Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _greetingEyebrow(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: CScholarTextStyles.body(
-                                      11,
-                                      FontWeight.w800,
-                                      CScholarColors.primaryGreenHover,
-                                      letterSpacing: 1.15,
-                                    ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isNarrow = constraints.maxWidth < 760;
+                            // The orbit stays in the hero at every width.
+                            // Below the two-column breakpoint it sits beside
+                            // the greeting and scales with the content width
+                            // (the mobile composition anchors it right too),
+                            // instead of being dropped and leaving the hero
+                            // without its illustration.
+                            final orbitSize = isNarrow
+                                ? (constraints.maxWidth * 0.30)
+                                      .clamp(96.0, 128.0)
+                                      .toDouble()
+                                : 128.0;
+                            final left = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _greetingEyebrow(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.body(
+                                    11,
+                                    FontWeight.w800,
+                                    CScholarColors.primaryGreenHover,
+                                    letterSpacing: 1.15,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Good ${_timeOfDay()},\n${_firstName(user?.username)}!',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: CScholarTextStyles.heading(
-                                      isNarrow ? 28 : 32,
-                                      FontWeight.w800,
-                                      CScholarColors.textPrimary,
-                                      height: 1.12,
-                                    ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Good ${_timeOfDay()},\n${_firstName(user?.username)}!',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: CScholarTextStyles.heading(
+                                    isNarrow ? 28 : 32,
+                                    FontWeight.w800,
+                                    CScholarColors.textPrimary,
+                                    height: 1.12,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'What will you discover today?',
-                                    style: CScholarTextStyles.body(
-                                      13.5,
-                                      FontWeight.w400,
-                                      CScholarColors.textMuted,
-                                    ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'What will you discover today?',
+                                  style: CScholarTextStyles.body(
+                                    13.5,
+                                    FontWeight.w400,
+                                    CScholarColors.textMuted,
                                   ),
-                                ],
-                              );
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Expanded(flex: isNarrow ? 1 : 7, child: left),
-                                  SizedBox(width: isNarrow ? 16 : 24),
-                                  if (isNarrow)
-                                    _DesktopOrbit(size: orbitSize)
-                                  else
-                                    Expanded(
-                                      flex: 4,
-                                      child: _DesktopOrbit(size: orbitSize),
-                                    ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ],
+                            );
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(flex: isNarrow ? 1 : 7, child: left),
+                                SizedBox(width: isNarrow ? 16 : 24),
+                                if (isNarrow)
+                                  _DesktopOrbit(size: orbitSize)
+                                else
+                                  Expanded(
+                                    flex: 4,
+                                    child: _DesktopOrbit(size: orbitSize),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -166,7 +164,8 @@ class _StudentDashboardScreenState
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: CScholarColors.primaryGreen,
+                            // White copy rides this block: fill green, not ink.
+                            color: CScholarColors.primaryFill,
                             borderRadius: BorderRadius.circular(
                               CScholarRadius.softCard,
                             ),
@@ -302,11 +301,11 @@ class _StudentDashboardScreenState
                     final leftCol = EntranceReveal(
                       delay: const Duration(milliseconds: 140),
                       rise: 0,
-                      child: _recentStudiesCard(recentTheses),
+                      child: _recentStudiesCard(ref, recentTheses),
                     );
                     final rightCol = EntranceReveal(
                       delay: const Duration(milliseconds: 220),
-                      child: _recommendedStudiesCard(recommendations),
+                      child: _recommendedStudiesCard(ref, recommendations),
                     );
 
                     if (isMultiCol) {
@@ -345,6 +344,8 @@ class _StudentDashboardScreenState
     BuildContext context, {
     required String userName,
     required Set<int> savedIds,
+    required int viewedCount,
+    required int? studiesCount,
     required AsyncValue<List<dynamic>> recentTheses,
     required AsyncValue<RecommendationFeed> recommendations,
   }) {
@@ -375,7 +376,7 @@ class _StudentDashboardScreenState
     ];
     final firstName = userName
         .split(' ')
-        .firstWhere((p) => p.isNotEmpty, orElse: () => 'Alex');
+        .firstWhere((p) => p.isNotEmpty, orElse: () => '');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 106),
@@ -408,7 +409,9 @@ class _StudentDashboardScreenState
                                 ),
                                 const SizedBox(height: 7),
                                 Text(
-                                  'Good ${_timeOfDay()},\n$firstName.',
+                                  firstName.isEmpty
+                                      ? 'Good ${_timeOfDay()}.'
+                                      : 'Good ${_timeOfDay()},\n$firstName.',
                                   style: t.manrope(
                                     31,
                                     FontWeight.w700,
@@ -489,7 +492,10 @@ class _StudentDashboardScreenState
               ),
             ),
           ),
-          // Compact stats.
+          // Compact stats — every number is real: the published studies in
+          // the repository, this account's bookmarks, and the distinct studies
+          // this account has opened (device-local, see
+          // [viewedThesisIdsProvider]).
           Container(
             margin: const EdgeInsets.fromLTRB(0, 17, 0, 27),
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 15),
@@ -501,13 +507,21 @@ class _StudentDashboardScreenState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Expanded(child: _compactStat(context, '12', 'Viewed')),
+                Expanded(
+                  child: _compactStat(
+                    context,
+                    studiesCount == null ? '—' : '$studiesCount',
+                    'Studies',
+                  ),
+                ),
                 _divider(context),
                 Expanded(
                   child: _compactStat(context, '${savedIds.length}', 'Saved'),
                 ),
                 _divider(context),
-                Expanded(child: _compactStat(context, '3', 'Topics')),
+                Expanded(
+                  child: _compactStat(context, '$viewedCount', 'Viewed'),
+                ),
               ],
             ),
           ),
@@ -525,12 +539,14 @@ class _StudentDashboardScreenState
             skeleton: const SkeletonList(count: 2, cardHeight: 96),
             data: (theses) {
               if (theses.isEmpty) {
-                return const EmptyState(
+                return EmptyState(
                   mobile: true,
                   compact: true,
                   icon: Icons.history,
                   title: 'No recent studies yet',
-                  message: 'Studies you open will show up here.',
+                  message: 'Studies you open will show up here. Start with the repository.',
+                  actionLabel: 'Browse studies',
+                  onAction: () => context.go('/repository'),
                 );
               }
               return Column(
@@ -561,8 +577,24 @@ class _StudentDashboardScreenState
                 ],
               );
             },
-            error: (_, _) =>
-                Text('Unable to load recent studies', style: t.bodyMuted),
+            error: (err, _) => Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    userFacingError(
+                      err,
+                      fallback:
+                          'Recent studies could not be loaded. Try again.',
+                    ),
+                    style: t.bodyMuted,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(recentThesesProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           // Recommend toggle -> reveal rail.
@@ -632,8 +664,24 @@ class _StudentDashboardScreenState
                     ],
                   );
                 },
-                error: (_, _) =>
-                    Text('Recommendations unavailable', style: t.bodyMuted),
+                error: (err, _) => Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        userFacingError(
+                          err,
+                          fallback:
+                              'Recommendations could not be loaded. Try again.',
+                        ),
+                        style: t.bodyMuted,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => ref.invalidate(recommendationsProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -805,7 +853,10 @@ class _StudentDashboardScreenState
     );
   }
 
-  Widget _recentStudiesCard(AsyncValue<List<dynamic>> recentTheses) {
+  Widget _recentStudiesCard(
+    WidgetRef ref,
+    AsyncValue<List<dynamic>> recentTheses,
+  ) {
     return CScholarCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,13 +894,15 @@ class _StudentDashboardScreenState
             skeleton: const SkeletonList(count: 4, cardHeight: 64),
             data: (theses) {
               if (theses.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: EmptyState(
                     compact: true,
                     icon: Icons.history,
                     title: 'No recent studies yet',
-                    message: 'Studies you open will show up here.',
+                    message: 'Studies you open will show up here. Start with the repository.',
+                    actionLabel: 'Browse studies',
+                    onAction: () => context.go('/repository'),
                   ),
                 );
               }
@@ -953,7 +1006,28 @@ class _StudentDashboardScreenState
                 }).toList(),
               );
             },
-            error: (_, _) => const Text('Error loading studies'),
+            error: (err, _) => Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    userFacingError(
+                      err,
+                      fallback:
+                          'Recent studies could not be loaded. Try again.',
+                    ),
+                    style: CScholarTextStyles.body(
+                      12,
+                      FontWeight.w500,
+                      CScholarColors.textMuted,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(recentThesesProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -961,6 +1035,7 @@ class _StudentDashboardScreenState
   }
 
   Widget _recommendedStudiesCard(
+    WidgetRef ref,
     AsyncValue<RecommendationFeed> recommendations,
   ) {
     return CScholarCard(
@@ -1155,16 +1230,30 @@ class _StudentDashboardScreenState
                 ],
               );
             },
-            error: (_, _) => Center(
+            error: (err, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  'Recommendations unavailable',
-                  style: CScholarTextStyles.body(
-                    12,
-                    FontWeight.w500,
-                    CScholarColors.textMuted,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      userFacingError(
+                        err,
+                        fallback:
+                            'Recommendations could not be loaded. Try again.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: CScholarTextStyles.body(
+                        12,
+                        FontWeight.w500,
+                        CScholarColors.textMuted,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => ref.invalidate(recommendationsProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
                 ),
               ),
             ),

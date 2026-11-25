@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CScholar · Mobile auth mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ---------------------------------------------------------------- tokens
+     Values come from cscholar_mobile_tokens.dart — nothing invented. */
+  :root {
+    --paper: #F8F6F0;
+    --surface: #FFFEFA;
+    --soft: #F1F3ED;
+    --ink: #17231E;
+    --muted: #748079;
+    --muted-ink: #5A665F;
+    --green: #174F3D;
+    --green2: #2D7159;
+    --mint: #DCEEE5;
+    --coral-soft: #FFE3DA;
+    --line: rgba(64, 62, 50, 0.09);
+    --btn: #174F3D;
+    --btn-ink: #FFFFFF;
+    --card-shadow: 0 12px 28px rgba(35, 56, 45, 0.075), 0 2px 6px rgba(35, 56, 45, 0.035);
+    --chrome-shadow: 0 7px 18px rgba(35, 55, 44, 0.08);
+    --well-shadow: inset 0 0 0 1px rgba(64, 62, 50, 0.04);
+    --board: #ECECE7;
+    --board-ink: #8C9490;
+  }
+  .dark {
+    --paper: #17201C;
+    --surface: #202A25;
+    --soft: #26312B;
+    --ink: #EDF5EF;
+    --muted: #A9B5AE;
+    --muted-ink: #C2CDC7;
+    --green: #80C4A6;
+    --green2: #93D1B5;
+    --mint: #203C31;
+    --coral-soft: #492D27;
+    --line: rgba(228, 243, 234, 0.08);
+    --btn: #2E7D63;
+    --btn-ink: #FFFFFF;
+    --card-shadow: 0 12px 28px rgba(0, 0, 0, 0.42), 0 2px 6px rgba(0, 0, 0, 0.22);
+    --chrome-shadow: 0 7px 18px rgba(0, 0, 0, 0.35);
+    --well-shadow: inset 0 0 0 1px rgba(228, 243, 234, 0.03);
+    --board: #0E1411;
+    --board-ink: #7E8B85;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
+    background: #F4F4F2;
+    color: #17231E;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet-head {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 46px 40px 10px;
+  }
+  .sheet-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: #2D7159;
+  }
+  .sheet-head h1 {
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    margin: 8px 0 6px;
+  }
+  .sheet-head p {
+    margin: 0;
+    max-width: 720px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #5A665F;
+  }
+
+  .board {
+    max-width: 1280px;
+    margin: 26px auto 0;
+    padding: 30px 24px 34px;
+    border-radius: 28px;
+    background: var(--board);
+    color: var(--board-ink);
+  }
+  .board + .board { margin-top: 22px; }
+  .board-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 22px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+  }
+  .board-label span {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 12px;
+  }
+  .phones {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 18px;
+  }
+  @media (max-width: 1250px) {
+    .phones { flex-wrap: wrap; gap: 24px; }
+  }
+  .device-wrap { margin: 0; }
+  .device-wrap figcaption {
+    margin-bottom: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--board-ink);
+  }
+
+  /* ------------------------------------------------------------- device */
+  .device {
+    width: 390px;
+    height: 860px;
+    border-radius: 38px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 30px 60px rgba(15, 25, 20, 0.18), 0 2px 0 rgba(255, 255, 255, 0.35) inset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    isolation: isolate;
+  }
+  .dark .device { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.04) inset; }
+
+  .statusbar {
+    height: 44px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 26px 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .statusbar .sig { display: flex; align-items: center; gap: 5px; }
+
+  /* header — mirrors mobile_student_header.dart */
+  .appbar {
+    height: 74px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 21px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .brand-tile {
+    width: 30px; height: 30px;
+    flex: none;
+    border-radius: 12px;
+    background: #174F3D;
+    display: grid; place-items: center;
+    box-shadow: 0 8px 16px rgba(23, 79, 61, 0.18);
+  }
+  .appbar-title {
+    flex: 1;
+    text-align: center;
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.14px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chrome-btn {
+    width: 34px; height: 34px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--surface);
+    display: grid; place-items: center;
+    box-shadow: var(--chrome-shadow);
+    opacity: 0.95;
+    color: var(--green);
+  }
+  .appbar-spacer { width: 34px; flex: none; }
+
+  .icon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-fill { fill: currentColor; stroke: none; }
+  .i-sun { display: none; }
+  .dark .i-moon { display: none; }
+  .dark .i-sun { display: block; }
+
+  /* content */
+  .screen {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+  }
+  .hero { padding: 10px 2px 18px; }
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+    color: var(--green2);
+  }
+  .hero h1 {
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-size: 31px;
+    line-height: 1.12;
+    letter-spacing: -0.45px;
+    font-weight: 700;
+    margin: 7px 0 7px;
+    color: var(--ink);
+  }
+  .hero p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 320px;
+  }
+
+  /* two-step progress — two segments, filled as you advance */
+  .stepbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 2px 14px;
+  }
+  .segments { display: flex; gap: 6px; flex: 1; }
+  .segment {
+    height: 4px;
+    flex: 1;
+    border-radius: 999px;
+    background: var(--mint);
+  }
+  .segment.on { background: var(--green); }
+  .stepnum {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 23px;
+    box-shadow: var(--card-shadow);
+    padding: 18px 16px;
+  }
+
+  .field + .field { margin-top: 15px; }
+  .field-label {
+    display: block;
+    margin: 0 2px 6px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+    color: var(--green2);
+  }
+  .well {
+    height: 48px;
+    border-radius: 15px;
+    background: var(--soft);
+    box-shadow: var(--well-shadow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 13px;
+  }
+  .well .icon { flex: none; color: var(--muted); }
+  .well .value {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .well .value.placeholder { color: var(--muted); }
+  .dots { letter-spacing: 3px; font-size: 15px; line-height: 1; color: var(--ink); }
+  .well .trail { flex: none; color: var(--muted); display: flex; align-items: center; }
+
+  .row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 15px 2px 0;
+  }
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted-ink);
+    white-space: nowrap;
+  }
+  .switch {
+    width: 36px; height: 21px;
+    border-radius: 999px;
+    background: var(--green);
+    position: relative;
+    flex: none;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  }
+  .link {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .cta {
+    width: 100%;
+    height: 52px;
+    margin-top: 18px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--btn);
+    color: var(--btn-ink);
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+    box-shadow: 0 10px 20px rgba(23, 79, 61, 0.28);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .dark .cta { box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38); }
+  .cta .icon { stroke-width: 2; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-row .cta { margin-top: 0; flex: 1; }
+  .btn-ghost {
+    height: 52px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--soft);
+    color: var(--ink);
+    font-family: "Manrope", "Segoe UI", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--well-shadow);
+  }
+
+  .chips { display: flex; gap: 6px; margin: 12px 2px 0; }
+  .chip {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--mint);
+    color: var(--green);
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+  }
+
+  .foot {
+    margin-top: auto;
+    padding: 18px 0 20px;
+    text-align: center;
+  }
+  .foot .switch-line {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .foot .switch-line .link { font-size: 13px; margin-left: 4px; }
+  .campus {
+    margin: 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  /* step screens keep their own rhythm */
+  .step .hero { padding-bottom: 16px; }
+  .step .hero h1 { font-size: 28px; }
+  .step .card { padding: 20px 16px; }
+  .step .field + .field { margin-top: 16px; }
+  .step .well { height: 50px; }
+  .step .cta { height: 50px; }
+  .step .btn-row { margin-top: 18px; }
+  .step .btn-row .btn-ghost { height: 50px; }
+  .step .foot { padding: 14px 0 18px; }
+
+  /* Solo export (?only=...): one board, no page furniture. */
+  body.solo { background: #F4F4F2; }
+  body.solo .board { margin: 0 auto; border-radius: 28px; }
+</style>
+</head>
+<body>
+
+<header class="sheet-head">
+  <div class="sheet-kicker">CScholar mobile · auth</div>
+  <h1>Login &amp; a two-step registration</h1>
+  <p>Full-bleed paper, the real mobile header and one green pill per step. Registration is split into "who you are" and "how you sign in", so no step is longer than a login screen.</p>
+</header>
+
+<section class="board">
+  <div class="board-label">Light mode <span>Paper #F8F6F0 · Surface #FFFEFA · Green #174F3D</span></div>
+  <div class="phones"></div>
+</section>
+
+<section class="board dark">
+  <div class="board-label">Dark mode <span>Paper #17201C · Surface #202A25 · Green #80C4A6</span></div>
+  <div class="phones"></div>
+</section>
+
+<footer class="sheet-head" style="padding-top: 8px; padding-bottom: 40px;">
+  <p style="font-size: 11.5px;">Mockup only · tokens mirror <code>cscholar_mobile_tokens.dart</code> (paper, surface, soft, mint, line, card radius 23, CTA radius 22). Type: Manrope headings, DM Sans body.</p>
+</footer>
+
+<!-- One copy of the flow, cloned into both boards. -->
+<template id="flow">
+
+  <!-- ------------------------------------------------------- login -->
+  <figure class="device-wrap">
+    <figcaption>Sign in</figcaption>
+    <div class="device login">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="sig" aria-hidden="true">
+          <svg width="17" height="11" viewBox="0 0 17 11"><g class="icon-fill"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></g></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11"><g class="icon-fill"><path d="M8 10.2 5.2 7.4a4 4 0 0 1 5.6 0L8 10.2Z"/><path d="M8 5.2c1.7 0 3.3.6 4.5 1.8l1-1A8 8 0 0 0 2.5 6l1 1A6.3 6.3 0 0 1 8 5.2Z"/></g></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11"><g><rect x="0.5" y="0.5" width="20" height="10" rx="3" class="icon"/><rect x="2" y="2" width="16" height="7" rx="1.7" class="icon-fill"/><path d="M22.5 3.5v4a2 2 0 0 0 0-4Z" class="icon-fill" opacity=".5"/></g></svg>
+        </span>
+      </div>
+
+      <div class="appbar">
+        <div class="brand-tile" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24"><g fill="#fff"><path d="M12 4 2.5 8.6 12 13.2l7.4-3.6v5.1h1.8V8.6L12 4Z"/><path d="M6.2 12.1v3.2c0 1.7 2.6 3.1 5.8 3.1s5.8-1.4 5.8-3.1v-3.2L12 15.1l-5.8-3Z" opacity=".85"/></g></svg>
+        </div>
+        <div class="appbar-title">CScholar</div>
+        <div class="chrome-btn" aria-hidden="true">
+          <svg class="icon i-moon" width="17" height="17" viewBox="0 0 24 24"><path d="M20.3 14.6A8.4 8.4 0 0 1 9.4 3.7a8.4 8.4 0 1 0 10.9 10.9Z"/></svg>
+          <svg class="icon i-sun" width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="hero">
+          <div class="eyebrow">CEIT Thesis Repository</div>
+          <h1>Welcome back.</h1>
+          <p>Sign in to pick up your saved studies and repository tools.</p>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label class="field-label">Institutional email</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+              <span class="value placeholder">you@example.com</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Password</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+              <span class="value dots">••••••••</span>
+              <span class="trail" aria-hidden="true">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/><path d="m4 4 16 16" opacity=".55"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="row-between">
+            <span class="remember"><span class="switch" aria-hidden="true"></span>Remember me</span>
+            <a class="link" href="#">Forgot password?</a>
+          </div>
+
+          <button class="cta" type="button">Sign in</button>
+        </div>
+
+        <div class="foot">
+          <div class="switch-line">New here?<a class="link" href="#">Create an account</a></div>
+          <div class="campus">
+            <svg width="12" height="12" viewBox="0 0 24 24" style="color: var(--green)"><g class="icon-fill"><path d="M12 4 2.5 8.6 12 13.2l7.4-3.6v5.1h1.8V8.6L12 4Z"/><path d="M6.2 12.1v3.2c0 1.7 2.6 3.1 5.8 3.1s5.8-1.4 5.8-3.1v-3.2L12 15.1l-5.8-3Z" opacity=".75"/></g></svg>
+            Caraga State University · CEIT Campus Portal
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ------------------------------------------------- step 1 of 2 -->
+  <figure class="device-wrap">
+    <figcaption>Create account · step 1 of 2</figcaption>
+    <div class="device step">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="sig" aria-hidden="true">
+          <svg width="17" height="11" viewBox="0 0 17 11"><g class="icon-fill"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></g></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11"><g class="icon-fill"><path d="M8 10.2 5.2 7.4a4 4 0 0 1 5.6 0L8 10.2Z"/><path d="M8 5.2c1.7 0 3.3.6 4.5 1.8l1-1A8 8 0 0 0 2.5 6l1 1A6.3 6.3 0 0 1 8 5.2Z"/></g></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11"><g class="icon"><rect x="0.5" y="0.5" width="20" height="10" rx="3"/><rect x="2" y="2" width="16" height="7" rx="1.7" class="icon-fill"/><path d="M22.5 3.5v4a2 2 0 0 0 0-4Z" class="icon-fill" opacity=".5"/></g></svg>
+        </span>
+      </div>
+
+      <div class="appbar">
+        <div class="chrome-btn" aria-hidden="true">
+          <svg class="icon" width="17" height="17" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
+        </div>
+        <div class="appbar-title">Create account</div>
+        <div class="chrome-btn" aria-hidden="true">
+          <svg class="icon i-moon" width="17" height="17" viewBox="0 0 24 24"><path d="M20.3 14.6A8.4 8.4 0 0 1 9.4 3.7a8.4 8.4 0 1 0 10.9 10.9Z"/></svg>
+          <svg class="icon i-sun" width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="stepbar">
+          <div class="segments"><span class="segment on"></span><span class="segment"></span></div>
+          <span class="stepnum">1 / 2</span>
+        </div>
+
+        <div class="hero">
+          <div class="eyebrow">Your details</div>
+          <h1>Tell us who you are.</h1>
+          <p>Your name and student number, as they appear in CEIT records.</p>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label class="field-label">Full name</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.4 3.6-5.2 7-5.2s6.2 1.8 7 5.2"/></svg>
+              <span class="value placeholder">Enter your full name</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Student ID</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="3"/><circle cx="8.5" cy="12" r="2.2"/><path d="M13.5 10h5M13.5 14h3.5"/></svg>
+              <span class="value placeholder">e.g. 2021-00001</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Degree program</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M12 4 2.5 8.6 12 13.2l9.5-4.6L12 4Z"/><path d="M6.5 10.8v4.4c0 1.6 2.5 2.9 5.5 2.9s5.5-1.3 5.5-2.9v-4.4"/></svg>
+              <span class="value">BS Computer Science</span>
+              <span class="trail" aria-hidden="true">
+                <svg class="icon" width="16" height="16" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <button class="cta" type="button">Continue
+            <svg class="icon" width="17" height="17" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          </button>
+        </div>
+
+        <div class="foot">
+          <div class="switch-line">Already have an account?<a class="link" href="#">Sign in</a></div>
+          <div class="campus">
+            <svg width="12" height="12" viewBox="0 0 24 24" style="color: var(--green)"><g class="icon-fill"><path d="M12 4 2.5 8.6 12 13.2l7.4-3.6v5.1h1.8V8.6L12 4Z"/><path d="M6.2 12.1v3.2c0 1.7 2.6 3.1 5.8 3.1s5.8-1.4 5.8-3.1v-3.2L12 15.1l-5.8-3Z" opacity=".75"/></g></svg>
+            Caraga State University · CEIT Campus Portal
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ------------------------------------------------- step 2 of 2 -->
+  <figure class="device-wrap">
+    <figcaption>Create account · step 2 of 2</figcaption>
+    <div class="device step">
+      <div class="statusbar">
+        <span>9:41</span>
+        <span class="sig" aria-hidden="true">
+          <svg width="17" height="11" viewBox="0 0 17 11"><g class="icon-fill"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></g></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11"><g class="icon-fill"><path d="M8 10.2 5.2 7.4a4 4 0 0 1 5.6 0L8 10.2Z"/><path d="M8 5.2c1.7 0 3.3.6 4.5 1.8l1-1A8 8 0 0 0 2.5 6l1 1A6.3 6.3 0 0 1 8 5.2Z"/></g></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11"><g class="icon"><rect x="0.5" y="0.5" width="20" height="10" rx="3"/><rect x="2" y="2" width="16" height="7" rx="1.7" class="icon-fill"/><path d="M22.5 3.5v4a2 2 0 0 0 0-4Z" class="icon-fill" opacity=".5"/></g></svg>
+        </span>
+      </div>
+
+      <div class="appbar">
+        <div class="chrome-btn" aria-hidden="true">
+          <svg class="icon" width="17" height="17" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
+        </div>
+        <div class="appbar-title">Create account</div>
+        <div class="chrome-btn" aria-hidden="true">
+          <svg class="icon i-moon" width="17" height="17" viewBox="0 0 24 24"><path d="M20.3 14.6A8.4 8.4 0 0 1 9.4 3.7a8.4 8.4 0 1 0 10.9 10.9Z"/></svg>
+          <svg class="icon i-sun" width="17" height="17" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="stepbar">
+          <div class="segments"><span class="segment on"></span><span class="segment on"></span></div>
+          <span class="stepnum">2 / 2</span>
+        </div>
+
+        <div class="hero">
+          <div class="eyebrow">Secure your account</div>
+          <h1>Set your sign-in.</h1>
+          <p>Use your CSU email — it's what you'll sign in with.</p>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <label class="field-label">Institutional email</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+              <span class="value placeholder">you@example.com</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Password</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+              <span class="value dots">••••••••</span>
+              <span class="trail" aria-hidden="true">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/><path d="m4 4 16 16" opacity=".55"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Confirm password</label>
+            <div class="well">
+              <svg class="icon" width="18" height="18" viewBox="0 0 24 24"><rect x="4" y="10.5" width="16" height="10" rx="3"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+              <span class="value dots">••••••••</span>
+            </div>
+          </div>
+
+          <div class="chips">
+            <span class="chip">6+ characters</span>
+            <span class="chip">matches</span>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-ghost" type="button">Back</button>
+            <button class="cta" type="button">Create account</button>
+          </div>
+        </div>
+
+        <div class="foot">
+          <div class="switch-line">Already have an account?<a class="link" href="#">Sign in</a></div>
+          <div class="campus">
+            <svg width="12" height="12" viewBox="0 0 24 24" style="color: var(--green)"><g class="icon-fill"><path d="M12 4 2.5 8.6 12 13.2l7.4-3.6v5.1h1.8V8.6L12 4Z"/><path d="M6.2 12.1v3.2c0 1.7 2.6 3.1 5.8 3.1s5.8-1.4 5.8-3.1v-3.2L12 15.1l-5.8-3Z" opacity=".75"/></g></svg>
+            Caraga State University · CEIT Campus Portal
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+</template>
+
+<script>
+  // Clone the flow into both mode boards.
+  const flow = document.getElementById('flow');
+  document.querySelectorAll('.phones').forEach((host) => {
+    host.appendChild(flow.content.cloneNode(true));
+  });
+
+  // ?only=light / ?only=dark renders one board alone (for PNG exports).
+  const only = new URLSearchParams(location.search).get('only');
+  if (only) {
+    document.body.classList.add('solo');
+    const keep = only === 'dark' ? '.board.dark' : '.board:not(.dark)';
+    document.querySelectorAll('.board').forEach((board) => {
+      if (!board.matches(keep)) board.remove();
+    });
+    document.querySelectorAll('.sheet-head').forEach((el) => el.remove());
+  }
+</script>
+
+</body>
+</html>

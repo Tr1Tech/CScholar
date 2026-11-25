@@ -103,13 +103,23 @@ class CScholarMaterial {
   static Color get actionFillPressed => _p.actionPressed;
   static Color get actionFillDeep => _p.actionDeep;
 
+  /// Bottom stop of the RESTING green fill (the gel gradients on pills, tiles,
+  /// avatars and covers).
+  ///
+  /// Light is the mobile shell's flat `#174F3D`: a light fill that ended on the
+  /// pressed green made every web control read one step darker than the same
+  /// control in the app. Dark keeps [actionFillPressed] — the dark gel was
+  /// already matched to the app and is unchanged.
+  static Color get actionFillRest => _p.isDark ? _p.actionPressed : _p.action;
+
   /// Solid destructive fill (white text) and its pressed step.
   static Color get dangerFill => _p.dangerFill;
   static Color get dangerFillPressed => _p.dangerFillPressed;
 
   /// Attention / AI accent. Gold retired; coral carries prestige marks now.
   static Color get goldTop => _p.coral;
-  static Color get goldBottom => _p.isDark ? const Color(0xFF7A2E1C) : _p.danger;
+  static Color get goldBottom =>
+      _p.isDark ? const Color(0xFF7A2E1C) : _p.danger;
   static Color get goldCore => _p.coralSoft;
 
   /// Glyph ink for the prestige tile (dark on the light coral gradient, warm
@@ -155,9 +165,7 @@ class CScholarMaterial {
   /// Green shadow for identity objects.
   static List<BoxShadow> gelDrop({double depth = 1}) => [
     BoxShadow(
-      color: actionFillDeep.withValues(
-        alpha: (0.22 * depth).clamp(0.0, 1.0),
-      ),
+      color: actionFillDeep.withValues(alpha: (0.22 * depth).clamp(0.0, 1.0)),
       blurRadius: 18 * depth,
       offset: Offset(0, 8 * depth),
     ),
@@ -198,7 +206,7 @@ class CScholarMaterial {
     'muted ink #A9B5AE on surfaceDark #202A25': 7.5,
     'accent #80C4A6 on surfaceDark #202A25': 8.4,
     'accent #80C4A6 on mintDark #203C31': 6.6,
-    'white on action #2E7D63': 5.0,
+    'white on action #174F3D (dark fills)': 9.45,
     'danger #FF8F7A on surfaceDark #202A25': 7.3,
     'lilac ink #B7AEE8 on surfaceDark #202A25': 7.9,
     'hint #7F8C85 on paperDark (placeholders only)': 4.3,

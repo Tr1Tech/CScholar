@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
+import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/mobile_theme_provider.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/presentation/widgets/common/csu_mark.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 
 /// Prototype header (`cscholar-mobile-ui/src/App.tsx:364-422`, styled
-/// `index.css:361-389`): mini-brand C, centered workspace title, theme
-/// toggle + avatar actions. Depth screens swap the brand for a back action.
+/// `index.css:361-389`): brand mark with the wordmark beside it, theme toggle
+/// + avatar actions on the right. Depth screens swap the brand for a back
+/// action and put the page title in the wordmark's slot.
 class MobileStudentHeader extends ConsumerWidget {
   final bool isDepth;
   final String depthTitle;
@@ -37,26 +41,26 @@ class MobileStudentHeader extends ConsumerWidget {
     String initials = 'AS';
     final name = (user?.username ?? '').trim();
     if (name.isNotEmpty) {
-      final parts =
-          name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      final parts = name
+          .split(RegExp(r'\s+'))
+          .where((p) => p.isNotEmpty)
+          .toList();
       if (parts.length == 1) {
-        initials = parts.first.substring(
-            0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+        initials = parts.first
+            .substring(0, parts.first.length >= 2 ? 2 : 1)
+            .toUpperCase();
       } else {
-        initials =
-            (parts[0][0] + parts[1][0]).toUpperCase();
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
       }
     }
 
     return Container(
-      height: 74,
+      constraints: const BoxConstraints(minHeight: 74),
       padding: const EdgeInsets.fromLTRB(21, 24, 21, 9),
       decoration: BoxDecoration(
         color: bg,
         border: Border(
-          bottom: BorderSide(
-            color: t.ink.withValues(alpha: 0.06),
-          ),
+          bottom: BorderSide(color: t.ink.withValues(alpha: 0.06)),
         ),
       ),
       child: Row(
@@ -79,37 +83,25 @@ class MobileStudentHeader extends ConsumerWidget {
               },
             )
           else
-            // tile-exempt: mini brand mark, not an icon tile.
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: CScholarMobileColors.green,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x2E174F3D),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'C',
-                style: CScholarMobileTextStyles.manrope(
-                    15, FontWeight.w800, Colors.white),
-              ),
-            ),
+            // The one brand mark: same identity block as the web shells.
+            const CSUMark(size: 30),
+          const SizedBox(width: 10),
+          // The wordmark reads as a lockup with the mark ("[icon] CScholar"),
+          // not as a centered page title: it sits directly beside the icon and
+          // only the right-hand actions stay pinned to the edge. Depth screens
+          // follow the same rule with the back action in the icon's slot.
           Expanded(
             child: Text(
               isDepth ? depthTitle : 'CScholar',
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: t.manrope(
-                  14, FontWeight.w700, t.ink,
-                  letterSpacing: -0.14),
+                14,
+                FontWeight.w700,
+                t.ink,
+                letterSpacing: -0.14,
+              ),
             ),
           ),
           Row(
@@ -117,7 +109,12 @@ class MobileStudentHeader extends ConsumerWidget {
             children: [
               _RoundButton(
                 theme: t,
-                icon: isDark ? Icons.light_mode : Icons.dark_mode,
+                icon: isDark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                iconColor: isDark
+                    ? CScholarColors.primaryGreenHover
+                    : CScholarColors.primaryGreen,
                 semanticLabel: isDark
                     ? 'Switch to light mode'
                     : 'Switch to dark mode',
@@ -125,23 +122,34 @@ class MobileStudentHeader extends ConsumerWidget {
                     ref.read(mobileThemeModeProvider.notifier).toggle(),
               ),
               const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => context.go('/profile'),
-                child: Container(
-                  // tile-exempt: header avatar.
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: t.coralSoft,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    initials,
-                    style: t.dmSans(
-                        10,
-                        FontWeight.w800,
-                        t.green),
+              Semantics(
+                button: true,
+                label: 'Open your profile',
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => context.go('/profile'),
+                    child: SizedBox(
+                      width: CScholarTapTarget.minimum,
+                      height: CScholarTapTarget.minimum,
+                      child: Center(
+                        child: Container(
+                          // tile-exempt: header avatar.
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: t.mint,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            initials,
+                            style: t.dmSans(10, FontWeight.w800, t.green),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -159,42 +167,57 @@ class _RoundButton extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onTap;
 
+  /// Glyph colour. Defaults to the shell's green; the theme switch passes the
+  /// same web token pair (primaryGreen / primaryGreenHover) so phone and
+  /// desktop never show a different switch.
+  final Color? iconColor;
+
   const _RoundButton({
     required this.theme,
     required this.icon,
     required this.semanticLabel,
     required this.onTap,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final flat = MediaQuery.highContrastOf(context);
     return Semantics(
       button: true,
       label: semanticLabel,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           selectionHaptic();
           onTap();
         },
-        child: Container(
-          // tile-exempt: round chrome button.
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: theme.surface.withValues(alpha: 0.85),
-            shape: BoxShape.circle,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1423372C),
-                blurRadius: 18,
-                offset: Offset(0, 7),
+        child: SizedBox(
+          width: CScholarTapTarget.minimum,
+          height: CScholarTapTarget.minimum,
+          child: Center(
+            child: Container(
+              // tile-exempt: round chrome button.
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                // Same chrome recipe as the web ThemeModeButton: clay,
+                // hairline, one soft shadow. The near-white fill was the
+                // phone drifting from the shared topbar.
+                color: CScholarMaterial.clay,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: flat
+                      ? CScholarMaterial.rimStrong
+                      : CScholarMaterial.rim,
+                  width: flat ? 1.5 : 1,
+                ),
+                boxShadow: flat
+                    ? null
+                    : CScholarMaterial.softShadow(depth: 0.5),
               ),
-            ],
-          ),
-          child: Icon(
-            icon,
-            size: 17,
-            color: theme.green,
+              child: Icon(icon, size: 17, color: iconColor ?? theme.green),
+            ),
           ),
         ),
       ),

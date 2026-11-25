@@ -7,6 +7,7 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/presentation/widgets/common/page_header.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
@@ -290,7 +291,11 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                   error: (err, _) => EmptyState(
                     icon: Icons.error_outline,
                     title: 'Unable to load saved studies',
-                    message: err.toString(),
+                    message: userFacingError(
+                      err,
+                      fallback:
+                          'Your saved studies could not be loaded. Try again.',
+                    ),
                     actionLabel: 'Retry',
                     onAction: () => ref.invalidate(savedThesesProvider),
                   ),
@@ -313,24 +318,40 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
     VoidCallback onTap,
   ) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? t.green : t.surfaceSoft,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: active ? t.green : t.line),
-        ),
-        child: Text(
-          label,
-          style: t.dmSans(
-            10,
-            FontWeight.w700,
-            // Dark mode's green is a light mint accent, so white on it is
-            // unreadable: selected pills flip to ink there.
-            active
-                ? (t.isDark ? CScholarMobileColors.ink : CScholarColors.white)
-                : t.muted,
+      child: Padding(
+        // The chip itself stays compact; this transparent padding keeps the
+        // whole pill a comfortable 44px touch target.
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Container(
+          // No `alignment` here: an aligned Container expands to the max
+          // width it is offered, which turns each pill in the Wrap into a
+          // full-width row. Center with widthFactor keeps the label centered
+          // while the pill stays intrinsic.
+          constraints: const BoxConstraints(minHeight: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: active ? t.green : t.surfaceSoft,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: active ? t.green : t.line),
+          ),
+          child: Center(
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: t.dmSans(
+                10,
+                FontWeight.w700,
+                // Dark mode's green is a light mint accent, so white on it is
+                // unreadable: selected pills flip to ink there.
+                active
+                    ? (t.isDark
+                          ? CScholarMobileColors.ink
+                          : CScholarColors.white)
+                    : t.muted,
+              ),
+            ),
           ),
         ),
       ),
@@ -392,17 +413,35 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                       ),
                     ],
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(sheetContext).pop(),
-                    // tile-exempt: bottom-sheet close affordance.
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: t.surfaceSoft,
-                        shape: BoxShape.circle,
+                  Semantics(
+                    button: true,
+                    label: 'Close filters',
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.of(sheetContext).pop(),
+                        child: SizedBox(
+                          width: CScholarTapTarget.minimum,
+                          height: CScholarTapTarget.minimum,
+                          child: Center(
+                            child: Container(
+                              // tile-exempt: bottom-sheet close affordance.
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: t.surfaceSoft,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: t.muted,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Icon(Icons.close, size: 16, color: t.muted),
                     ),
                   ),
                 ],
@@ -417,7 +456,7 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 7,
-                      runSpacing: 7,
+                      runSpacing: 0,
                       children: [
                         for (final option in _tabs)
                           _mobileChoicePill(
@@ -612,7 +651,10 @@ class _SavedThesesScreenState extends ConsumerState<SavedThesesScreen> {
               mobile: true,
               icon: Icons.error_outline,
               title: 'Unable to load saved studies',
-              message: err.toString(),
+              message: userFacingError(
+                err,
+                fallback: 'Your saved studies could not be loaded. Try again.',
+              ),
               actionLabel: 'Retry',
               onAction: () => ref.invalidate(savedThesesProvider),
             ),

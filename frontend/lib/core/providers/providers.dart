@@ -11,7 +11,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 // sample/seed data anywhere in the app.
 
 // ─── API Service provider (production HTTP client) ───────────────────────────
-final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final api = ApiService();
+  // A 401 from any authenticated call ends the session centrally: the token is
+  // dropped and the router redirects to sign-in. Screens then show a normal
+  // "session expired" message instead of ApiException(401) (TRU-4).
+  api.onUnauthorized = () {
+    ref.read(authProvider.notifier).sessionExpired();
+  };
+  return api;
+});
 
 // ─── Auth API provider ────────────────────────────────────────────────────────
 final authApiProvider = Provider<AuthApi>(
@@ -93,22 +102,35 @@ class AuthNotifier extends Notifier<AsyncValue<User?>> {
     state = const AsyncValue.data(null);
   }
 
+  /// The server rejected this session's token (expired, revoked by a password
+  /// change, or account deactivated). Keep the app honest: drop the local
+  /// session so the router lands on sign-in, without a raw 401 on screen.
+  Future<void> sessionExpired() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+    } catch (_) {
+      // Best-effort: the in-memory session is still cleared below.
+    }
+    ref.read(apiServiceProvider).clearToken();
+    state = const AsyncValue.data(null);
+  }
+
   /// Creates the account and reports whether it landed.
   ///
   /// Registration is NOT a session event, so this deliberately leaves [state]
   /// alone. Touching it fires the router's refresh, and this call cannot sign
   /// the user in anyway (the register route never stores the token it returns).
-  Future<bool> register(User user) async {
-    try {
-      await _authApi.register({
-        'username': user.username,
-        'email': user.email,
-        'password': user.passwordHash,
-      });
-      return true;
-    } catch (_) {
-      return false;
-    }
+  ///
+  /// Failures are rethrown: the screen needs to tell a duplicate account
+  /// (409) apart from a network failure. Swallowing the error here made every
+  /// failure read as "email may already be in use" (CNT-4).
+  Future<void> register(User user) async {
+    await _authApi.register({
+      'username': user.username,
+      'email': user.email,
+      'password': user.passwordHash,
+    });
   }
 
   Future<void> loadToken() async {
@@ -472,6 +494,81 @@ class SavedThesisIdsNotifier extends Notifier<Set<int>> {
     state = {};
     _persist({}, userId);
     ref.invalidate(recommendationsProvider);
+  }
+}
+
+// Studies this account has opened, newest first.
+//
+// The schema has no per-student view table, so history stays on the device
+// like the saved set. Only the count is surfaced (the dashboard strip); the
+// ids themselves never leave the phone.
+//
+// Namespaced by account (see [localStateKey]): a freshly registered account
+// must start at zero instead of inheriting the previous reader's history.
+final viewedThesisIdsProvider =
+    NotifierProvider<ViewedThesisIdsNotifier, List<int>>(
+      () => ViewedThesisIdsNotifier(),
+    );
+
+class ViewedThesisIdsNotifier extends Notifier<List<int>> {
+  static const _prefsKey = 'viewed_thesis_ids';
+
+  /// The strip counts distinct studies, so the list is a tally, not an
+  /// archive. Cap it so prefs cannot grow without bound.
+  static const int _cap = 200;
+
+  /// Bumped on every account change, so a slow prefs read for the previous
+  /// account cannot land on this one.
+  int _generation = 0;
+
+  /// Set as soon as a view is recorded. A slow prefs read must not overwrite
+  /// a newer local write with the disk copy.
+  bool _touched = false;
+
+  @override
+  List<int> build() {
+    final userId = ref.watch(localStateScopeProvider);
+    _generation++;
+    _touched = false;
+    _restore(userId, _generation);
+    return const [];
+  }
+
+  Future<void> _restore(int? userId, int generation) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw =
+          prefs.getStringList(localStateKey(_prefsKey, userId)) ??
+          const <String>[];
+      final ids = raw.map(int.tryParse).whereType<int>().toList();
+      if (!ref.mounted || generation != _generation || _touched) return;
+      if (ids.isNotEmpty) state = ids;
+    } catch (_) {
+      // No prefs available (tests, first run): start empty.
+    }
+  }
+
+  Future<void> _persist(List<int> ids, int? userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        localStateKey(_prefsKey, userId),
+        ids.map((id) => id.toString()).toList(),
+      );
+    } catch (_) {
+      // Losing a view count is not worth surfacing to the reader.
+    }
+  }
+
+  /// Records one open. Re-opening a study that is already counted is a no-op,
+  /// so the number means "distinct studies this account has read".
+  void record(int id) {
+    if (id <= 0 || state.contains(id)) return;
+    final userId = ref.read(localStateScopeProvider);
+    _touched = true;
+    final next = <int>[id, ...state];
+    state = next.length > _cap ? next.sublist(0, _cap) : next;
+    _persist(state, userId);
   }
 }
 

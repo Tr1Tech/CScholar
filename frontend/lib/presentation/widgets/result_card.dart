@@ -8,8 +8,17 @@ import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
 
 /// V2 search result card (new design): generative cover, title, authors,
-/// program/year, keyword chips, real match badge (semantic only), save +
-/// related actions.
+/// program/year, keyword chips, and the card's state/actions on the right —
+///
+///   type badge   (top-right)
+///   match        (directly under the type badge, only on semantic results)
+///   save         (bottom-right corner)
+///
+/// The match lives in the right rail under the type badge instead of sharing
+/// the author line: a two-line badge on that line pushed the authors, program
+/// and keyword rows down and left visible gaps between them. In the rail it is
+/// beside that text, so a semantic card keeps the exact same vertical rhythm
+/// as a keyword card.
 class ResultCard extends StatelessWidget {
   final Thesis thesis;
   final bool isSaved;
@@ -40,154 +49,133 @@ class ResultCard extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              // A card is content-sized; without this the column fills any
+              // bounded height it is handed and the save stops hugging the
+              // bottom edge of the card.
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: InkWell(
-                        onTap: () => context.go(
-                          '/thesis/${thesis.id}',
-                          // Semantic entries hand their score through: the
-                          // detail screen meters it, keyword entries meter
-                          // nothing. Extra never survives a pasted URL — the
-                          // meter then stays off instead of guessing.
-                          extra: similarity,
-                        ),
-                        child: Text(
-                          thesis.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: CScholarTextStyles.heading(
-                            15,
-                            FontWeight.w700,
-                            CScholarColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _typeChip(),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  thesis.authorsString,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.body(
-                    12,
-                    FontWeight.w500,
-                    CScholarColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${thesis.program?.name ?? '—'}  •  ${thesis.academicYear?.label ?? '—'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.body(
-                    11.5,
-                    FontWeight.w400,
-                    CScholarColors.textMuted,
-                  ),
-                ),
-                if (keywords.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: keywords
-                        .map(
-                          (k) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              // A recessed well, not `backgroundSoft`: the
-                              // canvas (#E8EFE7) is DARKER than the clay card
-                              // (#F1F6F0), so those chips read as holes
-                              // punched in the panel rather than tokens on it.
-                              color: CScholarMaterial.clayDeep,
-                              borderRadius: BorderRadius.circular(
-                                CScholarRadius.full,
-                              ),
-                              border: Border.all(color: CScholarMaterial.rim),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          InkWell(
+                            onTap: () => context.go(
+                              '/thesis/${thesis.id}',
+                              // Semantic entries hand their score through: the
+                              // detail screen meters it, keyword entries meter
+                              // nothing. Extra never survives a pasted URL — the
+                              // meter then stays off instead of guessing.
+                              extra: similarity,
                             ),
                             child: Text(
-                              k.term,
-                              style: CScholarTextStyles.body(
-                                11,
-                                FontWeight.w500,
-                                CScholarColors.textMuted,
+                              thesis.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: CScholarTextStyles.heading(
+                                15,
+                                FontWeight.w700,
+                                CScholarColors.textPrimary,
                               ),
                             ),
                           ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                if (similarity != null) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _matchBadge(context, similarity!),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                // Wrap, not Row+Spacer: at 200% text the two action pills
-                // exceed a narrow result column. They stack instead of
-                // overflowing.
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    InkWell(
-                      onTap: () =>
-                          context.go('/thesis/${thesis.id}', extra: similarity),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: CScholarColors.primaryGreenLight,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: CScholarMaterial.rimPublished,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                          const SizedBox(height: 4),
+                          if (thesis.authorsString.isNotEmpty)
                             Text(
-                              'Related Research',
+                              thesis.authorsString,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: CScholarTextStyles.body(
                                 12,
-                                FontWeight.w600,
-                                CScholarColors.primaryGreen,
+                                FontWeight.w500,
+                                CScholarColors.textSecondary,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_forward,
-                              size: 14,
-                              color: CScholarColors.primaryGreen,
+                          const SizedBox(height: 2),
+                          Text(
+                            '${thesis.program?.name ?? '—'}  •  ${thesis.academicYear?.label ?? '—'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CScholarTextStyles.body(
+                              11.5,
+                              FontWeight.w400,
+                              CScholarColors.textMuted,
+                            ),
+                          ),
+                          if (keywords.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: keywords
+                                  .map(
+                                    (k) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        // A recessed well, not
+                                        // `backgroundSoft`: the canvas
+                                        // (#E8EFE7) is DARKER than the clay
+                                        // card (#F1F6F0), so those chips read
+                                        // as holes punched in the panel rather
+                                        // than tokens on it.
+                                        color: CScholarMaterial.clayDeep,
+                                        borderRadius: BorderRadius.circular(
+                                          CScholarRadius.full,
+                                        ),
+                                        border: Border.all(
+                                          color: CScholarMaterial.rim,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        k.term,
+                                        style: CScholarTextStyles.body(
+                                          11,
+                                          FontWeight.w500,
+                                          CScholarColors.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                    // A labelled pill, not a bare 36px circle: the icon-only
-                    // button read as a floating affordance with no name. Same
-                    // geometry as "Related Research" so the row scans as one
-                    // set of actions; mint = saved, clay = unsaved.
-                    _saveButton(),
+                    const SizedBox(width: 10),
+                    // Right rail: type badge on top, the semantic score
+                    // directly underneath it. Keeping it here means the two
+                    // badges never change the height of the title, author or
+                    // program lines on the left.
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _typeChip(),
+                        if (similarity != null) ...[
+                          const SizedBox(height: 8),
+                          _matchBadge(context, similarity!),
+                        ],
+                      ],
+                    ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                // OverflowBar, not Row+Spacer: the two actions are pinned to
+                // opposite ends while there is room, and stack (still
+                // right-aligned) at 200% text instead of overflowing.
+                OverflowBar(
+                  spacing: 8,
+                  overflowSpacing: 8,
+                  alignment: MainAxisAlignment.spaceBetween,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  children: [_relatedPill(context), _saveButton()],
                 ),
               ],
             ),
@@ -197,8 +185,52 @@ class ResultCard extends StatelessWidget {
     );
   }
 
-  /// Save action as a named pill. The old icon-only circle was a 36px
-  /// mystery target; this states its purpose and shows the saved state.
+  /// The left-hand action: leave the list for the study's related work.
+  Widget _relatedPill(BuildContext context) {
+    return InkWell(
+      onTap: () => context.go('/thesis/${thesis.id}', extra: similarity),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: CScholarColors.primaryGreenLight,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: CScholarMaterial.rimPublished),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Flexible: at 200% text "Related Research" is wider than the
+            // card's action column. Ellipsising the wording keeps the pill
+            // inside the card; the arrow still names the direction.
+            Flexible(
+              child: Text(
+                'Related Research',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w600,
+                  CScholarColors.primaryGreen,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_forward,
+              size: 14,
+              color: CScholarColors.primaryGreen,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Save action as a named pill, pinned to the card's bottom-right corner.
+  ///
+  /// The old icon-only circle was a 36px mystery target; this states its
+  /// purpose and shows the saved state.
   Widget _saveButton() {
     final bg = isSaved
         ? CScholarColors.primaryGreenLight
@@ -216,7 +248,9 @@ class ResultCard extends StatelessWidget {
         onTap: onToggleSave,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          // 12+12 padding around a 12px label = the 44px interaction floor
+          // (A11Y-1), without forcing the pill to fill the row.
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(20),
@@ -267,53 +301,62 @@ class ResultCard extends StatelessWidget {
     );
   }
 
-  /// Semantic match as a readable inline pill.
+  /// Match score, stacked as the sparkle/number line and `MATCH` underneath.
   ///
-  /// It used to be a 52px column with a 10px label that `FittedBox` shrank to
-  /// ~6px. A horizontal pill carries the same mint/green identity, stays at a
-  /// legible 11.5px, and lives in the content flow so it never squeezes the
-  /// title column.
+  /// It sits in the card's right rail, directly under the type badge. Keeping
+  /// it out of the author line is what preserves the keyword card's vertical
+  /// rhythm: the badge no longer stretches the authors or program rows.
   Widget _matchBadge(BuildContext context, double score) {
     final pct = (score * 100).round().clamp(0, 100);
     final badge = Tooltip(
       message:
-          'Semantic match $pct% — ranked by meaning. Open the study to see related work.',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: CScholarColors.primaryGreenLight,
-          borderRadius: BorderRadius.circular(CScholarRadius.full),
-          border: Border.all(
-            color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+          'Match $pct% — ranked by meaning. Open the study to see related work.',
+      child: Semantics(
+        label: 'Match $pct% — ranked by meaning',
+        excludeSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: CScholarColors.primaryGreenLight,
+            borderRadius: BorderRadius.circular(CScholarRadius.full),
+            border: Border.all(
+              color: CScholarColors.primaryGreen.withValues(alpha: 0.25),
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.auto_awesome,
-              size: 12,
-              color: CScholarColors.primaryGreen,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              '$pct%',
-              style: CScholarTextStyles.body(
-                12.5,
-                FontWeight.w800,
-                CScholarColors.primaryGreen,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 12,
+                    color: CScholarColors.primaryGreen,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '$pct%',
+                    style: CScholarTextStyles.body(
+                      12.5,
+                      FontWeight.w800,
+                      CScholarColors.primaryGreen,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              'Semantic match',
-              style: CScholarTextStyles.body(
-                11.5,
-                FontWeight.w600,
-                CScholarColors.primaryGreen,
+              const SizedBox(height: 1),
+              Text(
+                'MATCH',
+                style: CScholarTextStyles.body(
+                  9,
+                  FontWeight.w700,
+                  CScholarColors.textMuted,
+                ).copyWith(letterSpacing: 0.8),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

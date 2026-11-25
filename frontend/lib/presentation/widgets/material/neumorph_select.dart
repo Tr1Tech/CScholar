@@ -51,9 +51,7 @@ class NeumorphToggle extends StatelessWidget {
             // brand green so the state is legible without reading the ball's
             // rim. (White on green measures 9.45:1 — the ball still stands out
             // at 2.4:1 as an object, same as any knob on a fill.)
-            color: on
-                ? CScholarMaterial.actionFill
-                : CScholarMaterial.well,
+            color: on ? CScholarMaterial.actionFill : CScholarMaterial.well,
             borderRadius: radius,
           ),
           child: AnimatedAlign(
@@ -421,51 +419,61 @@ class _NeumorphSelectFieldState<T> extends State<NeumorphSelectField<T>> {
                     const SizedBox(width: 10),
                   ],
                   Expanded(
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<T>(
-                        value: widget.value,
-                        focusNode: _focus,
-                        isDense: widget.isDense,
-                        isExpanded: widget.isExpanded,
-                        dropdownColor:
-                            widget.dropdownColor ?? CScholarMaterial.clay,
-                        borderRadius: BorderRadius.circular(CScholarRadius.md),
-                        // NOTE (Phase 4): the menu sheet itself keeps the
-                        // framework fade + resize — its route is built inside
-                        // DropdownButton with no transition hook, and replacing
-                        // the button would break the pinned DropdownButton
-                        // tests. Only the closed face is ours to choreograph.
-                        onTap: _onTapButton,
-                        icon: AnimatedRotation(
-                          turns: menuOpen && animate ? 0.5 : 0,
-                          duration: animate
-                              ? CScholarMotion.micro
-                              : Duration.zero,
-                          child: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: disabled
-                                ? CScholarMaterial.rim
-                                : CScholarMaterial.textMuted,
-                            size: 20,
+                    // Ink boundary around the dropdown's own InkWell. Without
+                    // it the nearest Material is the Scaffold's, and that ink
+                    // layer is NOT clipped by the page's scroll view — so a
+                    // filter's hover/focus highlight stays painted at its old
+                    // position after scrolling, floating over the top bar.
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<T>(
+                          value: widget.value,
+                          focusNode: _focus,
+                          isDense: widget.isDense,
+                          isExpanded: widget.isExpanded,
+                          dropdownColor:
+                              widget.dropdownColor ?? CScholarMaterial.clay,
+                          borderRadius: BorderRadius.circular(
+                            CScholarRadius.md,
                           ),
+                          // NOTE (Phase 4): the menu sheet itself keeps the
+                          // framework fade + resize — its route is built inside
+                          // DropdownButton with no transition hook, and replacing
+                          // the button would break the pinned DropdownButton
+                          // tests. Only the closed face is ours to choreograph.
+                          onTap: _onTapButton,
+                          icon: AnimatedRotation(
+                            turns: menuOpen && animate ? 0.5 : 0,
+                            duration: animate
+                                ? CScholarMotion.micro
+                                : Duration.zero,
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: disabled
+                                  ? CScholarMaterial.rim
+                                  : CScholarMaterial.textMuted,
+                              size: 20,
+                            ),
+                          ),
+                          hint: widget.hintText != null
+                              ? Text(
+                                  widget.hintText!,
+                                  style: CScholarTextStyles.body(
+                                    13.5,
+                                    FontWeight.w400,
+                                    CScholarMaterial.textFaint,
+                                  ),
+                                )
+                              : null,
+                          style: CScholarTextStyles.body(
+                            14,
+                            FontWeight.w400,
+                            CScholarMaterial.textPrimary,
+                          ),
+                          items: widget.items,
+                          onChanged: disabled ? null : widget.onChanged,
                         ),
-                        hint: widget.hintText != null
-                            ? Text(
-                                widget.hintText!,
-                                style: CScholarTextStyles.body(
-                                  13.5,
-                                  FontWeight.w400,
-                                  CScholarMaterial.textFaint,
-                                ),
-                              )
-                            : null,
-                        style: CScholarTextStyles.body(
-                          14,
-                          FontWeight.w400,
-                          CScholarMaterial.textPrimary,
-                        ),
-                        items: widget.items,
-                        onChanged: disabled ? null : widget.onChanged,
                       ),
                     ),
                   ),

@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart' show Brightness, WidgetsBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,16 +34,23 @@ class CScholarModeStore {
   static const String legacyPrefsKey = 'cscholar-mobile-theme-dark';
 
   /// Resolves the saved mode. Call from `main()` before `runApp`.
+  ///
+  /// With no saved choice the app follows the OS: a phone or browser in dark
+  /// mode opens dark (DS-3). The first tap of the switch records an explicit
+  /// override, which then wins on every later launch.
   static Future<bool> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getBool(prefsKey) ?? prefs.getBool(legacyPrefsKey);
       initialDark =
-          prefs.getBool(prefsKey) ??
-          prefs.getBool(legacyPrefsKey) ??
-          false;
+          saved ??
+          (WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark);
     } catch (_) {
-      // No prefs on this platform (or a test host): stay light.
-      initialDark = false;
+      // No prefs on this platform (or a test host): follow the OS too.
+      initialDark =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark;
     }
     return initialDark;
   }

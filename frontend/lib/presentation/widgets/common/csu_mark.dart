@@ -16,11 +16,12 @@ class CSUMark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: CScholarColors.primaryGreen,
+        // Brand block behind a white glyph: the fill token, so dark mode keeps
+        // the mortarboard legible instead of putting white on the mint ink.
+        color: CScholarColors.primaryFill,
         borderRadius: BorderRadius.circular(size * 0.24),
       ),
-      child: Icon(Icons.school,
-          size: size * iconScale, color: Colors.white),
+      child: Icon(Icons.school, size: size * iconScale, color: Colors.white),
     );
   }
 }
@@ -44,17 +45,25 @@ class CSUIdentity extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Caraga State University',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.body(
-                      compact ? 11.5 : 12.5,
-                      FontWeight.w700,
-                      CScholarColors.textPrimary)),
+              Text(
+                'Caraga State University',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: CScholarTextStyles.body(
+                  compact ? 11.5 : 12.5,
+                  FontWeight.w700,
+                  CScholarColors.textPrimary,
+                ),
+              ),
               if (!compact)
-                Text('CEIT Department',
-                    style: CScholarTextStyles.body(11,
-                        FontWeight.w400, CScholarColors.textMuted)),
+                Text(
+                  'CEIT Department',
+                  style: CScholarTextStyles.body(
+                    11,
+                    FontWeight.w400,
+                    CScholarColors.textMuted,
+                  ),
+                ),
             ],
           ),
         ),

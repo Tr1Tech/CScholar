@@ -22,9 +22,8 @@ Future<void> showChangePasswordDialog(BuildContext context) async {
     builder: (_) => const _ChangePasswordDialog(),
   );
   if (updated == true && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password updated.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Password updated.')));
   }
 }
 
@@ -64,7 +63,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       _error = null;
     });
     try {
-      await ref.read(authProvider.notifier).changePassword(
+      await ref
+          .read(authProvider.notifier)
+          .changePassword(
             currentPassword: _currentCtrl.text,
             newPassword: _newCtrl.text,
           );
@@ -133,7 +134,10 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       onPressed: _saving ? null : () => Navigator.pop(context),
     );
     final submitButton = NeumorphButton(
-      label: 'Update password',
+      // The mobile action row splits the sheet's width between Cancel and
+      // Update: "Update password" ellipsised to "Update pass…" at 400px, so
+      // the phone label is the verb alone. Desktop has room for the noun.
+      label: isMobile ? 'Update' : 'Update password',
       loading: _saving,
       flat: isMobile,
       mobile: isMobile,
@@ -223,9 +227,8 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                   textInputAction: TextInputAction.done,
                   autofillHints: const [AutofillHints.newPassword],
                   onSubmitted: (_) => _submit(),
-                  validator: (v) => v != _newCtrl.text
-                      ? 'Passwords do not match'
-                      : null,
+                  validator: (v) =>
+                      v != _newCtrl.text ? 'Passwords do not match' : null,
                   suffixIcon: _reveal(
                     shown: _showConfirm,
                     color: isMobile ? t.muted : CScholarColors.textMuted,

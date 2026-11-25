@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/providers/providers.dart';
+import 'package:frontend/core/utils/user_facing_error.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
@@ -106,14 +107,19 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                             )
                             .toList();
                   if (filtered.isEmpty) {
+                    final all = _statusFilter == 'All';
                     return EmptyState(
                       icon: Icons.article_outlined,
-                      title: _statusFilter == 'All'
+                      title: all
                           ? 'No advised theses yet'
                           : 'No ${_statusFilter.toLowerCase()} theses',
-                      message: _statusFilter == 'All'
-                          ? 'Theses you submit or advise will appear here.'
+                      message: all
+                          ? 'Submit a draft to start your advised list.'
                           : 'Try a different status filter.',
+                      actionLabel: all ? 'New thesis' : 'Show all theses',
+                      onAction: all
+                          ? () => context.go('/faculty/thesis/new')
+                          : () => setState(() => _statusFilter = 'All'),
                     );
                   }
                   // Ten per page, the same page size as the admin tables.
@@ -147,7 +153,10 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                 error: (err, _) => EmptyState(
                   icon: Icons.error_outline,
                   title: 'Could not load theses',
-                  message: err.toString(),
+                  message: userFacingError(
+                    err,
+                    fallback: 'Your studies could not be loaded. Try again.',
+                  ),
                   actionLabel: 'Retry',
                   onAction: () => ref.invalidate(facultyThesesProvider),
                 ),
@@ -325,8 +334,16 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: "The draft couldn't be deleted. Try again.",
+              ),
+            ),
+          ),
+        );
       }
     }
   }

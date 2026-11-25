@@ -24,6 +24,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:frontend/core/constants/cscholar_constants.dart';
+import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
+import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
@@ -82,7 +84,12 @@ Widget _host(
   Widget screen, {
   required bool highContrast,
   required double textScale,
+  bool dark = false,
 }) {
+  // The palette is process-global; activate it before the tree builds and let
+  // the two scopes notify the widgets inside (web reads the palette, the mobile
+  // shell reads the scopes).
+  CScholarPalette.activate(dark);
   final router = GoRouter(
     initialLocation: '/screen',
     routes: [
@@ -93,14 +100,23 @@ Widget _host(
   );
 
   return ProviderScope(
-    child: MaterialApp.router(
-      routerConfig: router,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          highContrast: highContrast,
-          textScaler: TextScaler.linear(textScale),
+    child: CScholarPaletteScope(
+      isDark: dark,
+      child: CScholarMobileThemeScope(
+        isDark: dark,
+        child: MaterialApp.router(
+          theme: ThemeData(brightness: Brightness.light),
+          darkTheme: ThemeData(brightness: Brightness.dark),
+          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+          routerConfig: router,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              highContrast: highContrast,
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: child!,
+          ),
         ),
-        child: child!,
       ),
     ),
   );
@@ -115,6 +131,8 @@ void main() {
   // the loops opt-out here too so they cannot slow the 176-case matrix.
   setUpAll(() => CScholarMotion.ambientEnabled = false);
   tearDownAll(() => CScholarMotion.ambientEnabled = true);
+  // Leave the process in light mode: the palette is global.
+  tearDownAll(() => CScholarPalette.activate(false));
 
   const sizes = <String, Size>{
     'desktop 1440x1000': Size(1440, 1000),
@@ -148,6 +166,25 @@ void main() {
           });
         }
       }
+
+      // Dark mode gets the same screen at the same width, without the a11y
+      // cross-product: the palette must be able to paint every page without
+      // throwing (a null or a bad Color is what breaks dark, not text scale).
+      final darkLabel = '${entry.key} renders dark @ ${sizeEntry.key}';
+      testWidgets(darkLabel, (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = sizeEntry.value;
+        addTearDown(tester.view.reset);
+
+        final screen = entry.value();
+        await tester.pumpWidget(
+          _host(screen, highContrast: false, textScale: 1, dark: true),
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(screen.runtimeType), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
     }
   }
 }
