@@ -67,7 +67,10 @@ venv\Scripts\python scripts\check_api_contract.py
    The app keeps a psycopg connection pool and sets `search_path` per
    connection; Neon's transaction-mode pooler does not guarantee that setting
    survives between statements. Use the direct endpoint. One free Render
-   instance will not exceed Neon's direct-connection limit.
+   instance will not exceed Neon's direct-connection limit. If you use the Neon
+   CLI, `neon env pull` writes both as `DATABASE_URL` (pooled) and
+   `DATABASE_URL_UNPOOLED` (direct), and the backend prefers the unpooled one
+   automatically.
 
 3. Enable object storage for the branch: **Project → branch → Object storage →
    New bucket**. Name it `cscholar-pdfs`, access level **private**.
@@ -100,6 +103,21 @@ venv\Scripts\python scripts\check_api_contract.py
    ```
 
    Path-style addressing is already enabled in the app.
+
+> **CLI fast path.** Instead of the console steps above, link the project and
+> provision both services from the repo root:
+>
+> ```bash
+> neon init -y --org-id <org-id> --project-id <project-id> \
+>   --branch production --services postgres,object-storage
+> neon deploy
+> ```
+>
+> This creates `neon.ts` and `package.json` and pulls nine variables into the
+> git-ignored `.env.local`, including `DATABASE_URL_UNPOOLED`. The backend now
+> loads that file automatically (root first, then `backend/.env`), so a local
+> `python run.py` uses Neon whenever `.env.local` exists. Delete or rename it
+> to go back to the local PostgreSQL. Continue at step 2.
 
 ---
 
@@ -188,7 +206,8 @@ short-lived presigned URL.
 
    | Variable | Value |
    |---|---|
-   | `DATABASE_URL` | the Neon **direct** string from step 1 |
+   | `DATABASE_URL_UNPOOLED` | the Neon **direct** string from step 1 (required) |
+   | `DATABASE_URL` | optional; the pooled string, only if you want a fallback |
    | `CORS_ORIGINS` | `https://tr1tech.github.io` (no trailing slash, no path) |
    | `AWS_ENDPOINT_URL_S3` | the branch storage endpoint |
    | `AWS_REGION` | `ap-southeast-1` |
@@ -297,7 +316,7 @@ Run this against the public URL, not localhost:
 | `502` for a minute after a push | New instance starting | Wait, then retry. |
 | `Out of memory` in Render logs | torch installed, or two instances | Use `requirements-render.txt`; confirm `EMBEDDING_BACKEND=fastembed`; keep one instance. |
 | Search returns `503` / no AI rail | Model failed to load | Check Render logs for the fastembed download; the first boot needs outbound access to the Hugging Face Hub. |
-| `/api/db-test` shows `connection` missing | Wrong `DATABASE_URL` or password | Use the direct Neon string with `?sslmode=require`; re-copy it. |
+| `/api/db-test` shows `connection` missing | Wrong `DATABASE_URL`/`DATABASE_URL_UNPOOLED` or password | Use the direct Neon string with `?sslmode=require`; re-copy it. |
 | `relation "theses" does not exist` | `search_path` is wrong on a manual query | Prefix with `ceit_repo.` or `SET search_path TO ceit_repo;`. |
 | PDF opens 404 | File not in the bucket, or storage env vars missing | Re-run `scripts/upload_pdfs_to_object_storage.py`; check all five `AWS_*`/`S3_BUCKET` vars. |
 | CORS error in the browser | Origin not allowed | Set `CORS_ORIGINS=https://tr1tech.github.io` in Render and let it redeploy. |

@@ -1,9 +1,10 @@
 """Configuration loading for the CScholar backend (raw psycopg2)."""
 
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+from .env import load_env
+
+load_env()
 
 
 class Config:

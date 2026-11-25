@@ -39,7 +39,11 @@ services:
       # Signs login tokens. Generated once per service.
       - key: SECRET_KEY
         generateValue: true
-      # Neon pooled/direct connection string (sslmode=require). Set in dashboard.
+      # Neon connection strings. The app prefers the direct (unpooled) one
+      # because it pins search_path per connection, which transaction-mode
+      # pooling does not preserve. Set at least DATABASE_URL_UNPOOLED.
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
       - key: DATABASE_URL
         sync: false
       # The GitHub Pages origin, e.g. https://tr1tech.github.io

@@ -3,15 +3,15 @@
 import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 
-load_dotenv()
+from .env import load_env
+
+load_env()
 
 tags_metadata = [
     {"name": "System", "description": "Health check and database status"},

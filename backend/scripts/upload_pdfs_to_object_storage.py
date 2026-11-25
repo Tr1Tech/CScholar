@@ -26,6 +26,10 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(BACKEND / ".env")
 
+from app.env import load_env  # noqa: E402
+
+load_env()
+
 from app.config import UPLOAD_DIR  # noqa: E402
 from app.services import object_store  # noqa: E402
 

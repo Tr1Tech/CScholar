@@ -29,3 +29,6 @@ Thumbs.db
 
 # Local agent tooling
 .commandcode/
+.neon
+node_modules/
+.env.local

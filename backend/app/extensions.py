@@ -2,10 +2,12 @@
 
 import os
 import threading
-from dotenv import load_dotenv
+
 import psycopg_pool
 
-load_dotenv()
+from .env import load_env
+
+load_env()
 
 _pool = None
 _pool_lock = threading.Lock()
@@ -35,8 +37,12 @@ def get_pool():
                 # NOTE: no options='-c search_path=...' here — some libpq/psycopg
                 # builds reject it with: invalid connection option "search_path".
                 # search_path is set per-connection in _configure_conn() + get_conn().
-                # Prefer DATABASE_URL when set (your .env uses it); else split DB_* vars.
-                conninfo = os.getenv("DATABASE_URL") or (
+                # Prefer DATABASE_URL_UNPOOLED when set: this app pins
+                # ``search_path`` per connection, and Neon's pooled endpoint is
+                # PgBouncer in transaction mode, where session-level SET does not
+                # survive to the next query. The unpooled endpoint also matches
+                # how pg_dump/pg_restore talk to the same database.
+                conninfo = os.getenv("DATABASE_URL_UNPOOLED") or os.getenv("DATABASE_URL") or (
                     f"host={os.getenv('DB_HOST', 'localhost')} "
                     f"port={os.getenv('DB_PORT', '5432')} "
                     f"dbname={os.getenv('DB_NAME', 'cscholar')} "
