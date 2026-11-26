@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
+import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/mobile_theme_provider.dart';
 import 'package:frontend/core/providers/providers.dart';
@@ -70,7 +71,7 @@ class MobileStudentHeader extends ConsumerWidget {
               theme: t,
               icon: Icons.arrow_back,
               semanticLabel: 'Go back',
-              onTap: () {
+              onTap: (_) {
                 // Prototype detail back returns to the hub it came from.
                 // Detail routes are opened with `go`, so the stack is often
                 // empty; fall back to the focused list route instead of
@@ -118,8 +119,21 @@ class MobileStudentHeader extends ConsumerWidget {
                 semanticLabel: isDark
                     ? 'Switch to light mode'
                     : 'Switch to dark mode',
-                onTap: () =>
-                    ref.read(mobileThemeModeProvider.notifier).toggle(),
+                // Report the switch's OWN centre so the iris wipe opens from
+                // the icon, exactly like the desktop and auth switches. Calling
+                // the notifier directly left the origin null, so the reveal
+                // started at the viewport corner instead.
+                onTap: (buttonContext) {
+                  final scope = CScholarPaletteScope.maybeOf(buttonContext);
+                  final toggle = scope?.onToggle;
+                  if (toggle != null) {
+                    toggle(_centreOf(buttonContext));
+                  } else {
+                    // No app shell above (design lab, tests): stay inert-but-
+                    // correct instead of crashing.
+                    ref.read(mobileThemeModeProvider.notifier).toggle();
+                  }
+                },
               ),
               const SizedBox(width: 6),
               Semantics(
@@ -165,7 +179,11 @@ class _RoundButton extends StatelessWidget {
   final CScholarMobileTheme theme;
   final IconData icon;
   final String semanticLabel;
-  final VoidCallback onTap;
+
+  /// Receives this button's own [BuildContext] so a caller can locate the
+  /// button on screen (the theme switch reports its centre as the iris
+  /// origin). Most callers ignore it.
+  final void Function(BuildContext buttonContext) onTap;
 
   /// Glyph colour. Defaults to the shell's green; the theme switch passes the
   /// same web token pair (primaryGreen / primaryGreenHover) so phone and
@@ -190,7 +208,7 @@ class _RoundButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           selectionHaptic();
-          onTap();
+          onTap(context);
         },
         child: SizedBox(
           width: CScholarTapTarget.minimum,
@@ -223,4 +241,15 @@ class _RoundButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Centre of the widget owning [context] on screen — the point the iris wipe
+/// opens from. Mirrors the auth shell's helper so the phone and desktop
+/// switches report the same thing.
+Offset _centreOf(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is RenderBox && box.hasSize) {
+    return box.localToGlobal(box.size.center(Offset.zero));
+  }
+  return Offset.zero;
 }

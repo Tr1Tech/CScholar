@@ -82,12 +82,6 @@ class ClayNavList extends StatefulWidget {
 
 class _ClayNavListState extends State<ClayNavList> {
   late List<FocusNode> _nodes = _buildNodes(widget.links.length);
-  int _focused = -1;
-
-  /// True when the focused row got focus from a click/tap. Rows keep the ring
-  /// for keyboard navigation only; a pointer click should not leave an outline
-  /// behind on the row it just selected.
-  bool _focusFromPointer = false;
 
   /// Row the pill is currently drawn on. It starts on the row the same rail
   /// had on the previous page, then glides to this page's selection.
@@ -121,17 +115,8 @@ class _ClayNavListState extends State<ClayNavList> {
 
   List<FocusNode> _buildNodes(int count) =>
       List<FocusNode>.generate(count, (index) {
-        final node = FocusNode(debugLabel: 'nav-${widget.links[index].label}');
-        node.addListener(_onFocusChange);
-        return node;
+        return FocusNode(debugLabel: 'nav-${widget.links[index].label}');
       });
-
-  void _onFocusChange() {
-    if (!mounted) return;
-    final index = _nodes.indexWhere((node) => node.hasFocus);
-    if (index == -1) _focusFromPointer = false;
-    if (index != _focused) setState(() => _focused = index);
-  }
 
   @override
   void didUpdateWidget(covariant ClayNavList oldWidget) {
@@ -139,7 +124,6 @@ class _ClayNavListState extends State<ClayNavList> {
     if (widget.links.length != _nodes.length) {
       _disposeNodes(_nodes);
       _nodes = _buildNodes(widget.links.length);
-      _focused = -1;
     }
     // Same widget, new page (a rail that survives the route): the pill glides
     // from wherever it is now.
@@ -157,18 +141,12 @@ class _ClayNavListState extends State<ClayNavList> {
 
   void _disposeNodes(List<FocusNode> nodes) {
     for (final node in nodes) {
-      node.removeListener(_onFocusChange);
       node.dispose();
     }
   }
 
   KeyEventResult _onKey(int index, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    // A key press means the focus ring is being used for navigation again.
-    if (_focusFromPointer) {
-      _focusFromPointer = false;
-      if (mounted) setState(() {});
-    }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
       widget.links[index].onTap();
@@ -223,7 +201,7 @@ class _ClayNavListState extends State<ClayNavList> {
     );
   }
 
-  /// One row: glyph + ellipsised label, sunk while pressed, ringed on focus.
+  /// One row: glyph + ellipsised label, sunk while pressed.
   Widget _row(int index, double height, BorderRadius radius) {
     final link = widget.links[index];
     final isSelected = widget.selectedIndex == index;
@@ -276,40 +254,10 @@ class _ClayNavListState extends State<ClayNavList> {
         sink: 1.5,
         scale: 0.99,
         onTap: () {
-          _focusFromPointer = true;
-          setState(() {});
           _nodes[index].requestFocus();
           link.onTap();
         },
-        child: Stack(
-          children: [
-            body,
-            // Painted OVER the row, never around it: a ring built from padding
-            // would make one row taller than the others and de-sync the pill.
-            // Always present with an animated border ALPHA (not a colour
-            // tween between two hues — that passes through low-contrast
-            // midpoints), so focus fades in over micro and ends at the ring's
-            // full 0.45 gel strength.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedContainer(
-                  duration: motionDuration(context, CScholarMotion.micro),
-                  decoration: BoxDecoration(
-                    borderRadius: radius,
-                    border: Border.all(
-                      color: CScholarMaterial.gelTop.withValues(
-                        alpha: _focused == index && !_focusFromPointer
-                            ? 0.45
-                            : 0,
-                      ),
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: body,
       ),
     );
   }

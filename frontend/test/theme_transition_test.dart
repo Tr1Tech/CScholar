@@ -19,6 +19,7 @@ import 'package:frontend/core/providers/mobile_theme_provider.dart';
 import 'package:frontend/main.dart';
 import 'package:frontend/presentation/widgets/common/theme_iris.dart';
 import 'package:frontend/presentation/widgets/common/theme_toggle.dart';
+import 'package:frontend/presentation/widgets/mobile/mobile_student_header.dart';
 
 /// A tiny opaque frame, handed to the transition in place of the engine raster
 /// (which never completes under the test clock).
@@ -136,6 +137,48 @@ void main() {
     CScholarModeStore.initialDark = true;
     await _pumpApp(tester);
     expect(CScholarColors.textPrimary, CScholarMobileColors.inkDark);
+  });
+
+  testWidgets('the mobile header switch reports its icon centre as origin', (
+    tester,
+  ) async {
+    Offset? reported;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: CScholarPaletteScope(
+          isDark: false,
+          onToggle: (origin) => reported = origin,
+          child: const CScholarMobileThemeScope(
+            isDark: false,
+            child: MaterialApp(
+              home: Scaffold(
+                body: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(width: 390, child: MobileStudentHeader()),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final switchButton = find.bySemanticsLabel(
+      RegExp('Switch to (dark|light) mode'),
+    );
+    expect(switchButton, findsOneWidget);
+    final centre = tester.getCenter(switchButton);
+
+    await tester.tap(switchButton);
+    await tester.pump();
+
+    // The phone switch used to call the notifier directly, leaving the origin
+    // null so the wipe started at the viewport corner. It must now report the
+    // icon's own centre, like the desktop and auth switches.
+    expect(reported, isNotNull, reason: 'the mobile switch must report an origin');
+    expect(reported!.dx, moreOrLessEquals(centre.dx, epsilon: 2));
+    expect(reported!.dy, moreOrLessEquals(centre.dy, epsilon: 2));
   });
 
   group('iris geometry', () {

@@ -84,7 +84,6 @@ class ThesisCard extends StatefulWidget {
 /// answer separately from the lift.
 class _ThesisCardState extends State<ThesisCard> {
   bool _hover = false;
-  bool _focused = false;
   final FocusNode _node = FocusNode();
 
   @override
@@ -121,7 +120,6 @@ class _ThesisCardState extends State<ThesisCard> {
         children: [
           Focus(
             focusNode: _node,
-            onFocusChange: (v) => setState(() => _focused = v),
             onKeyEvent: (node, event) {
               if (event is KeyDownEvent &&
                   (event.logicalKey == LogicalKeyboardKey.enter ||
@@ -175,28 +173,6 @@ class _ThesisCardState extends State<ThesisCard> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ),
-                    // Focus ring painted OVER the card — never around it, so it
-                    // adds zero pixels to layout (same contract as ClayNavList).
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: AnimatedContainer(
-                          duration: animate
-                              ? CScholarMotion.micro
-                              : Duration.zero,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                              CScholarRadius.softCard,
-                            ),
-                            border: Border.all(
-                              color: CScholarMaterial.gelTop.withValues(
-                                alpha: _focused ? 0.55 : 0,
-                              ),
-                              width: 2,
-                            ),
-                          ),
                         ),
                       ),
                     ),

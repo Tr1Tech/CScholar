@@ -15,8 +15,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.frontend"
+        // Unique per app on a device and on Play. The Kotlin `namespace` above
+        // stays com.example.frontend; only the installed package id changes.
+        applicationId = "ph.edu.csu.cscholar"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

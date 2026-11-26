@@ -77,30 +77,8 @@ class _NeumorphBaseState extends State<_NeumorphBase>
   bool _hover = false;
   bool _down = false;
 
-  /// True when focus came from a click/tap rather than Tab. The focus ring is
-  /// for keyboard users; showing it after a pointer press leaves an outline on
-  /// the button the reader just clicked, which is not a focus indicator they
-  /// asked for.
-  bool _focusFromPointer = false;
-
   bool get _disabled =>
       widget.onTap == null || widget.previewState == NeumorphState.disabled;
-
-  bool get _isFocused =>
-      widget.previewState == NeumorphState.focus ||
-      (_focus.hasFocus && !_focusFromPointer);
-
-  @override
-  void initState() {
-    super.initState();
-    _focus.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    if (!_focus.hasFocus) _focusFromPointer = false;
-    if (mounted) setState(() {});
-    _sync();
-  }
 
   @override
   void didChangeDependencies() {
@@ -121,7 +99,6 @@ class _NeumorphBaseState extends State<_NeumorphBase>
 
   @override
   void dispose() {
-    _focus.removeListener(_onFocusChange);
     _focus.dispose();
     _c.dispose();
     super.dispose();
@@ -222,22 +199,6 @@ class _NeumorphBaseState extends State<_NeumorphBase>
     );
   }
 
-  /// Focus must be visible: this is a web app driven by Tab + Enter.
-  Widget _focusRing(Widget child) {
-    if (!_isFocused) return child;
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(widget.radius + 5),
-        border: Border.all(
-          color: CScholarMaterial.gelTop.withValues(alpha: 0.6),
-          width: 2,
-        ),
-      ),
-      child: child,
-    );
-  }
-
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
@@ -308,17 +269,13 @@ class _NeumorphBaseState extends State<_NeumorphBase>
                 onTapDown: _disabled
                     ? null
                     : (_) {
-                        // Pointer focus is not keyboard focus: hide the ring
-                        // even if this button already had it.
-                        _focusFromPointer = true;
                         _focus.requestFocus();
-                        setState(() {});
                         _setDown(true);
                       },
                 onTapUp: _disabled ? null : (_) => _setDown(false),
                 onTapCancel: _disabled ? null : () => _setDown(false),
                 onTap: _disabled ? null : widget.onTap,
-                child: _focusRing(content),
+                child: content,
               ),
             ),
           ),

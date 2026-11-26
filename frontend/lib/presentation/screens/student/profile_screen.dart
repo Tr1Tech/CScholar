@@ -227,64 +227,67 @@ class ProfileScreen extends ConsumerWidget {
   /// bottom of the identity column, matching the menu-row shape of the shell.
   Widget _mobileSecurityCard(BuildContext context) {
     final t = CScholarMobileTheme.of(context);
-    return Material(
-      color: t.surface,
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(17),
-        onTap: () => showChangePasswordDialog(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: t.line),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.lock_reset_outlined, size: 20, color: t.green),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Change password',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.dmSans(12, FontWeight.w700, t.ink),
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 20, color: t.muted),
-            ],
-          ),
-        ),
-      ),
+    return _mobileMenuCard(
+      context,
+      icon: Icons.lock_reset_outlined,
+      ink: t.green,
+      label: 'Change password',
+      onTap: () => showChangePasswordDialog(context),
     );
   }
 
   /// Mobile has no sidebar, so the Profile tab owns sign-out.
   Widget _mobileLogoutCard(BuildContext context, WidgetRef ref) {
     final t = CScholarMobileTheme.of(context);
-    final ink = t.dangerInk;
+    return _mobileMenuCard(
+      context,
+      icon: Icons.logout,
+      ink: t.dangerInk,
+      label: 'Log out',
+      onTap: () {
+        ref.read(authProvider.notifier).logout();
+        context.go('/login');
+      },
+    );
+  }
+
+  /// One row of the mobile account menu. Both rows are the same white card.
+  ///
+  /// [InkWell] paints its default hover and focus washes over the whole
+  /// surface in the theme's green. That repainted only the row under the
+  /// pointer, so it read as a different background from the row beside it.
+  /// The resting washes are dropped; the pressed splash stays, so a tap still
+  /// answers without changing the card colour.
+  Widget _mobileMenuCard(
+    BuildContext context, {
+    required IconData icon,
+    required Color ink,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final t = CScholarMobileTheme.of(context);
+    final radius = BorderRadius.circular(17);
     return Material(
       color: t.surface,
-      borderRadius: BorderRadius.circular(17),
+      borderRadius: radius,
       child: InkWell(
-        borderRadius: BorderRadius.circular(17),
-        onTap: () {
-          ref.read(authProvider.notifier).logout();
-          context.go('/login');
-        },
+        borderRadius: radius,
+        hoverColor: Colors.transparent,
+        focusColor: Colors.transparent,
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: radius,
             border: Border.all(color: t.line),
           ),
           child: Row(
             children: [
-              Icon(Icons.logout, size: 20, color: ink),
+              Icon(icon, size: 20, color: ink),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Log out',
+                  label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: t.dmSans(12, FontWeight.w700, ink),

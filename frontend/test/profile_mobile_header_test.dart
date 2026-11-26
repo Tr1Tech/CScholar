@@ -61,4 +61,64 @@ void main() {
       expect(tester.getCenter(target).dx, closeTo(pageCenter, 1));
     }
   });
+
+  testWidgets('the two mobile menu rows share one card surface', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final user = User(
+      id: 1,
+      username: 'radj.delarmante',
+      email: 'radj.delarmante@gmail.com',
+      passwordHash: '',
+      role: 'student',
+      isActive: true,
+      createdAt: DateTime(2025, 1, 1),
+      updatedAt: DateTime(2025, 1, 1),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWithValue(user),
+          savedThesesProvider.overrideWith((ref) async => <Thesis>[]),
+        ],
+        child: MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(390, 844),
+              disableAnimations: true,
+            ),
+            child: const ProfileScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Color? cardColor(Finder label) {
+      final material = find
+          .ancestor(of: label, matching: find.byType(Material))
+          .first;
+      return tester.widget<Material>(material).color;
+    }
+
+    // "Change password" and "Log out" are the same white card. The logout row
+    // used to pick up InkWell's green hover/focus wash, which repainted only
+    // that card and made it look like a different background.
+    expect(
+      cardColor(find.text('Change password')),
+      cardColor(find.text('Log out')),
+    );
+
+    final rows = tester.widgetList<InkWell>(find.byType(InkWell)).toList();
+    expect(rows, hasLength(2));
+    for (final row in rows) {
+      expect(row.hoverColor, Colors.transparent);
+      expect(row.focusColor, Colors.transparent);
+    }
+  });
 }

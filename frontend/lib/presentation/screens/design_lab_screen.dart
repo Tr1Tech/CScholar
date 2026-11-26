@@ -867,7 +867,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
   Widget _stateBoard() {
     return _section(
       title: '6 · Clay controls — all five states',
-      note: 'Press and hold anything below: one progress value drives the gradient, the shadow depth and a 1.5px sink, so the states can never de-sync. Tab through them to see the focus ring appear.',
+      note: 'Press and hold anything below: one progress value drives the gradient, the shadow depth and a 1.5px sink, so the states can never de-sync.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

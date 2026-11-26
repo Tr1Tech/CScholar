@@ -318,9 +318,6 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
     required Set<int> savedIds,
   }) {
     final t = CScholarMobileTheme.of(context);
-    if (_searchController.text != _query) {
-      _searchController.text = _query;
-    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 106),
@@ -1751,42 +1748,51 @@ class _RepositoryScreenState extends ConsumerState<RepositoryScreen> {
                   InkWell(
                     borderRadius: BorderRadius.circular(CScholarRadius.full),
                     onTap: pill.clear,
-                    child: Container(
-                      alignment: Alignment.center,
+                    // Compact chip: the visible pill is ~30px tall, while the
+                    // InkWell keeps the full 44px tap target around it. The
+                    // outer Center shrink-wraps to the label (a plain Container
+                    // with `alignment` would fill the Wrap's whole line), so
+                    // the chips flow inline.
+                    child: ConstrainedBox(
                       constraints: const BoxConstraints(
                         minHeight: CScholarTapTarget.minimum,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: CScholarColors.primaryGreenVeryLight,
-                        borderRadius: BorderRadius.circular(
-                          CScholarRadius.full,
-                        ),
-                        border: Border.all(
-                          color: CScholarMaterial.rimPublished,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            pill.label,
-                            style: CScholarTextStyles.body(
-                              11.5,
-                              FontWeight.w700,
-                              CScholarColors.primaryGreen,
+                      child: Center(
+                        widthFactor: 1,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CScholarColors.primaryGreenVeryLight,
+                            borderRadius: BorderRadius.circular(
+                              CScholarRadius.full,
+                            ),
+                            border: Border.all(
+                              color: CScholarMaterial.rimPublished,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.close,
-                            size: 14,
-                            color: CScholarColors.primaryGreen,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                pill.label,
+                                style: CScholarTextStyles.body(
+                                  11,
+                                  FontWeight.w700,
+                                  CScholarColors.primaryGreen,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.close,
+                                size: 13,
+                                color: CScholarColors.primaryGreen,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
