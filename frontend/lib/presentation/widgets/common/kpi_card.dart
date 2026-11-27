@@ -61,6 +61,10 @@ class KpiCard extends StatefulWidget {
   /// (for example [CScholarColors.info], not the raw brand blue).
   final Color? iconColor;
 
+  /// Optional destination. A tappable KPI reads as a control: hover lift,
+  /// pointer cursor, and a button semantic node.
+  final VoidCallback? onTap;
+
   const KpiCard({
     super.key,
     required this.label,
@@ -69,6 +73,7 @@ class KpiCard extends StatefulWidget {
     required this.icon,
     this.iconBg,
     this.iconColor,
+    this.onTap,
   });
 
   /// The value as a number when the string is a plain integer, so the count-up
@@ -142,48 +147,71 @@ class _KpiCardState extends State<KpiCard>
               value,
             ],
           );
-    return CScholarCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: CScholarTextStyles.body(
-                      11, FontWeight.w700, CScholarColors.textMuted,
-                      letterSpacing: 0.5),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                widget.label,
+                style: CScholarTextStyles.body(
+                    11, FontWeight.w700, CScholarColors.textMuted,
+                    letterSpacing: 0.5),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // 36 is the tile size the KPI strip was designed around; keeping it
+            // means [kpiCardIntrinsicHeight] stays a valid budget.
+            ClayIconTile(
+              icon: widget.icon,
+              size: 36,
+              gel: false,
+              background: widget.iconBg ?? CScholarMaterial.canvas,
+              tint: widget.iconColor ?? CScholarColors.primaryGreen,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // The value counts up on first paint and tweens when it changes;
+        // reduced motion snaps it straight to the number.
+        valued,
+        const SizedBox(height: 4),
+        Text(widget.trend,
+            style: CScholarTextStyles.body(
+                11.5, FontWeight.w500, CScholarColors.textMuted),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+      ],
+    );
+    final card = CScholarCard(
+      padding: widget.onTap == null
+          ? const EdgeInsets.all(20)
+          : EdgeInsets.zero,
+      lift: widget.onTap != null,
+      child: widget.onTap == null
+          ? content
+          : Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: widget.onTap,
+                borderRadius: BorderRadius.circular(CScholarRadius.softCard),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: content,
                 ),
               ),
-              // 36 is the tile size the KPI strip was designed around; keeping it
-              // means [kpiCardIntrinsicHeight] stays a valid budget.
-              ClayIconTile(
-                icon: widget.icon,
-                size: 36,
-                gel: false,
-                background: widget.iconBg ?? CScholarMaterial.canvas,
-                tint: widget.iconColor ?? CScholarColors.primaryGreen,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // The value counts up on first paint and tweens when it changes;
-          // reduced motion snaps it straight to the number.
-          valued,
-          const SizedBox(height: 4),
-          Text(widget.trend,
-              style: CScholarTextStyles.body(
-                  11.5, FontWeight.w500, CScholarColors.textMuted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-        ],
-      ),
+            ),
+    );
+    return Semantics(
+      button: widget.onTap != null,
+      label: widget.onTap == null
+          ? null
+          : '${widget.label}: ${widget.value}. ${widget.trend}',
+      child: card,
     );
   }
 }

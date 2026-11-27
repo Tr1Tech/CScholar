@@ -4,13 +4,19 @@ import os
 import re
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
 from .. import models as db
+from ..audit import log_security_event
 from ..auth import login_required, admin_required, decode_token
 from ..models import get_user_by_id, ThesisStatusConflict
 from ..config import UPLOAD_DIR
-from ..services.uploads import upload_filename, upload_path
+from ..services.uploads import (
+    remove_unreferenced_uploads,
+    upload_filename,
+    upload_path,
+)
 from ..services import object_store
 from ..schemas import (
     BulkStatusRequest,
+    PurgeThesisRequest,
     RecommendationRequest,
     ThesisCreateRequest,
     ThesisUpdateRequest,
@@ -112,6 +118,7 @@ def list_theses(
     research_type: str = None,
     status: str = None,
     show_all: str = "false",
+    log_activity: str = "true",
     page: int = Query(1),
     per_page: int = Query(20),
 ):
@@ -175,7 +182,7 @@ def list_theses(
         or year_id is not None
         or category_id is not None
         or research_type is not None
-    )
+    ) and log_activity.strip().lower() not in ("false", "0", "no")
     if is_search:
         try:
             user = _optional_user(request)
@@ -329,12 +336,17 @@ def public_stats():
 
 
 @router.get("/api/dashboard/recent-activity", dependencies=[Depends(login_required)], tags=["Dashboard"])
-def dashboard_recent_activity(limit: int = Query(10), page: int = Query(1)):
+def dashboard_recent_activity(request: Request, limit: int = Query(10), page: int = Query(1)):
     if limit is None or not 1 <= limit <= 100:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 100")
     if page is None or page < 1:
         raise HTTPException(status_code=400, detail="page must be 1 or greater")
-    activity, total = db.recent_activity(limit=limit, offset=(page - 1) * limit)
+    include_admin = request.state.current_user.get("role") == "admin"
+    activity, total = db.recent_activity(
+        limit=limit,
+        offset=(page - 1) * limit,
+        include_admin=include_admin,
+    )
     return {"activity": activity, "total": total, "page": page, "limit": limit}
 
 
@@ -523,6 +535,15 @@ def create_thesis(request: Request, data: ThesisCreateRequest = Body(default=Non
     thesis = db.get_thesis_by_id(thesis_id)
     if dupes:
         thesis["duplicate_warning"] = dupes
+    log_security_event(
+        "thesis_created",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="thesis",
+        entity_id=thesis_id,
+        summary=f"Created study {data['title']}",
+        details={"status": thesis.get("status")},
+    )
     return thesis
 
 
@@ -592,9 +613,15 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
     # thesis_files in sync so v_thesis_admin_overview.file_count never
     # disagrees with theses.pdf_url.
     if role == "admin" and isinstance(data.get("pdf_url"), str):
+        # Anything the record pointed at before the update. The reference
+        # check below is what makes cleanup safe: an unchanged or shared PDF
+        # still has a row pointing at it and is skipped.
+        stale_urls = [existing.get("pdf_url")]
         try:
             new_pdf_url = data["pdf_url"]
             current_path = (db.get_thesis_file(id) or {}).get("file_path")
+            if current_path:
+                stale_urls.append(current_path)
             if not new_pdf_url:
                 # Explicitly cleared: the stored file is no longer active.
                 db.delete_thesis_files(id)
@@ -617,6 +644,7 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
                 db.delete_thesis_files(id)
         except Exception:
             pass
+        remove_unreferenced_uploads(stale_urls, db.pdf_is_still_referenced)
 
     if "title" in data or "abstract" in data:
         try:
@@ -630,6 +658,32 @@ def update_thesis(id: int, request: Request, data: ThesisUpdateRequest = Body(de
             )
         except Exception:
             pass
+    if data.get("status") is None:
+        log_security_event(
+            "thesis_updated",
+            actor=request.state.current_user,
+            request=request,
+            entity_type="thesis",
+            entity_id=id,
+            summary=f"Updated study {thesis.get('title', '')}",
+            details={"fields": sorted(k for k in data if k != "actor_id")},
+        )
+    else:
+        log_security_event(
+            "thesis_status_changed",
+            actor=request.state.current_user,
+            request=request,
+            entity_type="thesis",
+            entity_id=id,
+            summary=(
+                f"Moved study {thesis.get('title', '')} to "
+                f"{data['status']}"
+            ),
+            details={
+                "from": existing.get("status"),
+                "to": data["status"],
+            },
+        )
     return thesis
 
 
@@ -687,6 +741,21 @@ def bulk_status(request: Request, data: BulkStatusRequest = Body(default=None)):
         except Exception as exc:
             skipped.append({"id": thesis_id, "reason": str(exc)[:200]})
 
+    log_security_event(
+        "thesis_bulk_status",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="thesis",
+        summary=(
+            f"Bulk moved {len(updated)} "
+            f"{'study' if len(updated) == 1 else 'studies'} to {target}"
+        ),
+        details={
+            "target": target,
+            "updated": updated,
+            "skipped": len(skipped),
+        },
+    )
     return {
         "requested": len(ids),
         "status": target,
@@ -695,19 +764,138 @@ def bulk_status(request: Request, data: BulkStatusRequest = Body(default=None)):
     }
 
 
+# Why a record of record cannot be hard-deleted: the row is the record. Its
+# PDF, authorship links, embeddings, and every review decision hang off it by
+# CASCADE, and accession numbers and citations point at it from outside the
+# database. Archive is the retirable state; the audited purge route is the only
+# way to destroy a published or accessioned study.
+def _hard_delete_thesis(thesis_id, existing):
+    """Delete the row and its now-unreferenced blobs. Returns pdf_removed."""
+    # The row is the only pointer to the stored manuscript, and the cascade
+    # drops thesis_files with it. Capture every URL the record mentions first.
+    stored_urls = [u for u in (existing.get("pdf_url"),) if u]
+    try:
+        file_row = db.get_thesis_file(thesis_id)
+    except Exception:
+        file_row = None
+    if file_row and file_row.get("file_path"):
+        stored_urls.append(file_row["file_path"])
+
+    db.delete_thesis(thesis_id)
+
+    # Best-effort blob cleanup, after the commit that makes it safe. A blob
+    # shared with another thesis must survive; only an unreferenced upload is
+    # removed, and a storage failure never turns a completed delete into an
+    # error.
+    return remove_unreferenced_uploads(stored_urls, db.pdf_is_still_referenced)
+
+
 @router.delete("/api/theses/{id}", dependencies=[Depends(login_required)], tags=["Theses"],
                openapi_extra={"x-required-roles": ["admin", "faculty"]})
 def delete_thesis(id: int, request: Request):
     existing = db.get_thesis_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail="Thesis not found")
+
+    # Retention is judged on history, not on the status someone can move.
+    # Without this, archive -> restore-to-draft -> delete bypasses every other
+    # guard in the app.
+    retention = db.thesis_retention(id)
+    if retention["retained"]:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This study was published or has a library accession number, "
+                "so it is part of the repository record. Archive it instead. "
+                "Destroying a retained record requires the purge action and a "
+                "recorded reason."
+            ),
+        )
+
     role = request.state.current_user["role"]
+    status = existing.get("status")
     if role == "faculty":
         if existing.get("creator_id") != request.state.current_user["id"]:
             raise HTTPException(status_code=403, detail="You can only delete theses you submitted")
-        if existing.get("status") != "draft":
+        if status != "draft":
             raise HTTPException(status_code=403, detail="Only drafts can be deleted")
-    elif role != "admin":
+    elif role == "admin":
+        if status != "draft":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Only drafts are deleted permanently. Archive this study "
+                    "instead."
+                ),
+            )
+    else:
         raise HTTPException(status_code=403, detail="Admin or faculty access required")
-    db.delete_thesis(id)
+
+    pdf_removed = _hard_delete_thesis(id, existing)
+
+    log_security_event(
+        "thesis_deleted",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="thesis",
+        entity_id=id,
+        summary=f"Deleted study {existing.get('title', '')}",
+        details={"status": existing.get("status"), "pdf_removed": pdf_removed},
+    )
     return {"message": "Thesis deleted"}
+
+
+@router.post(
+    "/api/theses/{id}/purge",
+    dependencies=[Depends(admin_required)],
+    tags=["Theses"],
+    openapi_extra={"x-required-roles": ["admin"]},
+)
+def purge_thesis(id: int, request: Request, data: PurgeThesisRequest = Body(default=None)):
+    """Break-glass permanent removal, admin only, with a recorded reason.
+
+    Delete and archive preserve the record; this is the only route that
+    destroys a published or accessioned study. The security audit row is
+    append-only and has no foreign key to the thesis, so it survives the purge
+    as the tombstone: who destroyed what, when, and why.
+    """
+    existing = db.get_thesis_by_id(id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Thesis not found")
+
+    reason = ((data.reason if data else "") or "").strip()
+    if len(reason) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Give a reason of at least 10 characters. It is stored with "
+                "the purge entry and cannot be edited later."
+            ),
+        )
+    if len(reason) > 500:
+        raise HTTPException(
+            status_code=400, detail="Reason must be 500 characters or fewer"
+        )
+
+    retention = db.thesis_retention(id)
+    pdf_removed = _hard_delete_thesis(id, existing)
+    log_security_event(
+        "thesis_purged",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="thesis",
+        entity_id=id,
+        summary=f"Purged study {existing.get('title', '')}",
+        details={
+            "reason": reason,
+            "status": existing.get("status"),
+            "accession_no": retention["accession_no"],
+            "ever_published": retention["ever_published"],
+            "pdf_removed": pdf_removed,
+        },
+    )
+    return {
+        "message": "Thesis purged",
+        "id": id,
+        "pdf_removed": pdf_removed,
+    }

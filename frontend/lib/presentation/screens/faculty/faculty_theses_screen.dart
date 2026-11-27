@@ -171,6 +171,12 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
   Widget _thesisCard(BuildContext context, Thesis t) {
     final me = ref.read(currentUserProvider);
     final mine = t.status == 'draft' && me != null && t.creatorId == me.id;
+    // Editing a restored draft is fine; deleting it is not, because it was
+    // published before and is now a record of record.
+    final canDelete = mine && !t.retained;
+    // Same explanation as the admin list: only a never-published draft is
+    // deletable, so name which kind of draft this is.
+    final draftOrigin = t.draftOrigin;
     final isOwner = me != null && t.creatorId == me.id;
     // A returned draft must announce itself in the list; the full note is on
     // the detail page, but the submitter should not have to open every row.
@@ -204,16 +210,55 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
-                    style: CScholarTextStyles.body(
-                      12,
-                      FontWeight.w400,
-                      CScholarColors.textMuted,
+                  if (draftOrigin == null)
+                    Text(
+                      '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
+                      style: CScholarTextStyles.body(
+                        12,
+                        FontWeight.w400,
+                        CScholarColors.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    Tooltip(
+                      message: t.everPublished == true
+                          ? 'Published before, so it is part of the record and cannot be deleted. Archive it instead.'
+                          : t.retained
+                          ? 'It has a library accession number, so it is part of the holdings register. Archive it instead.'
+                          : 'No public record yet, so this draft can be deleted.',
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text:
+                                  '${t.program?.name ?? '—'} • ${t.academicYear?.label ?? '—'} • ${t.authorsString}',
+                            ),
+                            TextSpan(
+                              text: '  •  $draftOrigin',
+                              style: CScholarTextStyles.body(
+                                10.5,
+                                FontWeight.w700,
+                                // Amber flags the deletable draft; green marks
+                                // the retained one.
+                                t.retained
+                                    ? CScholarColors.primaryGreen
+                                    : CScholarColors.warningFg,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                        style: CScholarTextStyles.body(
+                          12,
+                          FontWeight.w400,
+                          CScholarColors.textMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                   const SizedBox(height: 8),
                   _roleBadge(isOwner),
                 ],
@@ -273,15 +318,16 @@ class _FacultyThesesScreenState extends ConsumerState<FacultyThesesScreen> {
                             ),
                           ),
                         ),
-                        NeumorphIconButton(
-                          icon: Icons.delete_outline,
-                          size: 36,
-                          tooltip: 'Delete draft',
-                          // Red is the delete affordance everywhere, not just
-                          // on the admin lists.
-                          color: CScholarColors.error,
-                          onPressed: () => _deleteDraft(context, t),
-                        ),
+                        if (canDelete)
+                          NeumorphIconButton(
+                            icon: Icons.delete_outline,
+                            size: 36,
+                            tooltip: 'Delete draft',
+                            // Red is the delete affordance everywhere, not just
+                            // on the admin lists.
+                            color: CScholarColors.error,
+                            onPressed: () => _deleteDraft(context, t),
+                          ),
                       ],
                     ],
                   ),

@@ -4,6 +4,7 @@ import threading
 
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Query
 from .. import models as db
+from ..audit import log_security_event
 from ..auth import login_required, admin_required
 from ..services.embeddings import embedding_service
 from ..services.chunking import build_thesis_chunks
@@ -92,7 +93,7 @@ def _bulk_worker(refresh):
 
 
 @router.post("/api/embeddings/generate/{thesis_id}", dependencies=[Depends(admin_required)], tags=["Embeddings"])
-def generate_embedding(thesis_id: int):
+def generate_embedding(thesis_id: int, request: Request):
     thesis = db.get_thesis_by_id(thesis_id)
     if not thesis:
         raise HTTPException(status_code=404, detail="Thesis not found")
@@ -106,6 +107,15 @@ def generate_embedding(thesis_id: int):
         raise HTTPException(status_code=500, detail=f"Failed to store embeddings: {str(e)[:300]}")
     if not n:
         raise HTTPException(status_code=500, detail="Failed to generate embedding")
+    log_security_event(
+        "embeddings_generated",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="thesis",
+        entity_id=thesis_id,
+        summary=f"Generated embeddings for study {thesis_id}",
+        details={"chunks": n, "model": embedding_service.model_name},
+    )
     return {
         "message": "Embeddings generated",
         "thesis_id": thesis_id,
@@ -127,6 +137,13 @@ def generate_bulk_embeddings(request: Request, refresh: str = Query("false")):
     refresh_bool = refresh.lower() == "true"
     worker = threading.Thread(target=_bulk_worker, args=(refresh_bool,), daemon=True)
     worker.start()
+    log_security_event(
+        "embeddings_backfill_started",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="embedding_index",
+        summary=f"Started embedding backfill (refresh={refresh_bool})",
+    )
     return {"message": "Backfill started", "refresh": refresh_bool}
 
 

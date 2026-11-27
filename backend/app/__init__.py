@@ -1,6 +1,8 @@
 """FastAPI application factory."""
 
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -42,6 +44,12 @@ async def _lifespan(_app):
         # mid-import, that job can never finish; mark it failed instead of
         # leaving the UI polling a "running" row forever.
         _db.mark_stale_import_jobs()
+
+        # A staging folder whose job row is gone can never be deleted from the
+        # UI, so clear those before accepting new uploads.
+        from .services import import_jobs as _jobs
+
+        _jobs.sweep_orphaned_job_dirs()
     except Exception:
         pass
     try:
@@ -288,6 +296,52 @@ if SECRET_KEY == "dev-change-me":
     print("WARNING: using default dev SECRET_KEY - set SECRET_KEY in production!")
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
+_request_logger = logging.getLogger("cscholar.requests")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """One line per request. Path only: PDF URLs carry ?token=.
+
+    The user and role are filled by the auth dependency before the response
+    returns, so the middleware reads them after ``call_next``. A failed request
+    still logs its status, and an unhandled exception keeps its traceback in
+    the server log instead of disappearing behind the generic 500 body.
+    """
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        _request_logger.exception(
+            "Unhandled error %s %s", request.method, request.url.path
+        )
+        raise
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    user = getattr(request.state, "current_user", None) or {}
+    _request_logger.info(
+        "%s %s -> %s %.1fms user=%s role=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
+        user.get("id", "-"),
+        user.get("role", "-"),
+    )
+    return response
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Baseline response headers for a browser-facing API."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+    )
+    return response
+
+
 # -- CORS ------------------------------------------------------------------
 _cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
@@ -302,11 +356,12 @@ app.add_middleware(
 @app.exception_handler(HTTPException)
 async def http_exc_handler(request: Request, exc: HTTPException):
     detail = exc.detail
+    headers = getattr(exc, "headers", None)
     if isinstance(detail, str):
-        return JSONResponse({"error": detail}, status_code=exc.status_code)
+        return JSONResponse({"error": detail}, status_code=exc.status_code, headers=headers)
     if isinstance(detail, dict):
-        return JSONResponse(detail, status_code=exc.status_code)
-    return JSONResponse({"error": str(detail)}, status_code=exc.status_code)
+        return JSONResponse(detail, status_code=exc.status_code, headers=headers)
+    return JSONResponse({"error": str(detail)}, status_code=exc.status_code, headers=headers)
 
 
 @app.exception_handler(404)
@@ -316,6 +371,12 @@ async def not_found(request: Request, exc):
 
 @app.exception_handler(500)
 async def internal_error(request: Request, exc):
+    logging.getLogger("cscholar.errors").error(
+        "Unhandled exception on %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
     return JSONResponse({"error": "Internal server error"}, status_code=500)
 
 
@@ -331,6 +392,7 @@ from .routes import (
     embedding,
     swagger,
     import_batch,
+    audit,
 )
 
 app.include_router(health.router)
@@ -342,6 +404,7 @@ app.include_router(upload.router)
 app.include_router(ocr.router)
 app.include_router(embedding.router)
 app.include_router(import_batch.router)
+app.include_router(audit.router)
 app.include_router(swagger.router)
 
 

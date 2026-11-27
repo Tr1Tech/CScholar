@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/delayed_skeleton_loader.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 
 /// Block and sweep tones for the surface this skeleton sits on.
@@ -39,6 +40,11 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 /// This lives on the skeleton widgets rather than on the async slot so every
 /// loading branch obeys it — `asyncSlot`, a hand-rolled `when(loading:)`, the
 /// design lab catalogue — without each caller remembering to opt in.
+///
+/// When an ancestor [DelayedSkeletonLoader] is present it owns the whole
+/// reveal lifecycle (delay, reveal AND minimum display). This widget then
+/// renders its child immediately and lets the loader fade the entire subtree;
+/// running its own timer inside the loader would delay the skeleton twice.
 class DeferredSkeleton extends StatefulWidget {
   const DeferredSkeleton({super.key, required this.child});
 
@@ -50,11 +56,39 @@ class DeferredSkeleton extends StatefulWidget {
 
 class _DeferredSkeletonState extends State<DeferredSkeleton> {
   bool _revealed = false;
+  bool _managed = false;
+  bool _dependenciesReady = false;
   Timer? _timer;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final managed = SkeletonDelayScope.managedOf(context);
+
+    if (!_dependenciesReady) {
+      _dependenciesReady = true;
+      _managed = managed;
+      if (managed) {
+        _revealed = true;
+      } else {
+        _scheduleReveal();
+      }
+      return;
+    }
+
+    if (managed == _managed) return;
+    _managed = managed;
+    if (managed) {
+      _timer?.cancel();
+      _timer = null;
+      _revealed = true;
+    } else if (!_revealed) {
+      _scheduleReveal();
+    }
+  }
+
+  void _scheduleReveal() {
+    _timer?.cancel();
     _timer = Timer(CScholarMotion.skeletonDelay, () {
       if (mounted) setState(() => _revealed = true);
     });
@@ -69,13 +103,18 @@ class _DeferredSkeletonState extends State<DeferredSkeleton> {
 
   @override
   Widget build(BuildContext context) {
+    // The loader wraps the whole skeleton in a TickerMode, so the inner gate is
+    // unnecessary (and would actually re-enable tickers under a hidden phase).
+    final content = _managed
+        ? widget.child
+        : TickerMode(enabled: _revealed, child: widget.child);
     return AnimatedOpacity(
       opacity: _revealed ? 1 : 0,
       duration: motionDuration(context, CScholarDurations.fast),
       curve: CScholarCurves.standard,
       // Hidden is not idle: the shimmer's ticker stays stopped until the block
       // is actually painted.
-      child: TickerMode(enabled: _revealed, child: widget.child),
+      child: content,
     );
   }
 }

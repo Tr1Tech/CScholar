@@ -98,6 +98,12 @@ class FacultySidebar extends ConsumerWidget {
       path: '/faculty/students',
     ),
     (
+      label: 'Programs',
+      icon: Icons.school_outlined,
+      selectedIcon: Icons.school,
+      path: '/faculty/programs',
+    ),
+    (
       label: 'Analytics',
       icon: Icons.analytics_outlined,
       selectedIcon: Icons.analytics,

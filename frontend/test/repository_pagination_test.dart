@@ -89,7 +89,9 @@ void main() {
     await tester.ensureVisible(next);
     await tester.tap(next);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    // A page change reveals the skeleton, so the slot owes it the full delay +
+    // minimum display before the next page's rows are shown.
+    await tester.pump(const Duration(milliseconds: 800));
 
     expect(find.text('Showing 11–20 of 25'), findsOneWidget);
     expect(find.text('Page 2 of 3'), findsOneWidget);

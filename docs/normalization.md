@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Normalization Verification Report |
-| Version | 1.1 |
-| Date | 2026-11-21 |
-| Source of truth | `db/schema.sql` (16 domain relations + 2 operational tables) |
+| Version | 1.2 |
+| Date | 2026-11-27 |
+| Source of truth | `db/schema.sql` (16 domain relations + 3 operational tables) |
 
 ## Method
 
@@ -18,7 +18,7 @@ For each relation R:
 
 ## Result summary
 
-**All 16 domain relations pass 1NF, 2NF and 3NF. All 16 also satisfy BCNF** — the only determinants of non-trivial functional dependencies are candidate keys / superkeys, so the BCNF condition is met in every relation. Because BCNF ⊂ 3NF ⊂ 2NF ⊂ 1NF, this verifies the whole domain model at every level. The two operational tables (`thesis_reviews`, `import_jobs`) are verified separately below and also pass 1NF–BCNF; they are excluded from the 16-relation count because they are workflow records, not domain entities.
+**All 16 domain relations pass 1NF, 2NF and 3NF. All 16 also satisfy BCNF** — the only determinants of non-trivial functional dependencies are candidate keys / superkeys, so the BCNF condition is met in every relation. Because BCNF ⊂ 3NF ⊂ 2NF ⊂ 1NF, this verifies the whole domain model at every level. The three operational tables (`thesis_reviews`, `import_jobs`, `security_audit_log`) are verified separately below and also pass 1NF–BCNF; they are excluded from the 16-relation count because they are workflow records, not domain entities.
 
 | # | Relation | Candidate key(s) | Detected non-trivial FDs | 1NF | 2NF | 3NF | BCNF |
 |---|---|---|---|---|---|---|---|
@@ -109,4 +109,4 @@ Pure associative table with PK `(thesis_id, keyword_id)` → BCNF.
 
 - **Core domain relations verified at 3NF: 16 of 16** (theses and its 15 companions, including all 4 junction tables).
 - **Relations evaluated for BCNF: 16 of 16 domain — all pass**, because no relation contains a non-trivial functional dependency whose determinant is not a superkey.
-- **Operational tables: 2 of 2** (`thesis_reviews`, `import_jobs`) also pass 1NF–BCNF; they are not counted in the 16 domain relations.
+- **Operational tables: 3 of 3** (`thesis_reviews`, `import_jobs`, `security_audit_log`) also pass 1NF–BCNF; they are not counted in the 16 domain relations.

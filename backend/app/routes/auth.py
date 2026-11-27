@@ -1,10 +1,15 @@
 """Authentication routes -- register, login, current user."""
 
+import logging
 import os
+import threading
+import time
+from collections import defaultdict
 from fastapi import APIRouter, Request, Depends, HTTPException, Body, Security
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from .. import models as db
+from ..audit import log_security_event
 from ..auth import (
     hash_password,
     verify_password,
@@ -27,10 +32,44 @@ from ..schemas import (
 )
 
 router = APIRouter()
+logger = logging.getLogger("cscholar.auth")
+
+# In-memory brute-force throttle. It resets on restart and is per process;
+# that is enough for a single-instance deployment and is documented as such.
+_MAX_LOGIN_FAILURES = 5
+_LOGIN_WINDOW_SECONDS = 15 * 60
+_login_failures = defaultdict(list)
+_login_lock = threading.Lock()
+
+
+def _throttle_key(request, email):
+    client = request.client.host if request.client else "unknown"
+    return (client, email.strip().lower())
+
+
+def _login_blocked(key):
+    now = time.monotonic()
+    with _login_lock:
+        recent = [stamp for stamp in _login_failures.get(key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
+        _login_failures[key] = recent
+        return len(recent) >= _MAX_LOGIN_FAILURES
+
+
+def _record_login_failure(key):
+    now = time.monotonic()
+    with _login_lock:
+        recent = [stamp for stamp in _login_failures.get(key, []) if now - stamp < _LOGIN_WINDOW_SECONDS]
+        recent.append(now)
+        _login_failures[key] = recent
+
+
+def _clear_login_failures(key):
+    with _login_lock:
+        _login_failures.pop(key, None)
 
 
 @router.post("/api/auth/register", status_code=201, tags=["Auth"])
-def register(data: RegisterRequest = Body(default=None)):
+def register(request: Request, data: RegisterRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -49,6 +88,15 @@ def register(data: RegisterRequest = Body(default=None)):
 
     user = db.create_user(username, email, hash_password(password), role)
     token = create_token(user)
+    log_security_event(
+        "user_registered",
+        actor=user,
+        request=request,
+        entity_type="user",
+        entity_id=user["id"],
+        summary=f"{username} registered as {role}",
+        details={"role": role},
+    )
     return {
         "token": token,
         "user": {
@@ -61,7 +109,7 @@ def register(data: RegisterRequest = Body(default=None)):
 
 
 @router.post("/api/auth/login", tags=["Auth"])
-def login(data: LoginRequest = Body(default=None)):
+def login(request: Request, data: LoginRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -69,15 +117,63 @@ def login(data: LoginRequest = Body(default=None)):
     password = data.get("password", "")
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password are required")
+    throttle_key = _throttle_key(request, email)
+    if _login_blocked(throttle_key):
+        log_security_event(
+            "login_throttled",
+            request=request,
+            actor_username=email,
+            summary="Sign-in throttled after repeated failures",
+        )
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed attempts. Try again in 15 minutes.",
+            headers={"Retry-After": "900"},
+        )
     user = db.get_user_by_email(email)
     if not user or not verify_password(password, user["password_hash"]):
+        _record_login_failure(throttle_key)
+        logger.warning(
+            "Failed sign-in for %s from %s",
+            email,
+            request.client.host if request.client else "unknown",
+        )
+        log_security_event(
+            "login_failed",
+            request=request,
+            actor_username=email,
+            summary="Failed sign-in",
+            details={"reason": "invalid_credentials"},
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
     # Do not confirm that an account exists just because it was deactivated:
     # the same generic response as a wrong password (TRU-3). An admin can tell
     # the difference in the user table.
     if not user["is_active"]:
+        _record_login_failure(throttle_key)
+        logger.warning(
+            "Rejected inactive account sign-in for %s from %s",
+            email,
+            request.client.host if request.client else "unknown",
+        )
+        log_security_event(
+            "login_failed",
+            request=request,
+            actor_username=email,
+            summary="Failed sign-in",
+            details={"reason": "inactive_account"},
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user)
+    _clear_login_failures(throttle_key)
+    log_security_event(
+        "login_success",
+        actor=user,
+        request=request,
+        entity_type="user",
+        entity_id=user["id"],
+        summary=f"{user['username']} signed in",
+    )
     return {
         "token": token,
         "user": {
@@ -120,6 +216,14 @@ def change_password(data: ChangePasswordRequest = Body(default=None), request: R
             detail="New password must be different from the current password",
         )
     db.set_user_password(user["id"], hash_password(new_password))
+    log_security_event(
+        "password_changed",
+        actor=user,
+        request=request,
+        entity_type="user",
+        entity_id=user["id"],
+        summary=f"{user['username']} changed their password",
+    )
     # Rotating the hash revokes every older token. Mint a fresh one for this
     # device so the person who just changed the password stays signed in.
     updated = db.get_user_by_id(user["id"])
@@ -133,7 +237,7 @@ def get_users():
 
 
 @router.post("/api/users", status_code=201, dependencies=[Depends(admin_required)], tags=["Users"])
-def admin_create_user(data: CreateUserRequest = Body(default=None)):
+def admin_create_user(request: Request, data: CreateUserRequest = Body(default=None)):
     data = data.model_dump(exclude_unset=True) if data is not None else None
     if not data:
         raise HTTPException(status_code=400, detail="Missing request body")
@@ -155,6 +259,15 @@ def admin_create_user(data: CreateUserRequest = Body(default=None)):
             if row[1] == email.lower():
                 raise HTTPException(status_code=409, detail="Email already registered")
     user = db.create_user(username, email, hash_password(password), role)
+    log_security_event(
+        "user_created",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="user",
+        entity_id=user["id"],
+        summary=f"Created {role} account {username}",
+        details={"username": username, "role": role},
+    )
     return {
         "message": "User created",
         "user": {
@@ -200,6 +313,24 @@ def update_user(user_id: int, data: UpdateUserRequest = Body(default=None), requ
         if current_user and user["id"] == current_user["id"] and new_role != "admin":
             raise HTTPException(status_code=400, detail="You cannot remove your own admin role")
     updated = db.update_user(user_id, username=username, email=email, role=new_role)
+    changed = [
+        name
+        for name in ("username", "email", "role")
+        if {"username": username, "email": email, "role": new_role}[name] is not None
+    ]
+    log_security_event(
+        "user_updated",
+        actor=request.state.current_user if request else None,
+        request=request,
+        entity_type="user",
+        entity_id=user_id,
+        summary=f"Updated account {updated['username']}",
+        details={
+            "fields": changed,
+            "role_from": user["role"],
+            "role_to": updated["role"],
+        },
+    )
     return {
         "message": "User updated",
         "user": {
@@ -229,6 +360,18 @@ def update_user_active(user_id: int, data: UpdateUserActiveRequest = Body(defaul
     if current_user and user["id"] == current_user["id"]:
         raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
     db.set_user_active(user_id, is_active)
+    log_security_event(
+        "user_reactivated" if is_active else "user_deactivated",
+        actor=current_user,
+        request=request,
+        entity_type="user",
+        entity_id=user_id,
+        summary=(
+            f"Reactivated {user['username']}"
+            if is_active
+            else f"Deactivated {user['username']}"
+        ),
+    )
     return {"message": "User status updated", "user_id": user_id, "is_active": is_active}
 
 

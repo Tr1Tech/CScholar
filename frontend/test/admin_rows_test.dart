@@ -51,7 +51,9 @@ void main() {
                 title: 'A Semantic Search Model',
                 abstract: 'Abstract.',
                 researchType: 'Thesis',
-                status: 'published',
+                // Drafts are the only permanently deletable records, so this
+                // row must carry the delete action.
+                status: 'draft',
                 programId: 1,
                 academicYearId: 1,
                 createdAt: DateTime(2024),
@@ -86,6 +88,87 @@ void main() {
     expect(find.byTooltip('View thesis'), findsOneWidget);
     expect(find.byTooltip('Edit thesis'), findsOneWidget);
     expect(find.byTooltip('Delete thesis'), findsOneWidget);
+    // The subtitle explains why this row can be deleted.
+    expect(find.textContaining('NEVER PUBLISHED'), findsOneWidget);
+  });
+
+  testWidgets('a published thesis is retired by archiving, not deletion', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 1000);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          thesisListProvider.overrideWith(
+            (ref, params) async => [
+              Thesis(
+                id: 2,
+                title: 'A Published Study',
+                abstract: 'Abstract.',
+                researchType: 'Thesis',
+                status: 'published',
+                programId: 1,
+                academicYearId: 1,
+                createdAt: DateTime(2024),
+                updatedAt: DateTime(2024),
+              ),
+            ],
+          ),
+        ],
+        child: _host(const AdminThesisManagementScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // The record is part of the repository: it leaves public view through the
+    // status control, so the destructive action must not be offered at all.
+    expect(find.byTooltip('Delete thesis'), findsNothing);
+    expect(find.byTooltip('Change status'), findsOneWidget);
+  });
+
+  testWidgets('a retained draft has no delete action', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1440, 1000);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          thesisListProvider.overrideWith(
+            (ref, params) async => [
+              Thesis(
+                id: 3,
+                title: 'A Restored Draft',
+                abstract: 'Abstract.',
+                researchType: 'Thesis',
+                // A draft by status, but it was published before, so the
+                // server refuses DELETE. The list must not offer it.
+                status: 'draft',
+                retained: true,
+                everPublished: true,
+                programId: 1,
+                academicYearId: 1,
+                createdAt: DateTime(2024),
+                updatedAt: DateTime(2024),
+              ),
+            ],
+          ),
+        ],
+        child: _host(const AdminThesisManagementScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byTooltip('Delete thesis'), findsNothing);
+    expect(find.byTooltip('Edit thesis'), findsOneWidget);
+    expect(find.byTooltip('Change status'), findsOneWidget);
+    // And this row says why the trash icon is absent.
+    expect(find.textContaining('PUBLISHED BEFORE'), findsOneWidget);
   });
 
   testWidgets('a user row carries its avatar, chips, and actions', (

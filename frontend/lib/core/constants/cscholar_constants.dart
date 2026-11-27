@@ -417,6 +417,14 @@ class CScholarMotion {
   /// a blank frame starts to feel like a hang.
   static const Duration skeletonDelay = Duration(milliseconds: 250);
 
+  /// Minimum time a skeleton stays on screen once it has been revealed.
+  ///
+  /// The mirror of [skeletonDelay]: a load that lands just after the 250ms
+  /// threshold would otherwise paint a skeleton for one or two frames. Four
+  /// hundred milliseconds is long enough to read as "we are loading" rather
+  /// than as a flicker, and short enough that real content still feels quick.
+  static const Duration skeletonMinimumDisplay = Duration(milliseconds: 400);
+
   /// Live / syncing indicator pulse.
   static const Duration pulse = Duration(milliseconds: 1200);
 

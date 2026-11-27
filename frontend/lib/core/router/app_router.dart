@@ -21,10 +21,13 @@ import 'package:frontend/presentation/screens/admin/admin_bulk_import_screen.dar
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_user_management_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_activity_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_thesis_form_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_programs_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
@@ -348,6 +351,14 @@ final appRouter = Provider<GoRouter>((ref) {
         builder: (context, state) => page((_) => const AdminProgramsScreen()),
       ),
       GoRoute(
+        path: '/admin/activity',
+        builder: (context, state) => page((_) => const AdminActivityScreen()),
+      ),
+      GoRoute(
+        path: '/admin/analytics',
+        builder: (context, state) => page((_) => const AdminAnalyticsScreen()),
+      ),
+      GoRoute(
         path: '/admin/users',
         builder: (context, state) =>
             page((_) => const AdminUserManagementScreen()),
@@ -395,6 +406,10 @@ final appRouter = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/faculty/students',
         builder: (context, state) => page((_) => const FacultyStudentsScreen()),
+      ),
+      GoRoute(
+        path: '/faculty/programs',
+        builder: (context, state) => page((_) => const FacultyProgramsScreen()),
       ),
       GoRoute(
         path: '/faculty/analytics',

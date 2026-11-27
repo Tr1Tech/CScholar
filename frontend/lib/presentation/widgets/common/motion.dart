@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/material_tokens.dart';
+import 'package:frontend/presentation/widgets/common/delayed_skeleton_loader.dart';
 
 /// Motion helpers (design plan, item 8).
 ///
@@ -497,45 +498,42 @@ class _PressableSurfaceState extends State<PressableSurface> {
 }
 
 /// Async slot swap: keeps the layout height while the loading and loaded
-/// states cross-fade (plus an 8px rise), so the page never jumps. The
-/// skeleton is shown as-is; no spinner is introduced here.
+/// states cross-fade, so the page never jumps. The skeleton is shown as-is; no
+/// spinner is introduced here.
 ///
-/// The skeleton widgets themselves hold the placeholder back for
-/// [CScholarMotion.skeletonDelay] (see `DeferredSkeleton`), so a load that
-/// finishes quickly swaps in content without ever flashing a loader.
+/// The timing lives in [DelayedSkeletonLoader]: a load that finishes inside
+/// [CScholarMotion.skeletonDelay] never paints a placeholder, and one that has
+/// already revealed a skeleton keeps it for at least
+/// [CScholarMotion.skeletonMinimumDisplay]. Because every role page (admin,
+/// faculty, student — including the mobile shell) renders its async slot
+/// through [asyncSlot], they all inherit the same no-flash behavior.
 class AsyncCrossFade extends StatelessWidget {
   const AsyncCrossFade({
     super.key,
     required this.isLoading,
     required this.skeleton,
     required this.child,
+    this.delay = CScholarMotion.skeletonDelay,
+    this.minimumDisplay = CScholarMotion.skeletonMinimumDisplay,
+    this.fadeDuration = CScholarDurations.normal,
   });
 
   final bool isLoading;
   final Widget skeleton;
   final Widget child;
+  final Duration delay;
+  final Duration minimumDisplay;
+  final Duration fadeDuration;
 
   @override
   Widget build(BuildContext context) {
-    final duration = motionDuration(context, CScholarDurations.normal);
-    return AnimatedSwitcher(
-      duration: duration,
-      switchInCurve: CScholarCurves.entrance,
-      switchOutCurve: CScholarCurves.entrance,
-      transitionBuilder: (widget, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.02),
-            end: Offset.zero,
-          ).animate(animation),
-          child: widget,
-        ),
-      ),
-      child: KeyedSubtree(
-        key: ValueKey<bool>(isLoading),
-        child: isLoading ? skeleton : child,
-      ),
+    return DelayedSkeletonLoader(
+      isLoading: isLoading,
+      skeleton: skeleton,
+      delay: delay,
+      minimumDisplay: minimumDisplay,
+      fadeDuration: fadeDuration,
+      child: child,
     );
   }
 }

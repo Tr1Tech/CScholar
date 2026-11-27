@@ -134,6 +134,23 @@ def exists(key):
     return size(key) is not None
 
 
+def delete_key(key):
+    """Remove [key] from the bucket. True when the call succeeded.
+
+    S3 ``DeleteObject`` is idempotent: a key that is already gone still
+    returns success, so callers can treat this as "the blob is not there now".
+    """
+    client = get_client()
+    if client is None:
+        return False
+    try:
+        client.delete_object(Bucket=bucket(), Key=key)
+        return True
+    except Exception as exc:  # pragma: no cover - network/credential failure
+        logger.warning("Could not delete %s: %s", key, exc)
+        return False
+
+
 def materialize(key):
     """Download [key] to a temp file and return its path (caller deletes it).
 

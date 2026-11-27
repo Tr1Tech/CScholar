@@ -683,9 +683,26 @@ class _AdminUserManagementScreenState
         context: context,
         builder: (ctx) => GlassDialog(
           title: const Text('Deactivate User'),
-          content: Text(
-            'Deactivate ${user.username}? They will be signed out and unable '
-            'to sign in again until an admin reactivates the account.',
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Deactivate ${user.username}? They will be signed out and '
+                'unable to sign in again until an admin reactivates the '
+                'account.',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This is a reversible suspension, not a delete. Their studies, '
+                'review history, and profile record are kept.',
+                style: CScholarTextStyles.body(
+                  12,
+                  FontWeight.w400,
+                  CScholarColors.textMuted,
+                ),
+              ),
+            ],
           ),
           actions: [
             NeumorphButton(

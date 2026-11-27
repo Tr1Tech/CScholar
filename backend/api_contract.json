@@ -1,9 +1,9 @@
 {
   "title": "CScholar API",
   "version": "1.0.0",
-  "locked_on": "2026-11-24",
+  "locked_on": "2026-11-27",
   "note": "Frozen API surface. The Swagger UI is final: do not add endpoints. Regenerate only with explicit owner approval.",
-  "operation_count": 62,
+  "operation_count": 64,
   "operations": [
     {
       "method": "DELETE",
@@ -91,6 +91,17 @@
       ],
       "roles": [],
       "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/audit-logs",
+      "tags": [
+        "Audit"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
     },
     {
       "method": "GET",
@@ -519,6 +530,17 @@
     {
       "method": "POST",
       "path": "/api/theses/bulk-status",
+      "tags": [
+        "Theses"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/theses/{id}/purge",
       "tags": [
         "Theses"
       ],

@@ -155,6 +155,21 @@ class BulkStatusRequest(_Base):
     )
 
 
+class PurgeThesisRequest(_Base):
+    model_config = ConfigDict(extra="ignore", json_schema_extra={
+        "example": {
+            "reason": "Duplicate of thesis 41 created by a failed import"
+        }
+    })
+    reason: str | None = Field(
+        default=None,
+        description=(
+            "Why the record is being destroyed. Required, at least 10 "
+            "characters, and stored in the security audit log."
+        ),
+    )
+
+
 # -- Metadata -------------------------------------------------------------
 
 class AuthorCreateRequest(_Base):

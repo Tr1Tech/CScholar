@@ -6,6 +6,7 @@ per-row report are written to ``import_jobs``, which the screen polls.
 """
 
 import datetime
+import logging
 import shutil
 import threading
 from pathlib import Path
@@ -13,6 +14,8 @@ from pathlib import Path
 from .. import models as db
 from ..config import UPLOAD_DIR
 from . import importing
+
+logger = logging.getLogger(__name__)
 
 STAGING_ROOT = Path(UPLOAD_DIR) / "_import_jobs"
 MAX_CSV_BYTES = 5 * 1024 * 1024
@@ -100,7 +103,50 @@ def save_pdfs(job_id, uploads):
 
 
 def cleanup_job_dir(job_id):
-    shutil.rmtree(job_dir(job_id), ignore_errors=True)
+    """Delete the job's staging folder. True when nothing is left behind."""
+    directory = job_dir(job_id)
+    shutil.rmtree(directory, ignore_errors=True)
+    if directory.exists():
+        # Windows keeps a handle open long enough for a first pass to fail;
+        # the startup sweep retries rather than leaving the folder forever.
+        logger.warning("Staging folder for import %s could not be removed", job_id)
+        return False
+    return True
+
+
+def sweep_orphaned_job_dirs():
+    """Remove staging folders whose ``import_jobs`` row no longer exists.
+
+    A folder without a row can never be deleted through the UI (the route
+    needs a job id), so it would sit on disk forever — including after a
+    restart that interrupted a delete. Folders are listed before the row ids
+    are read, and a job's row is always committed before its folder is
+    created, so a listed folder is an orphan only when its row is really
+    gone. Entries that are not numeric job ids are left alone.
+    """
+    if not STAGING_ROOT.is_dir():
+        return []
+    candidates = [
+        entry
+        for entry in STAGING_ROOT.iterdir()
+        if entry.is_dir() and entry.name.isdigit()
+    ]
+    if not candidates:
+        return []
+    known_ids = db.list_import_job_ids()
+    removed = []
+    for entry in candidates:
+        job_id = int(entry.name)
+        if job_id in known_ids:
+            continue
+        shutil.rmtree(entry, ignore_errors=True)
+        if entry.exists():
+            logger.warning("Orphaned staging folder %s could not be removed", entry)
+        else:
+            removed.append(job_id)
+    if removed:
+        logger.info("Removed orphaned import staging folders: %s", removed)
+    return removed
 
 
 def counts(rows):

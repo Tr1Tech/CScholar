@@ -130,6 +130,18 @@ class AdminSidebar extends ConsumerWidget {
       path: '/admin/programs',
     ),
     (
+      label: 'Activity & Logs',
+      icon: Icons.history_outlined,
+      selectedIcon: Icons.history,
+      path: '/admin/activity',
+    ),
+    (
+      label: 'Analytics',
+      icon: Icons.insights_outlined,
+      selectedIcon: Icons.insights,
+      path: '/admin/analytics',
+    ),
+    (
       label: 'Settings',
       icon: Icons.settings_outlined,
       selectedIcon: Icons.settings,

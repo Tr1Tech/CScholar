@@ -133,6 +133,74 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
     );
   }
 
+  /// "In use" / "Unused" marker for a metadata row.
+  ///
+  /// The count is supplied by the list endpoints (`thesis_count`), the same
+  /// figure the delete route checks, so the admin can tell at a glance whether
+  /// the trash icon will succeed before pressing it. Clicking delete on a used
+  /// row still opens the "Cannot delete" dialog with the offending studies.
+  Widget _usageBadge({required int count, required String inUseHint}) {
+    final used = count > 0;
+    final label = used
+        ? '$count ${count == 1 ? 'STUDY' : 'STUDIES'}'
+        : 'UNUSED';
+    return Tooltip(
+      message: used
+          ? inUseHint
+          : 'No studies use this record yet, so it can be deleted.',
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: used
+              ? CScholarColors.errorLight
+              : CScholarColors.primaryGreenVeryLight,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              used ? Icons.link : Icons.check_circle_outline,
+              size: 11,
+              color: used ? CScholarColors.error : CScholarColors.primaryGreen,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: used
+                    ? CScholarColors.error
+                    : CScholarColors.primaryGreen,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Destructive icon for a row. Displayed muted when the record is in use so
+  /// the affordance matches the server rule; it stays tappable because the
+  /// blocked dialog is where "View studies" lives.
+  Widget _deleteButton({
+    required int count,
+    required String entityLabel,
+    required VoidCallback onPressed,
+  }) {
+    final used = count > 0;
+    return NeumorphIconButton(
+      icon: Icons.delete_outline,
+      tooltip: used
+          ? 'In use by $count ${count == 1 ? 'study' : 'studies'} — click to review'
+          : 'Delete $entityLabel',
+      color: used ? CScholarColors.textHint : CScholarColors.error,
+      onPressed: onPressed,
+    );
+  }
+
   /// Empty panel for a tab whose search matched nothing. The clear (×) lives in
   /// the topbar field, so the panel only has to say what was searched.
   Widget _noMatches(IconData icon, String what, String query) => EmptyState(
@@ -349,6 +417,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                         children: [
                           Text(
                             p.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               13.5,
                               FontWeight.w700,
@@ -357,6 +427,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                           Text(
                             p.college ?? p.code,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               11.5,
                               FontWeight.w400,
@@ -365,6 +437,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                         ],
                       ),
+                    ),
+                    _usageBadge(
+                      count: p.thesisCount,
+                      inUseHint:
+                          '${p.thesisCount} ${p.thesisCount == 1 ? 'study uses' : 'studies use'} '
+                          'this program. Reassign them before deleting.',
                     ),
                     NeumorphIconButton(
                       icon: Icons.edit_outlined,
@@ -376,16 +454,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                     const SizedBox(width: 8),
                     // Destructive last: the rightmost slot is the one a fast
                     // hand reaches by accident.
-                    NeumorphIconButton(
-                      icon: Icons.delete_outline,
-                      tooltip: 'Delete program',
-                      color: CScholarColors.error,
+                    _deleteButton(
+                      count: p.thesisCount,
+                      entityLabel: 'program',
                       onPressed: () => _deleteMeta(
                         context,
                         ref,
                         endpoint: '/api/programs',
                         id: p.id,
                         name: p.name,
+                        entityLabel: 'program',
+                        query: {'program_id': '${p.id}'},
                         refresher: () => ref.invalidate(programsProvider),
                       ),
                     ),
@@ -462,6 +541,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                         children: [
                           Text(
                             y.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               13.5,
                               FontWeight.w700,
@@ -470,6 +551,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                           Text(
                             '${y.startYear} - ${y.endYear}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               11.5,
                               FontWeight.w400,
@@ -501,6 +584,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                         ),
                       ),
+                    _usageBadge(
+                      count: y.thesisCount,
+                      inUseHint:
+                          '${y.thesisCount} ${y.thesisCount == 1 ? 'study uses' : 'studies use'} '
+                          'this academic year. Set it inactive or reassign them.',
+                    ),
                     NeumorphIconButton(
                       icon: Icons.edit_outlined,
                       tooltip: 'Edit academic year',
@@ -509,16 +598,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           _showYearDialog(context, ref, existing: y),
                     ),
                     const SizedBox(width: 8),
-                    NeumorphIconButton(
-                      icon: Icons.delete_outline,
-                      tooltip: 'Delete academic year',
-                      color: CScholarColors.error,
+                    _deleteButton(
+                      count: y.thesisCount,
+                      entityLabel: 'academic year',
                       onPressed: () => _deleteMeta(
                         context,
                         ref,
                         endpoint: '/api/academic-years',
                         id: y.id,
                         name: y.label,
+                        entityLabel: 'academic year',
+                        query: {'year_id': '${y.id}'},
                         refresher: () => ref.invalidate(academicYearsProvider),
                       ),
                     ),
@@ -591,6 +681,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                         children: [
                           Text(
                             c.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               13.5,
                               FontWeight.w700,
@@ -599,6 +691,8 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           ),
                           Text(
                             c.description ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: CScholarTextStyles.body(
                               11.5,
                               FontWeight.w400,
@@ -608,6 +702,12 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                         ],
                       ),
                     ),
+                    _usageBadge(
+                      count: c.thesisCount,
+                      inUseHint:
+                          '${c.thesisCount} ${c.thesisCount == 1 ? 'study is' : 'studies are'} '
+                          'tagged with this category. Remove the tag before deleting.',
+                    ),
                     NeumorphIconButton(
                       icon: Icons.edit_outlined,
                       tooltip: 'Edit category',
@@ -616,16 +716,17 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
                           _showCategoryDialog(context, ref, existing: c),
                     ),
                     const SizedBox(width: 8),
-                    NeumorphIconButton(
-                      icon: Icons.delete_outline,
-                      tooltip: 'Delete category',
-                      color: CScholarColors.error,
+                    _deleteButton(
+                      count: c.thesisCount,
+                      entityLabel: 'category',
                       onPressed: () => _deleteMeta(
                         context,
                         ref,
                         endpoint: '/api/categories',
                         id: c.id,
                         name: c.name,
+                        entityLabel: 'category',
+                        query: {'category_id': '${c.id}'},
                         refresher: () => ref.invalidate(categoriesProvider),
                       ),
                     ),
@@ -653,14 +754,185 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
   /// Destructive twin of [_saveMeta]: confirm first, then refresh the list the
   /// row came from. A record still referenced by theses is rejected by the
   /// server's foreign key, and that message is what the snackbar shows.
+  Future<int?> _usageCount(WidgetRef ref, Map<String, String> query) async {
+    try {
+      final qs = query.entries
+          .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+          .join('&');
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/theses?$qs&show_all=true&page=1&per_page=1&log_activity=false');
+      if (data is Map && data['total'] is num) {
+        return (data['total'] as num).toInt();
+      }
+    } catch (_) {
+      // The delete still has a server-side guard; fall back to the dialog.
+    }
+    return null;
+  }
+
+  Future<void> _showStudiesFor(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, String> query,
+    String title,
+  ) async {
+    List<dynamic> items = const [];
+    try {
+      final qs = query.entries
+          .map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}')
+          .join('&');
+      final data = await ref
+          .read(apiServiceProvider)
+          .get('/api/theses?$qs&show_all=true&page=1&per_page=100&log_activity=false');
+      if (data is Map && data['theses'] is List) {
+        items = data['theses'] as List;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              userFacingError(
+                e,
+                fallback: 'The studies for this item could not be loaded.',
+              ),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    await showClayDialog<void>(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 520,
+          height: 340,
+          child: items.isEmpty
+              ? const Center(child: Text('No studies use this item.'))
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) =>
+                      Divider(color: CScholarMaterial.rim, height: 1),
+                  itemBuilder: (rowCtx, i) {
+                    final item = items[i] as Map;
+                    final status = (item['status'] ?? '').toString();
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        (item['title'] ?? 'Untitled').toString(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(status.isEmpty
+                          ? 'Study'
+                          : status[0].toUpperCase() + status.substring(1)),
+                      trailing: const Icon(Icons.chevron_right, size: 18),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        context.go('/thesis/${item['id']}');
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx),
+            label: 'Close',
+            gel: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showBlockedByStudies(
+    BuildContext context,
+    WidgetRef ref,
+    String name,
+    int? used,
+    Map<String, String> query,
+    String entityLabel, {
+    String? message,
+  }) async {
+    final subject = used == null
+        ? 'This $entityLabel is still used by studies.'
+        : '$used ${used == 1 ? 'study uses' : 'studies use'} this $entityLabel.';
+    final body = message ??
+        '$subject Reassign them first, or keep this $entityLabel. '
+            'No studies were deleted.';
+    final view = await showClayDialog<bool>(
+      context: context,
+      builder: (ctx) => GlassDialog(
+        title: Text('Cannot delete $entityLabel'),
+        content: Text(body),
+        actions: [
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            label: 'Close',
+            gel: false,
+          ),
+          NeumorphButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            label: 'View studies',
+          ),
+        ],
+      ),
+    );
+    if (view == true && context.mounted) {
+      await _showStudiesFor(context, ref, query, name);
+    }
+  }
+
   Future<void> _deleteMeta(
     BuildContext context,
     WidgetRef ref, {
     required String endpoint,
     required int id,
     required String name,
+    required String entityLabel,
+    required Map<String, String> query,
     required void Function() refresher,
   }) async {
+    final used = await _usageCount(ref, query);
+    if (!context.mounted) return;
+
+    if (used != null && used > 0) {
+      // Authors, advisers, and categories all guard the join row now: the
+      // studies stay, and the link is what must go first. Same rule as the
+      // server, so the dialog never offers a delete that would be refused.
+      final subject = '$used ${used == 1 ? 'study' : 'studies'}';
+      final message = switch (entityLabel) {
+        'category' =>
+          '$subject ${used == 1 ? 'is' : 'are'} tagged with this category. '
+              'Remove the tag from those studies first. No studies were changed.',
+        'author' =>
+          '$subject ${used == 1 ? 'lists' : 'list'} this author. Correct the '
+              'name instead, or remove the author from those studies first. '
+              'No studies were changed.',
+        'adviser' =>
+          '$subject ${used == 1 ? 'names' : 'name'} this adviser. Correct the '
+              'name instead, or reassign those studies first. '
+              'No studies were changed.',
+        _ => null,
+      };
+      await _showBlockedByStudies(
+        context,
+        ref,
+        name,
+        used,
+        query,
+        entityLabel,
+        message: message,
+      );
+      return;
+    }
+
     final confirmed = await showClayDialog<bool>(
       context: context,
       builder: (ctx) => GlassDialog(
@@ -681,6 +953,7 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
       ),
     );
     if (confirmed != true || !context.mounted) return;
+
     try {
       await ref.read(apiServiceProvider).delete('$endpoint/$id');
       refresher();
@@ -693,6 +966,21 @@ class _AdminProgramsScreenState extends ConsumerState<AdminProgramsScreen>
         );
       }
     } catch (e) {
+      final detail = apiErrorDetail(e);
+      if (detail != null) {
+        if (context.mounted) {
+          await _showBlockedByStudies(
+            context,
+            ref,
+            name,
+            null,
+            query,
+            entityLabel,
+            message: detail,
+          );
+        }
+        return;
+      }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

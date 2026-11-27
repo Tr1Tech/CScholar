@@ -1,4 +1,27 @@
+import 'dart:convert';
+
 import 'package:frontend/services/api_service.dart';
+
+/// Returns the server's human-readable detail for an error, when it has one.
+///
+/// The API's HTTPException handler returns `{"error": "..."}`. Screens that
+/// need to explain a business conflict (for example, "3 studies use this
+/// program") can show that sentence instead of the generic fallback.
+String? apiErrorDetail(Object error) {
+  if (error is! ApiException) return null;
+  try {
+    final body = jsonDecode(error.message);
+    if (body is Map) {
+      final value = body['error'] ?? body['detail'];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+  } catch (_) {
+    // Not JSON, or not the shape we expect; use the caller's fallback.
+  }
+  return null;
+}
 
 /// Turns any thrown object into copy a person can act on (CNT-4).
 ///
@@ -28,6 +51,8 @@ String userFacingError(
       return 'That item is no longer available. It may have been removed.';
     }
     if (status == 409) {
+      final detail = apiErrorDetail(error);
+      if (detail != null) return detail;
       return 'That change conflicts with existing data. Refresh the page and try again.';
     }
     if (status == 408 || status == 429) {

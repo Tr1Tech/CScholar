@@ -221,6 +221,34 @@ CREATE TABLE import_jobs (
 
 CREATE INDEX idx_import_jobs_status ON import_jobs (status, created_at DESC);
 
+-- 18. security_audit_log (operational) -------------------------
+-- Append-only security trail. Thesis lifecycle decisions stay in
+-- thesis_reviews; this table covers sign-ins, account changes, taxonomy
+-- edits, imports, and other admin mutations that the domain tables do not
+-- timestamp. entity_id is intentionally polymorphic WITHOUT a foreign key so
+-- the audit row survives deletion of its target.
+CREATE TABLE security_audit_log (
+    id             BIGSERIAL PRIMARY KEY,
+    actor_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    actor_username VARCHAR(120),
+    actor_role     VARCHAR(20),
+    action         VARCHAR(50) NOT NULL,
+    entity_type    VARCHAR(30),
+    entity_id      INTEGER,
+    summary        TEXT,
+    details        JSONB,
+    ip_address     VARCHAR(45),
+    user_agent     VARCHAR(255),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_security_audit_created
+    ON security_audit_log (created_at DESC);
+CREATE INDEX idx_security_audit_actor
+    ON security_audit_log (actor_id);
+CREATE INDEX idx_security_audit_action
+    ON security_audit_log (action, created_at DESC);
+
 -- ===================== INDEXES =====================
 CREATE INDEX idx_theses_program       ON theses(program_id);
 CREATE INDEX idx_theses_academic_year ON theses(academic_year_id);

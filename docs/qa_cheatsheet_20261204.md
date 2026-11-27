@@ -14,8 +14,8 @@ parts to keep exact.
 
 | Fact | Value |
 |---|---|
-| Physical tables | **18 = 16 domain + 2 operational** |
-| Operational tables | `thesis_reviews` (audit trail), `import_jobs` (bulk-import state) |
+| Physical tables | **19 = 16 domain + 3 operational** |
+| Operational tables | `thesis_reviews` (lifecycle trail), `import_jobs` (bulk-import state), `security_audit_log` (sign-ins and admin actions) |
 | Published records | 19 |
 | Authors / advisers / users | 58 / 10 / 23 |
 | Embedding chunks | 462 |
@@ -26,10 +26,11 @@ parts to keep exact.
 
 ## 1. Database and ERD
 
-**"The ERD says 16 tables. Why does the database have 18?"**
-> "The ERD models the 16 domain relations. Two operational tables sit outside
-> that model: `thesis_reviews` keeps the lifecycle audit trail, and `import_jobs`
-> keeps bulk-import job state. So 18 physical = 16 domain + 2 operational."
+**"The ERD says 16 tables. Why does the database have 19?"**
+> "The ERD models the 16 domain relations. Three operational tables sit outside
+> that model: `thesis_reviews` keeps the lifecycle audit trail, `import_jobs`
+> keeps bulk-import state, and `security_audit_log` records sign-ins, account
+> changes, and taxonomy edits."
 
 **"What exactly is in `thesis_reviews`?"**
 > "One row per decision — who approved, published, archived, or returned a study,
@@ -43,7 +44,7 @@ parts to keep exact.
 > shared, restart-safe record."
 
 **"Is the schema normalized?"**
-> "All 16 domain relations are in 3NF and BCNF. The two operational tables are
+> "All 16 domain relations are in 3NF and BCNF. The three operational tables are
 > verified separately and also pass 1NF–BCNF; they're excluded from the 16 count
 > because they're workflow records, not domain entities."
 
@@ -141,6 +142,14 @@ parts to keep exact.
 > count, and the user id when signed in (NULL for anonymous). Keyword and
 > semantic calls are tagged with `mode` so they're distinguishable."
 
+**"Do you audit admin and security events?"**
+> "Yes. `security_audit_log` is append-only and records sign-ins, failed and
+> throttled sign-ins, password changes, user create/update/deactivate, thesis
+> create/update/delete, taxonomy edits, imports, and index backfills. It stores
+> the actor, action, target, IP, and time — never passwords, tokens, or query
+> strings. The admin Activity & Logs page reads it through the admin-only
+> audit endpoint."
+
 ## 6. Data, import, and limits
 
 **"Where did the corpus come from?"**
@@ -193,15 +202,15 @@ parts to keep exact.
 - "99% accurate." Say **hit@3 9/10 on ten labeled queries, 19 records**.
 - "The AI understands / recommends." Say **semantic similarity ranks the nearest published studies**.
 - "Personalized to your interests." Say **anchored on your last viewed or saved study**.
-- "We have 16 tables." Say **16 domain + 2 operational**.
+- "We have 16 tables." Say **16 domain + 3 operational**.
 - "Students can upload." Say **faculty and admins create; students are read-only**.
 - "Add Thesis publishes immediately." Say **it saves a draft; an admin approves and publishes**.
 - "Production-ready." Say **pilot build with a 19-record corpus**.
-- Anything about blockchain, LLM chat, or citation generation — none of it is in the build.
+- Anything about blockchain or citation generation — none of it is in the build.
 
 ## 10. Reset before Q&A
 
 - Sign out; leave the app on the login screen.
 - Clear search text and filters.
 - Browser at 100% zoom, notifications off, only demo tabs open.
-- If asked to show the database: run `\dt` and point at **18** — 16 domain + 2 operational.
+- If asked to show the database: run `\dt` and point at **19** — 16 domain + 3 operational.

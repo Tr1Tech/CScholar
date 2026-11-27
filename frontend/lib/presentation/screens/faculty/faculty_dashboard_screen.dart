@@ -57,6 +57,15 @@ class FacultyDashboardScreen extends ConsumerWidget {
                         : (constraints.maxWidth > 520 ? 2 : 1);
                     final cards = [
                       (
+                        label: 'MY THESES',
+                        value: '${stats.value?['theses'] ?? 0}',
+                        trend: '${stats.value?['published'] ?? 0} published',
+                        icon: Icons.article_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/faculty/theses'),
+                      ),
+                      (
                         label: 'ADVISEES',
                         value: '${stats.value?['advisees'] ?? 0}',
                         trend:
@@ -64,14 +73,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                         icon: Icons.people_outline,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
-                      ),
-                      (
-                        label: 'MY THESES',
-                        value: '${stats.value?['theses'] ?? 0}',
-                        trend: '${stats.value?['published'] ?? 0} published',
-                        icon: Icons.article_outlined,
-                        iconBg: CScholarColors.thesisChipBg,
-                        iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/faculty/students'),
                       ),
                       (
                         label: 'PROGRAMS',
@@ -80,6 +82,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                         icon: Icons.school_outlined,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/faculty/programs'),
                       ),
                       (
                         // Faculty do not review their own
@@ -92,6 +95,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                         icon: Icons.rate_review_outlined,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/faculty/theses'),
                       ),
                     ];
                     return GridView(
@@ -123,6 +127,7 @@ class FacultyDashboardScreen extends ConsumerWidget {
                               icon: cards[i].icon,
                               iconBg: cards[i].iconBg,
                               iconColor: cards[i].iconColor,
+                              onTap: cards[i].onTap,
                             ),
                           ),
                       ],

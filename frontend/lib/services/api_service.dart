@@ -191,6 +191,16 @@ class ThesisApi {
     await _api.delete('/api/theses/$id');
   }
 
+  /// Break-glass permanent removal. Admin only: the server refuses a normal
+  /// delete for a record that was ever published or carries a library
+  /// accession number. The reason is stored in the append-only audit log and
+  /// cannot be edited later.
+  Future<Map<String, dynamic>> purge(int id, String reason) async {
+    return await _api.post('/api/theses/$id/purge', {
+      'reason': reason,
+    }) as Map<String, dynamic>;
+  }
+
   /// Move many studies through the lifecycle in one admin action.
   /// The server applies the same per-row transition guard as the single row
   /// control and returns which ids were updated or skipped.

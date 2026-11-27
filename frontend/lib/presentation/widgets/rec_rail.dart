@@ -6,10 +6,12 @@ import 'package:frontend/core/material/material_tokens.dart';
 import 'package:frontend/core/providers/providers.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/animate_x.dart';
+import 'package:frontend/presentation/widgets/common/ai_explainer.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/thesis_cover.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
+import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 
 /// "AI Recommendations" rail for the repository page (new design).
 /// Honest by construction: recommendations are the live semantic matches
@@ -24,13 +26,25 @@ class RecRail extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'AI Recommendations',
-            style: CScholarTextStyles.heading(
-              16,
-              FontWeight.w700,
-              CScholarColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'AI Recommendations',
+                  style: CScholarTextStyles.heading(
+                    16,
+                    FontWeight.w700,
+                    CScholarColors.textPrimary,
+                  ),
+                ),
+              ),
+              NeumorphIconButton(
+                icon: Icons.info_outline,
+                size: 30,
+                tooltip: 'How the AI works',
+                onPressed: () => showAiExplainer(context),
+              ),
+            ],
           ),
           const SizedBox(height: 2),
           Text(

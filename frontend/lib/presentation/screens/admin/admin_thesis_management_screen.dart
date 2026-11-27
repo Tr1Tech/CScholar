@@ -351,6 +351,42 @@ class _AdminThesisManagementScreenState
 
   /// One record, drawn like a Programs row: mark, title, context, actions.
   Widget _row(BuildContext context, Thesis t) {
+    // Only a never-published draft is deletable. Label which kind of draft
+    // this is, so the presence or absence of the trash icon never looks
+    // arbitrary. The label rides in the subtitle, which ellipsizes, instead of
+    // adding a fixed-width chip that would crowd the actions on narrow rows.
+    final draftOrigin = t.draftOrigin;
+    final subtitle = Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text:
+                '${t.program?.name ?? '—'} · ${t.academicYear?.label ?? '—'}',
+          ),
+          if (draftOrigin != null)
+            TextSpan(
+              text: '  ·  $draftOrigin',
+              style: CScholarTextStyles.body(
+                10.5,
+                FontWeight.w700,
+                // Amber flags the row where deletion is possible; green marks
+                // the retained record that is safe from a stray delete.
+                t.retained
+                    ? CScholarColors.primaryGreen
+                    : CScholarColors.warningFg,
+                letterSpacing: 0.4,
+              ),
+            ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: CScholarTextStyles.body(
+        11.5,
+        FontWeight.w400,
+        CScholarColors.textMuted,
+      ),
+    );
     return CScholarCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       borderRadius: CScholarRadius.xl,
@@ -395,16 +431,17 @@ class _AdminThesisManagementScreenState
                     CScholarColors.textPrimary,
                   ),
                 ),
-                Text(
-                  '${t.program?.name ?? '—'} · ${t.academicYear?.label ?? '—'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: CScholarTextStyles.body(
-                    11.5,
-                    FontWeight.w400,
-                    CScholarColors.textMuted,
+                if (draftOrigin == null)
+                  subtitle
+                else
+                  Tooltip(
+                    message: t.everPublished == true
+                        ? 'Published before, so it is part of the repository record. Archive it, or purge it from the edit screen with a reason.'
+                        : t.retained
+                        ? 'It has a library accession number, so it is part of the holdings register. Archive it, or purge it from the edit screen with a reason.'
+                        : 'No public record yet, so this draft can be deleted.',
+                    child: subtitle,
                   ),
-                ),
               ],
             ),
           ),
@@ -431,12 +468,17 @@ class _AdminThesisManagementScreenState
             onPressed: () => context.go('/admin/thesis/${t.id}/edit'),
           ),
           const SizedBox(width: 8),
-          NeumorphIconButton(
-            icon: Icons.delete_outline,
-            tooltip: 'Delete thesis',
-            color: CScholarColors.error,
-            onPressed: () => _deleteThesis(context, ref, t),
-          ),
+          // Only a draft that was never published is deletable. A retained
+          // draft (published before, or accessioned) has no trash action; the
+          // edit screen offers archive or the audited purge instead.
+          if (t.status == 'draft' && !t.retained) ...[
+            NeumorphIconButton(
+              icon: Icons.delete_outline,
+              tooltip: 'Delete thesis',
+              color: CScholarColors.error,
+              onPressed: () => _deleteThesis(context, ref, t),
+            ),
+          ],
         ],
       ),
     );
@@ -783,7 +825,7 @@ class _AdminThesisManagementScreenState
       context: context,
       builder: (ctx) => GlassDialog(
         title: const Text('Delete Thesis'),
-        content: Text('Are you sure you want to delete "${thesis.title}"?'),
+        content: Text('Delete "${thesis.title}"? This cannot be undone.'),
         actions: [
           NeumorphButton(
             onPressed: () => Navigator.pop(ctx, false),

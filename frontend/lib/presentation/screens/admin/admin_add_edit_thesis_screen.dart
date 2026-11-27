@@ -12,6 +12,7 @@ import 'package:frontend/presentation/widgets/material/neumorph_controls.dart';
 import 'package:frontend/presentation/widgets/material/neumorph_select.dart';
 import 'package:frontend/presentation/widgets/material/clay_progress.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
+import 'package:frontend/presentation/widgets/material/glass_panel.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/models/thesis.dart';
 import 'package:frontend/presentation/widgets/common/app_shell.dart';
@@ -53,6 +54,10 @@ class _AdminAddEditThesisScreenState
   int? _pdfFileSize;
   String? _pdfUrl;
 
+  /// The loaded record, kept for the danger zone. Edit fields live in
+  /// controllers, but purging needs the id, title, and current status.
+  Thesis? _thesis;
+
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -90,6 +95,7 @@ class _AdminAddEditThesisScreenState
       if (!mounted || thesisAsync == null) return;
       final thesis = thesisAsync;
       setState(() {
+        _thesis = thesis;
         _titleCtrl.text = thesis.title;
         _abstractCtrl.text = thesis.abstract;
         _keywordsCtrl.text =
@@ -211,6 +217,163 @@ class _AdminAddEditThesisScreenState
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  /// Break-glass removal. A record that was ever published or accessioned is
+  /// refused by the normal delete, so this is the only in-app path that can
+  /// destroy one. The reason is required; the server stores it in the
+  /// append-only audit log as the tombstone.
+  Widget _dangerZone(Thesis thesis) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CScholarColors.errorLight,
+        borderRadius: BorderRadius.circular(CScholarRadius.md),
+        border: Border.all(
+          color: CScholarColors.error.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'DANGER ZONE',
+            style: CScholarTextStyles.body(
+              11,
+              FontWeight.w700,
+              CScholarColors.error,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'A study can be deleted from the list only while it is a draft '
+            'that was never published. This record is kept because it was '
+            'published before, carries a library accession number, or has '
+            'moved past draft. Archiving withdraws it from public view and '
+            'keeps the record. Purging destroys the study, its PDF, '
+            'authorship links, and review history for good.',
+            style: CScholarTextStyles.body(
+              12,
+              FontWeight.w400,
+              CScholarColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          NeumorphButton(
+            label: 'Purge this record',
+            icon: Icons.delete_forever_outlined,
+            danger: true,
+            onPressed: () => _confirmPurge(thesis),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmPurge(Thesis thesis) async {
+    final reasonCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    String? reasonError;
+    String? confirmError;
+
+    final confirmed = await showClayDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => GlassDialog(
+          title: const Text('Purge record permanently'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '"${thesis.title}" will be destroyed: the study, its PDF, '
+                'authorship links, embeddings, and review history. This cannot '
+                'be undone. If it only needs to leave public view, archive it '
+                'instead.',
+                style: CScholarTextStyles.body(
+                  12.5,
+                  FontWeight.w400,
+                  CScholarColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 14),
+              NeumorphField(
+                controller: reasonCtrl,
+                label: 'Reason *',
+                hintText: 'Why must this record cease to exist? (10+ characters)',
+                minLines: 2,
+                maxLines: 3,
+                errorText: reasonError,
+              ),
+              const SizedBox(height: 12),
+              NeumorphField(
+                controller: confirmCtrl,
+                label: 'Type PURGE to confirm *',
+                hintText: 'PURGE',
+                errorText: confirmError,
+              ),
+            ],
+          ),
+          actions: [
+            NeumorphButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              label: 'Cancel',
+              gel: false,
+            ),
+            NeumorphButton(
+              onPressed: () {
+                final reason = reasonCtrl.text.trim();
+                final typed = confirmCtrl.text.trim();
+                if (reason.length < 10) {
+                  setDialog(
+                    () => reasonError = 'Give a reason of at least 10 characters',
+                  );
+                  return;
+                }
+                if (typed != 'PURGE') {
+                  setDialog(() => confirmError = 'Type PURGE exactly');
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              label: 'Purge permanently',
+              danger: true,
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(thesisApiProvider)
+          .purge(thesis.id, reasonCtrl.text.trim());
+      ref.invalidate(thesisDetailProvider(thesis.id));
+      ref.invalidate(thesisListProvider(const ThesisListParams()));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thesis purged permanently')),
+      );
+      context.go('/admin/thesis/management');
+    } catch (e) {
+      if (!mounted) return;
+      // A snackbar, not the form banner: the danger zone sits at the bottom of
+      // a long form, so a banner above the submit row would be out of view.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            userFacingError(
+              e,
+              fallback:
+                  "The record wasn't purged. Check your connection and try again.",
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -603,6 +766,28 @@ class _AdminAddEditThesisScreenState
                         ),
                       ],
                     ),
+
+                    // Deliberately below the form and away from the row
+                    // actions: this is the only in-app way to destroy a record
+                    // that delete refuses. A plain never-published draft is
+                    // deletable from the list, so it gets a pointer there
+                    // instead of a second, stronger removal action.
+                    if (_thesis != null) ...[
+                      const SizedBox(height: 40),
+                      if (_thesis!.status == 'draft' && !_thesis!.retained)
+                        Text(
+                          'This draft has never been published, so it can be '
+                          'deleted from Thesis Management. Purge is only for '
+                          'records the list cannot delete.',
+                          style: CScholarTextStyles.body(
+                            11.5,
+                            FontWeight.w400,
+                            CScholarColors.textMuted,
+                          ),
+                        )
+                      else
+                        _dangerZone(_thesis!),
+                    ],
                   ],
                 ),
               ),

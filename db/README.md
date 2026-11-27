@@ -3,8 +3,8 @@
 ## ⚠️ Schema is locked — do not add tables
 
 `db/schema.sql` is the **complete and frozen** definition of the CScholar
-database (18 physical tables = 16 domain + 2 operational, including `import_jobs`
-and `thesis_reviews`). AI agents and contributors must
+database (19 physical tables = 16 domain + 3 operational: `import_jobs`,
+`thesis_reviews`, and `security_audit_log`). AI agents and contributors must
 not change it:
 
 - **Do not** add, rename, drop, or alter tables, columns, indexes, or
@@ -19,11 +19,15 @@ not change it:
   ask the project owner for explicit approval**. Never make the change
   yourself.
 
+`security_audit_log` is the one owner-approved addition (2026-11-27). The schema
+is re-locked after it; no other table or column change is approved.
+
 This folder contains the CScholar database schema, mock seed data, and the
 Lab 5 logic (views, functions, procedure, triggers).
 
 ## Files
-- `schema.sql` — tables + pgvector extension + indexes (CEIT-only scope, no colleges table), including the operational `import_jobs` table used by the admin Bulk Import screen
+- `schema.sql` — tables + pgvector extension + indexes (CEIT-only scope, no colleges table), including the operational `import_jobs` and `security_audit_log` tables
+- `security_audit_log.sql` — idempotent apply script for existing databases that predate the audit table
 - `bootstrap.sql` — real reference data (CEIT programs, academic years). Idempotent. Required before any thesis can be created.
 - `import_template.csv` — column contract for the real-data import batches.
 - `seed.sql` — FICTIONAL sample data (CEIT programs, AY 2025-2026, 3 sample theses). Not real CSU records. Development/demo only.

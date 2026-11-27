@@ -7,7 +7,11 @@ from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
 from ..auth import login_required
 from .. import models as db
 from ..config import UPLOAD_DIR
-from ..services.uploads import secure_filename
+from ..services.uploads import (
+    remove_stored_file,
+    remove_unreferenced_uploads,
+    secure_filename,
+)
 from ..services import object_store
 
 logger = logging.getLogger(__name__)
@@ -126,9 +130,22 @@ async def upload_pdf(
     pdf_url = f"/api/uploads/{unique_name}"
 
     if thesis_id is not None:
+        # Capture the replaced file before the pointers move: after this
+        # update nothing in the database names it, so this is the only chance.
+        stale_urls = [existing.get("pdf_url")]
+        try:
+            file_row = db.get_thesis_file(thesis_id)
+        except Exception:
+            file_row = None
+        if file_row and file_row.get("file_path"):
+            stale_urls.append(file_row["file_path"])
+
         try:
             db.update_thesis(thesis_id, pdf_url=pdf_url)
         except Exception as e:
+            # The row still points at the old manuscript, so the file just
+            # written has no owner. Drop it before failing the request.
+            remove_stored_file(pdf_url)
             raise HTTPException(status_code=500, detail=f"Failed to update thesis record: {str(e)}")
         try:
             # Replace, not append: a re-upload is "this thesis' current file",
@@ -147,6 +164,9 @@ async def upload_pdf(
             _reembed_thesis_async(thesis_id, pdf_url)
         except Exception:
             pass
+        # Only the now-unreferenced previous manuscript is removed; a PDF
+        # attached to another thesis as well survives the reference check.
+        remove_unreferenced_uploads(stale_urls, db.pdf_is_still_referenced)
 
     return {
         "message": "PDF uploaded and parsed successfully",

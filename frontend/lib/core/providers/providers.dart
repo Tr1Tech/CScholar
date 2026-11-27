@@ -871,6 +871,65 @@ final recentActivityProvider = FutureProvider.autoDispose
       );
     });
 
+/// Wider activity feed for the dedicated logs page (the dashboard card keeps
+/// its compact 5-row page).
+const int activityLogPageSize = 20;
+
+final activityLogProvider = FutureProvider.autoDispose
+    .family<RecentActivityPage, int>((ref, page) async {
+      final data = await ref
+          .read(apiServiceProvider)
+          .get(
+            '/api/dashboard/recent-activity'
+            '?page=$page&limit=$activityLogPageSize',
+          );
+      final List<dynamic> raw = data['activity'] as List<dynamic>;
+      return (
+        items: raw.cast<Map<String, dynamic>>(),
+        total: (data['total'] as num?)?.toInt() ?? raw.length,
+        page: (data['page'] as num?)?.toInt() ?? page,
+        limit: (data['limit'] as num?)?.toInt() ?? activityLogPageSize,
+      );
+    });
+
+/// One page of the admin security audit trail.
+typedef AuditLogPage = ({
+  List<Map<String, dynamic>> items,
+  int total,
+  int page,
+  int limit,
+});
+
+const int auditLogPageSize = 25;
+
+final auditLogsProvider = FutureProvider.autoDispose
+    .family<AuditLogPage, ({int page, String? action})>((ref, args) async {
+      final query = StringBuffer(
+        '/api/admin/audit-logs?page=${args.page}&limit=$auditLogPageSize',
+      );
+      if (args.action != null && args.action!.isNotEmpty) {
+        query.write('&action=${Uri.encodeQueryComponent(args.action!)}');
+      }
+      final data = await ref.read(apiServiceProvider).get(query.toString());
+      final List<dynamic> raw = (data['items'] as List<dynamic>?) ?? const [];
+      return (
+        items: raw.cast<Map<String, dynamic>>(),
+        total: (data['total'] as num?)?.toInt() ?? raw.length,
+        page: (data['page'] as num?)?.toInt() ?? args.page,
+        limit: (data['limit'] as num?)?.toInt() ?? auditLogPageSize,
+      );
+    });
+
+/// Model/index status for the admin Semantic Index card.
+final embeddingStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) async {
+    final data = await ref
+        .read(apiServiceProvider)
+        .get('/api/embeddings/bulk-status');
+    return Map<String, dynamic>.from(data as Map);
+  },
+);
+
 final facultyStatsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
   ref,
 ) async {

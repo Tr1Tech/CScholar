@@ -157,7 +157,9 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(_host());
-    await tester.pump(const Duration(milliseconds: 400));
+    // First load may reveal the skeleton; wait out its minimum display so the
+    // measurements below describe the loaded page, not the placeholder.
+    await tester.pump(const Duration(milliseconds: 800));
 
     final screen = find.byType(SingleChildScrollView).first;
     final viewportTop = tester.getRect(screen).top;
@@ -195,7 +197,9 @@ void main() {
     addTearDown(() => CScholarPalette.activate(false));
 
     await tester.pumpWidget(const _ThemeHost());
-    await tester.pump(const Duration(milliseconds: 400));
+    // Same budget as the first test: the skeleton must have handed over before
+    // the rail is measured.
+    await tester.pump(const Duration(milliseconds: 800));
 
     final screen = find.byType(SingleChildScrollView).first;
     final viewportTop = tester.getRect(screen).top;

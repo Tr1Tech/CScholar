@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Data Dictionary |
-| Version | 1.1 |
-| Date | 2026-11-21 |
+| Version | 1.2 |
+| Date | 2026-11-27 |
 | Source of truth | `db/schema.sql` (schema: `ceit_repo`) |
-| Totals | **16 domain tables, 84 attributes (+ `theses.accession_no` = 85); 2 operational tables** |
+| Totals | **16 domain tables, 84 attributes (+ `theses.accession_no` = 85); 3 operational tables** |
 
 Legend — Key: PK = primary key, FK = foreign key, UK = unique key. Null = column accepts NULL.
 
@@ -219,6 +219,28 @@ per-row report that the admin screen polls. Column numbers use `J`.
 | J15 | started_at | TIMESTAMP | — | Yes | — | Worker start time |
 | J16 | finished_at | TIMESTAMP | — | Yes | — | Completion/failure time |
 
+## 19. security_audit_log (12 attributes) — operational security trail
+
+Not part of the 16 domain tables. Append-only: sign-ins, account changes,
+content/taxonomy mutations, imports, and backfill starts. `entity_id` is
+polymorphic and deliberately has no foreign key, so the row survives deletion of
+its target. Column numbers use `S`.
+
+| # | Column | Type | Key | Null | Default / Constraint | Description |
+|---|---|---|---|---|---|---|
+| S1 | id | BIGSERIAL | PK | No | — | Audit event identifier |
+| S2 | actor_id | INTEGER | FK | Yes | REFERENCES users(id) ON DELETE SET NULL | Signed-in actor, when known |
+| S3 | actor_username | VARCHAR(120) | — | Yes | — | Username/email snapshot at event time |
+| S4 | actor_role | VARCHAR(20) | — | Yes | — | Actor role snapshot |
+| S5 | action | VARCHAR(50) | — | No | — | Machine action name (e.g. `login_failed`) |
+| S6 | entity_type | VARCHAR(30) | — | Yes | — | Target kind (user, thesis, program, …) |
+| S7 | entity_id | INTEGER | — | Yes | — | Target id; no FK by design |
+| S8 | summary | TEXT | — | Yes | — | Human-readable event description |
+| S9 | details | JSONB | — | Yes | — | Structured context, never secrets |
+| S10 | ip_address | VARCHAR(45) | — | Yes | — | Client address |
+| S11 | user_agent | VARCHAR(255) | — | Yes | — | Truncated client agent |
+| S12 | created_at | TIMESTAMPTZ | — | No | DEFAULT NOW() | Event time |
+
 ## Attribute count by table
 
 | Table | Attributes | | Table | Attributes |
@@ -233,8 +255,9 @@ per-row report that the admin screen polls. Column numbers use `J`.
 | search_logs | 6 | | recommendation_logs | 6 |
 | **Domain total** | **84** | | | |
 | thesis_reviews (operational) | 6 | | import_jobs (operational) | 16 |
-| **Operational total** | **22** | | | |
+| security_audit_log (operational) | 12 | | | |
+| **Operational total** | **34** | | | |
 
 The 84 domain attributes plus `theses.accession_no` give 85 domain columns.
-The 22 operational columns are excluded from that total, so 16 domain tables
-and 2 operational tables account for all 18 physical tables.
+The 34 operational columns are excluded from that total, so 16 domain tables
+and 3 operational tables account for all 19 physical tables.

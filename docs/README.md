@@ -41,9 +41,9 @@ Capstone documentation lives here:
 
 | File | Contents | Version |
 |---|---|---|
-| [ERD.md](ERD.md) | Final ERD (16 domain entities + 2 operational tables, 21 FKs, Mermaid + Crow's Foot tables) | 1.2 — 2026-11-21 |
-| [normalization.md](normalization.md) | 1NF/2NF/3NF verification + BCNF evaluation for all 16 domain relations (plus 2 operational tables) | 1.1 — 2026-11-21 |
-| [data_dictionary.md](data_dictionary.md) | All 84 domain attributes (+ `accession_no` = 85) across 16 domain tables, plus 2 operational tables (type, key, constraint, description) | 1.1 — 2026-11-21 |
+| [ERD.md](ERD.md) | Final ERD (16 domain entities + 3 operational tables, 22 FKs, Mermaid + Crow's Foot tables) | 1.3 — 2026-11-27 |
+| [normalization.md](normalization.md) | 1NF/2NF/3NF verification + BCNF evaluation for all 16 domain relations (plus 3 operational tables) | 1.2 — 2026-11-27 |
+| [data_dictionary.md](data_dictionary.md) | All 84 domain attributes (+ `accession_no` = 85) across 16 domain tables, plus 3 operational tables (type, key, constraint, description) | 1.2 — 2026-11-27 |
 | [requirements_traceability.md](requirements_traceability.md) | 20 functional requirements mapped to tables and columns | 1.1 — 2026-11-21 |
 | [DEPLOY_RENDER_NEON.md](DEPLOY_RENDER_NEON.md) | Free public deployment (Render Free + Neon Postgres/Object Storage + GitHub Pages): setup, data copy, phone use, limits | 1.0 — 2026-11-25 |
 | [DESIGN_IMPROVEMENT_PROMPT.md](DESIGN_IMPROVEMENT_PROMPT.md) | Frontend design-improvement working notes | — |

@@ -10,6 +10,7 @@ import 'package:frontend/presentation/widgets/common/motion.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_card.dart';
 import 'package:frontend/presentation/widgets/common/cscholar_footer.dart';
 import 'package:frontend/presentation/widgets/common/empty_state.dart';
+import 'package:frontend/presentation/widgets/common/ai_explainer.dart';
 import 'package:frontend/presentation/widgets/common/kpi_card.dart';
 import 'package:frontend/presentation/widgets/material/clay_objects.dart';
 import 'package:frontend/presentation/widgets/material/clay_surface.dart';
@@ -1057,7 +1058,14 @@ class _StudentDashboardScreenState
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              NeumorphIconButton(
+                icon: Icons.info_outline,
+                size: 32,
+                tooltip: 'How the AI works',
+                onPressed: () => showAiExplainer(context),
+              ),
+              const SizedBox(width: 8),
               Flexible(
                 child: NeumorphButton(
                   onPressed: () => context.go('/repository'),

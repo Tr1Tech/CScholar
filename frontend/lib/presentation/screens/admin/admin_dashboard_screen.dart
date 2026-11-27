@@ -81,14 +81,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         icon: Icons.article_outlined,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
-                      ),
-                      (
-                        label: 'PROGRAMS',
-                        value: '${stats.value?['programs'] ?? 0}',
-                        trend: '${stats.value?['active_programs'] ?? 0} active',
-                        icon: Icons.school_outlined,
-                        iconBg: CScholarColors.thesisChipBg,
-                        iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/admin/thesis/management'),
                       ),
                       (
                         label: 'USERS',
@@ -97,6 +90,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         icon: Icons.people_outline,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/admin/users'),
+                      ),
+                      (
+                        label: 'PROGRAMS',
+                        value: '${stats.value?['programs'] ?? 0}',
+                        trend: '${stats.value?['active_programs'] ?? 0} with studies',
+                        icon: Icons.school_outlined,
+                        iconBg: CScholarColors.thesisChipBg,
+                        iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/admin/programs'),
                       ),
                       (
                         label: 'SEARCHES',
@@ -105,6 +108,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         icon: Icons.search,
                         iconBg: CScholarColors.thesisChipBg,
                         iconColor: CScholarColors.primaryGreen,
+                        onTap: () => context.go('/admin/activity'),
                       ),
                     ];
                     return GridView(
@@ -136,6 +140,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               icon: cards[i].icon,
                               iconBg: cards[i].iconBg,
                               iconColor: cards[i].iconColor,
+                              onTap: cards[i].onTap,
                             ),
                           ),
                       ],

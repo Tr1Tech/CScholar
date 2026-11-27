@@ -224,7 +224,7 @@ short-lived presigned URL.
    - `https://<your-service>.onrender.com/api/health` → `{"status":"ok",...}`
    - `https://<your-service>.onrender.com/api/db-test` → `"connection": "ok"`,
      `theses: 19`
-   - `https://<your-service>.onrender.com/docs` → Swagger, 62 operations
+   - `https://<your-service>.onrender.com/docs` → Swagger, 63 operations
 
    The first request after a deploy is slow; that is the cold start, not a bug.
 

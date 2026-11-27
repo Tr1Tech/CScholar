@@ -27,6 +27,8 @@ import 'package:frontend/core/constants/cscholar_constants.dart';
 import 'package:frontend/core/material/cscholar_mobile_tokens.dart';
 import 'package:frontend/core/material/cscholar_palette.dart';
 import 'package:frontend/presentation/screens/admin/admin_add_edit_thesis_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_activity_screen.dart';
+import 'package:frontend/presentation/screens/admin/admin_analytics_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_programs_screen.dart';
 import 'package:frontend/presentation/screens/admin/admin_settings_screen.dart';
@@ -37,6 +39,7 @@ import 'package:frontend/presentation/screens/auth/register_screen.dart';
 import 'package:frontend/presentation/screens/design_lab_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_analytics_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_dashboard_screen.dart';
+import 'package:frontend/presentation/screens/faculty/faculty_programs_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_settings_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_students_screen.dart';
 import 'package:frontend/presentation/screens/faculty/faculty_theses_screen.dart';
@@ -67,10 +70,13 @@ final Map<String, Widget Function()> _screens = <String, Widget Function()>{
   'admin programs': () => const AdminProgramsScreen(),
   'admin users': () => const AdminUserManagementScreen(),
   'admin settings': () => const AdminSettingsScreen(),
+  'admin activity': () => const AdminActivityScreen(),
+  'admin analytics': () => const AdminAnalyticsScreen(),
   'faculty dashboard': () => const FacultyDashboardScreen(),
   'faculty theses': () => const FacultyThesesScreen(),
   'faculty thesis form': () => const FacultyThesisFormScreen(),
   'faculty students': () => const FacultyStudentsScreen(),
+  'faculty programs': () => const FacultyProgramsScreen(),
   'faculty analytics': () => const FacultyAnalyticsScreen(),
   'faculty settings': () => const FacultySettingsScreen(),
 };

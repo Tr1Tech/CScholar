@@ -112,40 +112,52 @@ manuscripts, 462 vectors for 19 records.
 Do not call this an AI recommendation. Both layouts now say "Related
 research"; the personalized dashboard feed is a separate surface.
 
-### 7:00 — Admin: publishing controls (2.5 min)
+### 7:00 — Admin: controls, logs, analytics (4 min)
 
 Sign out, sign in as `admin1`.
 
-1. **Dashboard** — totals for the 19 published records and 3 programs.
-2. **Theses / Capstone** — point out status filters and that only published
-   records reach the public repository. Do not change a record's status.
+1. **Dashboard** — totals for the 19 published records and 3 programs. Point out
+   that SEARCHES is real, not a placeholder.
+2. **Theses / Capstone** — status filters and that only published records reach
+   the public repository. Do not change a record's status.
 3. **Bulk Import** — show **Download CSV template**, the two inputs (metadata
    CSV, PDF manuscripts), and explain the pipeline: validate the batch, preview
    per-row errors, import as drafts, then publish through Thesis Management.
    Do not run an import live.
-4. Mention the audit log: submissions, approvals, and status changes are
-   recorded with the acting user.
+4. **Activity & Logs** — Activity shows submissions, reviews, and import
+   batches; Searches shows the top queries and the keyword/semantic split;
+   Security shows the append-only audit trail (your sign-in is the newest row).
+5. **Programs** — try deleting a program that has studies. It explains how many
+   studies use it and refuses without deleting anything. Cancel. This also
+   answers "what happens to the studies?" for years and categories.
+6. **Analytics** — status donut, research-type donut, program bars, and
+   academic-year columns.
+7. Mention that sign-ins, failed sign-ins, account changes, and taxonomy edits
+   are recorded with the acting user and IP; passwords and tokens never are.
 
 > "Nothing goes public without review. Import creates drafts; an admin
-> publishes after checking metadata and the PDF."
+> publishes after checking metadata and the PDF. A delete never takes studies
+> with it."
 
 Avoid the **Users** page in the demo (temporary demo account).
 
-### 9:30 — Faculty: advising view (2 min)
+### 11:00 — Faculty: advising view (2 min)
 
 Sign out, sign in as `demo_faculty`.
 
-1. **Dashboard** — 4 studies, 12 advisees, 4 published.
-2. **My Theses** — the same four studies.
-3. **My Students** — the roster. Search `Glen`; tap a student; the dialog lists
+1. **Dashboard** — 4 studies, 12 advisees, 4 published. Every KPI card opens its
+   page; tap **Programs**.
+2. **Programs** — the advised studies grouped by CEIT program; expand one.
+3. **My Theses** — the same four studies.
+4. **My Students** — the roster. Search `Glen`; tap a student; the dialog lists
    that student's studies. Close it.
-4. **Analytics** — counts by year and program.
+5. **Analytics** — status and type donuts, program bars, year columns.
 
 > "Faculty see the students they advise and the studies they supervise. The
 > roster is identity first — name, program, study count — because a student can
 > have more than one study."
 
-### 11:30 — Close (30 s)
+### 13:00 — Close (30 s)
 
 > "Today the repository holds 19 complete CEIT records. On the same ten queries,
 > keyword retrieval puts the right study in the top three six times; semantic
@@ -234,13 +246,13 @@ $bin='C:\Program Files\PostgreSQL\18\bin'
     --no-owner --no-privileges backups\cscholar_20261121_0015.dump
 ```
 
-Verified counts in the restored copy: 18 base tables (16 domain + 2 operational),
+Verified counts in the restored copy: 19 base tables (16 domain + 3 operational),
 19 theses (all published), 58 authors, 10 advisers, 23 users, 462 embedding
 chunks, 1 adviser email, 38 review decisions, 1 import job, and **no**
 `thesis_audit_log`. Drop the scratch database afterwards.
 
 > Do not re-run `db/logic/cscholar_lab5_logic.sql` on the demo database: it adds
-> `thesis_audit_log` and turns 18 tables into 19.
+> `thesis_audit_log` and turns 19 tables into 20.
 
 To recover the demo machine: restore into `cscholar`, unzip the PDFs into
 `backend\app\uploads\`, start the backend, and run `demo_preflight.py`.

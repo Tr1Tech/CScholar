@@ -1,7 +1,7 @@
 # API testing guide (Swagger UI)
 
 Everything below is generated from the **locked** contract
-(`backend/api_contract.json`, 61 operations). No endpoint was added for this
+(`backend/api_contract.json`, 64 operations). No endpoint was added for this
 guide.
 
 - **Swagger UI:** <http://localhost:5000/docs>
@@ -131,7 +131,8 @@ Rules to show:
 | POST | `/api/theses` | admin, faculty | full body below | `201` thesis object |
 | PUT | `/api/theses/{id}` | admin; faculty only own drafts | partial body | `200` thesis object |
 | POST | `/api/theses/bulk-status` | admin | body: `ids`, `status` (`approved` or `published`) | `200 {requested,status,updated,skipped}` |
-| DELETE | `/api/theses/{id}` | admin; faculty only own drafts | path id | `200 {"message":"Thesis deleted"}` |
+| DELETE | `/api/theses/{id}` | admin; faculty only own drafts | path id | `200` for a draft never published; `409` for a retained record |
+| POST | `/api/theses/{id}/purge` | admin | path id + body: `reason` (10–500 chars) | `200 {"message":"Thesis purged","id":...,"pdf_removed":...}` |
 | GET | `/api/theses/{thesis_id}/pdf` | any login | path id (+ header token) | `200` PDF file, `404` when none |
 
 Useful query examples (all map to the repository filters):
@@ -204,6 +205,7 @@ Lifecycle rules (the DB enforces these):
 - `POST /api/theses` missing title/abstract/research_type/program_id/academic_year_id → `400`; unknown program/year → `400`; unknown adviser → `404`.
 - A near-duplicate title/abstract returns `409` with `possible_duplicates`; resubmit with `"confirm_duplicate": true` (the UI shows a duplicate warning dialog).
 - A faculty submission is forced to `draft`, and a faculty can edit/delete only their own draft.
+- A record that was **ever published** or carries a library `accession_no` is retained: `DELETE` returns `409` whatever its current status, and restoring it to draft does not unlock deletion. Archive it instead. Permanent removal is the admin-only `POST /api/theses/{id}/purge` with a reason of at least 10 characters; the reason is stored in the security audit log, which survives the deleted record.
 - An invalid status transition returns `409` with `current_status` and `required_statuses`.
 - `GET /api/theses` without `status` shows **published only**. `show_all=true` needs an admin token (`403` otherwise).
 - PDF id example: `GET /api/theses/59/pdf` opens the 5-page PDF.
@@ -379,8 +381,9 @@ Deleting a running import returns `409`.
     `GET /api/faculty/dashboard` / `/activity` / `/theses` / `/advisees` / `/analytics`.
 11. `POST /api/recommendations` with the student token.
 12. Bulk import: template → preview → run → status → report → discard.
-13. Clean up the records you created (`DELETE` endpoints) if the instructor
-    wants the seed data untouched.
+13. Clean up the records you created. A draft you never published can be
+    `DELETE`d. Once a study has been published, archive it instead; removing it
+    for real needs the admin `purge` call with a recorded reason.
 
 ## 5. Expected errors are also "working"
 
@@ -396,6 +399,7 @@ The instructor may try invalid input on purpose. These are correct responses:
 | Missing multipart file | `422` with FastAPI field details |
 | Bad login | `401 {"error":"Invalid credentials"}` |
 | Duplicate thesis title/abstract | `409` + `possible_duplicates` |
+| Delete a published or accessioned thesis | `409` explaining archive vs purge |
 
 ## 6. One caution when testing `GET /api/theses` as a guest
 

@@ -73,5 +73,50 @@ void main() {
     expect(thesis.approvedAt, isNull);
     expect(thesis.reviewNotes, isNull);
     expect(thesis.reviews, isNull);
+    // A payload that predates the retention columns is deletable-as-before.
+    expect(thesis.retained, isFalse);
+    expect(thesis.everPublished, isNull);
+    expect(thesis.accessionNo, isNull);
+  });
+
+  test('parses the retention facts behind a withheld delete', () {
+    final thesis = Thesis.fromJson({
+      ...baseJson(),
+      'ever_published': true,
+      'accession_no': '0142',
+      'retained': true,
+    });
+
+    expect(thesis.retained, isTrue);
+    expect(thesis.everPublished, isTrue);
+    expect(thesis.accessionNo, '0142');
+  });
+
+  test('names why a draft may or may not be deleted', () {
+    expect(
+      Thesis.fromJson({...baseJson(), 'status': 'draft'}).draftOrigin,
+      'NEVER PUBLISHED',
+    );
+    expect(
+      Thesis.fromJson({
+        ...baseJson(),
+        'status': 'draft',
+        'retained': true,
+        'ever_published': true,
+      }).draftOrigin,
+      'PUBLISHED BEFORE',
+    );
+    expect(
+      Thesis.fromJson({
+        ...baseJson(),
+        'status': 'draft',
+        'retained': true,
+        'ever_published': false,
+        'accession_no': '0142',
+      }).draftOrigin,
+      'ACCESSIONED',
+    );
+    // Non-drafts carry no origin note; the status chip says it.
+    expect(Thesis.fromJson(baseJson()).draftOrigin, isNull);
   });
 }

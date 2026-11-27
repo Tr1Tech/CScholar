@@ -42,19 +42,22 @@
 | `/admin/thesis/management` | `screens/admin/admin_thesis_management_screen.dart` | Full table (Title 470px + Program + Year + Status chip + Actions: status dropdown draft/approved/published/archived, View, Edit, Delete w/ confirm dialog). Live `adminThesisSearchProvider` filter. `DataTable` rows enter with card (no row stagger). |
 | `/admin/thesis/new` | `screens/admin/admin_add_edit_thesis_screen.dart` | Create (status forced `published`). Title, abstract, program/year/type/adviser pickers, authors multi-chip picker, primary category + semicolon keywords, PDF upload (`uploadApi`, 50MB, filename/size shown, remove). Duplicate-check dialog on 409 (`parseDuplicateCandidates` → confirm → retry with `confirmDuplicate`). |
 | `/admin/thesis/:id/edit` | same file (`thesisId`) | Edit existing. Prefills all fields post-frame. Same validation. |
-| `/admin/programs` | `screens/admin/admin_programs_screen.dart` | Taxonomy CRUD in 3 tabs: Programs / Academic Years / Categories. Each row: avatar/icon + name + sublabel + edit dialog. Add/Edit via `GlassDialog` + `NeumorphField`s. Mobile: `TabBar` in `AppBar` + FAB. |
-| `/admin/users` | `screens/admin/admin_user_management_screen.dart` | Accounts table (Name + Email + RoleChip + ActiveChip + Edit / activate-toggle). `NeumorphSegmented` role filter (All/Student/Faculty/Admin). Add/Edit dialogs (username, email, password min-6, role select). Cannot deactivate self or remove own admin. Mobile: card list. |
-| `/admin/settings` | `screens/admin/admin_settings_screen.dart` | Device-persisted (`SharedPreferences` `settings_*`): site name/desc/contact/maxResults fields + toggles (semantic, recommendations, autoArchive, publicSearch). Save button real. Mobile body = stub text. |
+| `/admin/programs` | `screens/admin/admin_programs_screen.dart` | Taxonomy CRUD in 4 tabs: Programs / Academic Years / Categories / Advisers. Each row: avatar/icon + name + sublabel + edit dialog. Delete pre-checks usage: programs/years return a 409 with the study count; categories warn that studies stay and lose the tag. Add/Edit via `GlassDialog` + `NeumorphField`s. Mobile: `TabBar` in `AppBar` + FAB. |
+| `/admin/users` | `screens/admin/admin_user_management_screen.dart` | Accounts table (Name + Email + RoleChip + ActiveChip + Edit / activate-toggle). `NeumorphSegmented` role filter (All/Student/Faculty/Admin). Add/Edit dialogs (username, email, password min-6, role select). Cannot deactivate self or remove own admin. Deactivate is a reversible suspension; its dialog explains that studies and history are kept. Mobile: card list. |
+| `/admin/activity` | `screens/admin/admin_activity_screen.dart` | Activity & Logs. Tabs: Activity (submissions, reviews, imports), Searches (top queries + semantic split), Security (append-only audit trail from `/api/admin/audit-logs`). |
+| `/admin/analytics` | `screens/admin/admin_analytics_screen.dart` | Repository analytics with a status donut, research-type donut, program bars, academic-year columns, and top searches. |
+| `/admin/settings` | `screens/admin/admin_settings_screen.dart` | Account card + password change + AI/Semantic Index card (model, coverage, backfill status, "Re-embed all studies" toggle, guarded rebuild). No fake site-wide settings. |
 
 ### Faculty (shell: `CScholarShell`/`ScrollVeil` + `FacultySidebar` + `FacultyTopbar`)
 | Route | File | Purpose |
 |-------|------|---------|
-| `/faculty/dashboard` | `screens/faculty/faculty_dashboard_screen.dart` | Advisee overview. 4 KPIs (ADVISEES/MY THESES/PROGRAMS/REVIEWS), Recent Activity panel, My Advisees count panel. Same grid + stagger as admin dashboard. |
+| `/faculty/dashboard` | `screens/faculty/faculty_dashboard_screen.dart` | Advisee overview. 4 clickable KPIs (ADVISEES → students, MY THESES → theses, PROGRAMS → programs, REVIEWS → theses), Recent Activity panel, My Advisees count panel. Same grid + stagger as admin dashboard. |
 | `/faculty/theses` | `screens/faculty/faculty_theses_screen.dart` | Own advised theses. `ClayChip` status filter (All/Draft/Approved/Published/Archived). Row: title + program/year/authors + status chip + View (+ Edit/Delete if own draft). Delete confirm dialog. `RefreshIndicator` on `facultyThesesProvider`. |
 | `/faculty/thesis/new` | `screens/faculty/faculty_thesis_form_screen.dart` | Submit draft (backend forces `draft` regardless). Same fields as admin form minus adviser picker (submitter = adviser, locked row). Authors + categories via multi-pick dialogs. PDF attach (create: carried into payload; edit: server-linked immediately). |
 | `/faculty/thesis/:id/edit` | same file (`thesisId`) | Edit own draft only. Non-editable (non-draft or others') → `EmptyState` lock message. |
 | `/faculty/students` | `screens/faculty/faculty_students_screen.dart` | Advisee roster (search + counts). One short row per advisee: initials avatar, name, program, study count. Tap opens a dialog listing every supervised study (title, status, year) with a View action. |
-| `/faculty/analytics` | `screens/faculty/faculty_analytics_screen.dart` | Supervised breakdown: By Status bars (uses `statusFill`, chart draws 120ms after card), By Program counts, By Academic Year counts. |
+| `/faculty/programs` | `screens/faculty/faculty_programs_screen.dart` | Advised studies grouped by CEIT program. Each program expands to its studies with status, year, and a detail link. |
+| `/faculty/analytics` | `screens/faculty/faculty_analytics_screen.dart` | Supervised breakdown: status donut, research-type donut, program bars, academic-year columns. |
 | `/faculty/settings` | `screens/faculty/faculty_settings_screen.dart` | Profile card (avatar + username + email + role badge + info rows) + Session card (Copy session token for API debugging + Log Out → `/login`). |
 
 ### Dev (stripped from release)
@@ -83,6 +86,8 @@ Shared transitions: every route fades + rises (single shared `CScholarTransition
 | `recommendedThesesProvider(id)` | `GET /api/theses/{id}/recommend` | detail Related research |
 | `recommendationsProvider` / `recommendationAnchorProvider` | `POST /api/recommendations` (one anchor id: last viewed/saved study) | dashboard Recommended for You |
 | `recentThesesProvider` | latest theses | dashboard Recent Studies |
+| `auditLogsProvider` | `GET /api/admin/audit-logs` (admin) | Activity & Logs → Security tab |
+| `embeddingStatusProvider` | `GET /api/embeddings/bulk-status` | Admin Settings → Semantic Index |
 | `savedThesisIdsProvider` / `savedThesesProvider` | device-local saved ids (SharedPreferences) + thesis lookup | dashboard count, saved screen, profile preview, detail save toggle, result-card bookmark |
 | `programsProvider` / `academicYearsProvider` / `categoriesProvider` / `keywordsProvider` / `authorsProvider` / `advisersProvider` / `researchTypesProvider` | `GET /api/programs`, `/api/academic-years`, `/api/categories`, `/api/keywords`, `/api/authors`, `/api/advisers`, `/api/research-types` | repository filters, all thesis forms, admin programs screen |
 | `dashboardStatsProvider` | `GET /api/dashboard/stats` (admin) | admin dashboard KPIs |
@@ -107,7 +112,7 @@ Mutations: `thesisApi.create/update/delete/updateStatus`, `uploadApi.uploadPdf`,
 
 PDF flow: pick → `uploadApi.uploadPdf(bytes, name, thesisId?)` → `pdfUrl` stored on form → served at `/api/theses/{id}/pdf`. OCR (`PyMuPDF`) + chunk + embed (`all-MiniLM-L6-v2`) happen server-side; bulk embed is async with status polling.
 
-## 6. Database (`db/schema.sql`, schema `ceit_repo`, 18 physical tables = 16 domain + 2 operational)
+## 6. Database (`db/schema.sql`, schema `ceit_repo`, 19 physical tables = 16 domain + 3 operational)
 
 `users` (role CHECK student/faculty/admin) → `programs`, `academic_years`, `theses` (status lifecycle `draft→approved→published→archived`) → `authors` + `thesis_authors`, `advisers` + `thesis_advisers`, `categories` + `thesis_categories`, `keywords` + `thesis_keywords`, `thesis_files` (PDF), `thesis_embeddings` (pgvector 384-d), `search_logs`, `recommendation_logs`. Operational: `thesis_reviews` (lifecycle audit trail) and `import_jobs` (bulk-import job state). Details: `docs/ERD.md`, `docs/data_dictionary.md`, `docs/normalization.md`, `docs/requirements_traceability.md`.
 

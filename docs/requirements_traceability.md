@@ -6,7 +6,7 @@
 | Version | 1.1 |
 | Date | 2026-11-21 |
 | Source of truth | `README.md` development phases + `db/schema.sql` |
-| Totals | **20 functional requirements → 16/16 domain tables traced (100%); 2 operational tables documented separately** |
+| Totals | **20 functional requirements → 16/16 domain tables traced (100%); 3 operational tables documented separately** |
 
 ## 1. Functional requirements
 
@@ -65,16 +65,17 @@
 | Functional requirements defined | 20 |
 | Requirements traced to ≥ 1 table | 20 (100%) |
 | Database tables traced | 16 of 16 domain tables |
-| Operational tables (not requirement-derived) | 2 (`thesis_reviews`, `import_jobs`) |
+| Operational tables (not requirement-derived) | 3 (`thesis_reviews`, `import_jobs`, `security_audit_log`) |
 | Requirements with a column-level constraint implementing them | 12 |
 | Untraced tables | 0 |
 
-The two operational tables are infrastructure, not domain entities.
+The three operational tables are infrastructure, not domain entities.
 `thesis_reviews` keeps the FR-08 lifecycle audit trail (one row per decision),
-and `import_jobs` keeps bulk-import job state for the admin import path that
-creates FR-06 entries. No functional requirement is implemented by their
+`import_jobs` keeps bulk-import job state for the admin import path that
+creates FR-06 entries, and `security_audit_log` keeps the sign-in/account/
+taxonomy trail for FR-19. No functional requirement is implemented by their
 columns alone, so they are excluded from the 16/16 domain total.
 
 ## 4. Requirement ↔ normalized ERD linkage
 
-Every requirement above maps to entities in the final ERD (see `ERD.md`). The four many-to-many requirements (FR-11 to FR-14) correspond exactly to the four junction tables verified at 3NF/BCNF (see `normalization.md`); attribute-level meanings are defined in `data_dictionary.md` (85 attributes: 84 domain + `theses.accession_no`). The two operational tables are documented in the ERD's operational-tables section and in `data_dictionary.md` §17–§18.
+Every requirement above maps to entities in the final ERD (see `ERD.md`). The four many-to-many requirements (FR-11 to FR-14) correspond exactly to the four junction tables verified at 3NF/BCNF (see `normalization.md`); attribute-level meanings are defined in `data_dictionary.md` (85 attributes: 84 domain + `theses.accession_no`). The three operational tables are documented in the ERD's operational-tables section and in `data_dictionary.md` §17–§19.

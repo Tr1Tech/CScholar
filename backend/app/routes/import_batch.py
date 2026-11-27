@@ -12,6 +12,7 @@ import threading
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 
 from .. import models as db
+from ..audit import log_security_event
 from ..auth import admin_required
 from ..services import import_jobs, importing
 from ..services.uploads import secure_filename
@@ -97,6 +98,18 @@ async def preview_import(
             error_count=sum(1 for row in rows if row.errors),
             rows=[importing.row_json(row) for row in rows],
         )
+        log_security_event(
+            "import_previewed",
+            actor=request.state.current_user,
+            request=request,
+            entity_type="import_job",
+            entity_id=job_id,
+            summary=f"Previewed import {csv_file.filename}",
+            details={
+                "rows": len(rows),
+                "errors": sum(1 for row in rows if row.errors),
+            },
+        )
         return db.get_import_job(job_id)
     except Exception as exc:
         import_jobs.cleanup_job_dir(job_id)
@@ -131,6 +144,15 @@ def run_import(job_id: int, request: Request):
         )
 
     db.update_import_job(job_id, status="queued", message=None)
+    log_security_event(
+        "import_started",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="import_job",
+        entity_id=job_id,
+        summary=f"Started import {job.get('csv_filename') or job_id}",
+        details={"rows": job.get("total_rows")},
+    )
     threading.Thread(
         target=import_jobs.run_import_job,
         args=(job_id,),
@@ -154,12 +176,20 @@ def get_import(job_id: int):
     dependencies=[Depends(admin_required)],
     openapi_extra={"x-required-roles": ["admin"]},
 )
-def delete_import(job_id: int):
+def delete_import(job_id: int, request: Request):
     job = _job_or_404(job_id)
     if job["status"] in ("queued", "running"):
         raise HTTPException(status_code=409, detail="Cannot delete a running import")
     import_jobs.cleanup_job_dir(job_id)
     db.delete_import_job(job_id)
+    log_security_event(
+        "import_deleted",
+        actor=request.state.current_user,
+        request=request,
+        entity_type="import_job",
+        entity_id=job_id,
+        summary=f"Discarded import {job.get('csv_filename') or job_id}",
+    )
     return {"message": "Import preview discarded"}
 
 

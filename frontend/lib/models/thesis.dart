@@ -11,6 +11,10 @@ class Program {
   final String code;
   final String name;
   final String? college;
+
+  /// How many studies reference this program. Supplied by `/api/programs`;
+  /// the admin screen uses it to mark in-use rows before a destructive click.
+  final int thesisCount;
   final DateTime createdAt;
 
   const Program({
@@ -18,6 +22,7 @@ class Program {
     required this.code,
     required this.name,
     this.college,
+    this.thesisCount = 0,
     required this.createdAt,
   });
 
@@ -26,6 +31,7 @@ class Program {
     code: json['code'] as String,
     name: json['name'] as String,
     college: (json['college'] ?? json['description']) as String?,
+    thesisCount: (json['thesis_count'] as num?)?.toInt() ?? 0,
     createdAt: _parseDate(json['created_at']),
   );
 
@@ -34,6 +40,7 @@ class Program {
     'code': code,
     'name': name,
     'college': college,
+    'thesis_count': thesisCount,
     'created_at': createdAt.toIso8601String(),
   };
 }
@@ -45,6 +52,9 @@ class AcademicYear {
   final int startYear;
   final int endYear;
   final bool isActive;
+
+  /// Studies filed under this year. See [Program.thesisCount].
+  final int thesisCount;
   final DateTime createdAt;
 
   const AcademicYear({
@@ -53,6 +63,7 @@ class AcademicYear {
     required this.startYear,
     required this.endYear,
     required this.isActive,
+    this.thesisCount = 0,
     required this.createdAt,
   });
 
@@ -64,6 +75,7 @@ class AcademicYear {
     startYear: json['start_year'] as int,
     endYear: json['end_year'] as int,
     isActive: json['is_active'] as bool? ?? false,
+    thesisCount: (json['thesis_count'] as num?)?.toInt() ?? 0,
     createdAt: _parseDate(json['created_at']),
   );
 
@@ -73,6 +85,7 @@ class AcademicYear {
     'start_year': startYear,
     'end_year': endYear,
     'is_active': isActive,
+    'thesis_count': thesisCount,
     'created_at': createdAt.toIso8601String(),
   };
 }
@@ -182,12 +195,16 @@ class Category {
   final int id;
   final String name;
   final String? description;
+
+  /// Studies tagged with this category. See [Program.thesisCount].
+  final int thesisCount;
   final DateTime createdAt;
 
   const Category({
     required this.id,
     required this.name,
     this.description,
+    this.thesisCount = 0,
     required this.createdAt,
   });
 
@@ -195,6 +212,7 @@ class Category {
     id: json['id'] as int,
     name: json['name'] as String,
     description: json['description'] as String?,
+    thesisCount: (json['thesis_count'] as num?)?.toInt() ?? 0,
     createdAt: _parseDate(json['created_at']),
   );
 
@@ -202,6 +220,7 @@ class Category {
     'id': id,
     'name': name,
     'description': description,
+    'thesis_count': thesisCount,
     'created_at': createdAt.toIso8601String(),
   };
 }
@@ -485,6 +504,22 @@ class Thesis {
   /// Admin feedback recorded when an approved study is returned to draft.
   final String? reviewNotes;
 
+  /// True when the record must be kept: it was published at least once, or it
+  /// carries a library accession number. The server refuses a normal delete,
+  /// so the UI never offers one; archive or the audited purge remain.
+  final bool retained;
+  final bool? everPublished;
+  final String? accessionNo;
+
+  /// Why this draft may or may not be deleted, or null when it is not a
+  /// draft. Never-published drafts are the only deletable ones.
+  String? get draftOrigin {
+    if (status != 'draft') return null;
+    if (everPublished == true) return 'PUBLISHED BEFORE';
+    if (retained) return 'ACCESSIONED';
+    return 'NEVER PUBLISHED';
+  }
+
   /// Every lifecycle decision, newest first. The detail payload carries this;
   /// list rows leave it null.
   final List<ThesisReview>? reviews;
@@ -516,6 +551,9 @@ class Thesis {
     this.approvedByName,
     this.approvedAt,
     this.reviewNotes,
+    this.retained = false,
+    this.everPublished,
+    this.accessionNo,
     this.reviews,
     this.program,
     this.academicYear,
@@ -564,6 +602,9 @@ class Thesis {
         ? DateTime.tryParse(json['approved_at'] as String)
         : null,
     reviewNotes: json['review_notes'] as String?,
+    retained: json['retained'] as bool? ?? false,
+    everPublished: json['ever_published'] as bool?,
+    accessionNo: json['accession_no'] as String?,
     reviews: (json['reviews'] as List?)
         ?.map((e) => ThesisReview.fromJson(e as Map<String, dynamic>))
         .toList(),

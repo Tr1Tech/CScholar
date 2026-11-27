@@ -241,6 +241,8 @@ def get_all_users():
 
 def serialize_thesis(row):
     """Convert a DB row to a thesis dict."""
+    ever_published = bool(row[26]) if len(row) > 26 else False
+    accession_no = row[27] if len(row) > 27 else None
     data = {
         "id": row[0],
         "title": row[1],
@@ -274,6 +276,12 @@ def serialize_thesis(row):
         "approved_at": row[23].isoformat() if len(row) > 23 and row[23] else None,
         "review_notes": row[24] if len(row) > 24 else None,
         "approved_by_name": row[25] if len(row) > 25 else None,
+        # Retention is history, not status. The commands use it to decide
+        # whether a record may be deleted or only archived; list rows shorten
+        # to defaults when the query did not select these columns.
+        "ever_published": ever_published,
+        "accession_no": accession_no,
+        "retained": ever_published or accession_no is not None,
     }
     return data
 
@@ -503,7 +511,10 @@ def get_thesis_by_id(thesis_id):
                 "       p.id, p.name, p.code, p.description, p.created_at, "
                 "       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
                 "       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url, "
-                "       t.approved_by, t.approved_at, t.review_notes, u.username "
+                "       t.approved_by, t.approved_at, t.review_notes, u.username, "
+                "       EXISTS (SELECT 1 FROM thesis_reviews r "
+                "               WHERE r.thesis_id = t.id AND r.decision = 'published') AS ever_published, "
+                "       t.accession_no "
                 "FROM theses t "
                 "LEFT JOIN programs p ON t.program_id = p.id "
                 "LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
@@ -630,10 +641,14 @@ def list_theses(q=None, program_id=None, year_id=None, research_type=None, statu
                 f"       p.id, p.name, p.code, p.description, p.created_at, "
                 f"       t.academic_year_id, ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, ay.created_at, "
                 f"       t.status, t.creator_id, t.created_at, t.updated_at, t.pdf_url, "
-                f"       t.approved_by, t.approved_at, t.review_notes "
+                f"       t.approved_by, t.approved_at, t.review_notes, u.username, "
+                f"       EXISTS (SELECT 1 FROM thesis_reviews r "
+                f"               WHERE r.thesis_id = t.id AND r.decision = 'published') AS ever_published, "
+                f"       t.accession_no "
                 f"FROM theses t "
                 f"LEFT JOIN programs p ON t.program_id = p.id "
                 f"LEFT JOIN academic_years ay ON t.academic_year_id = ay.id "
+                f"LEFT JOIN users u ON t.approved_by = u.id "
                 f"{where} "
                 f"ORDER BY {order_by_sql} "
                 f"LIMIT %s OFFSET %s",
@@ -838,6 +853,12 @@ def update_thesis(thesis_id, **kwargs):
 
 
 def delete_thesis(thesis_id):
+    """Delete a thesis row and everything that cascades with it.
+
+    The stored PDF is deliberately not removed here. The cascade also drops
+    ``thesis_files``, so the route captures the file URL first and removes the
+    blob after this commit, once no other thesis references it.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -850,15 +871,73 @@ def delete_thesis(thesis_id):
         put_conn(conn)
 
 
-# ── Meta lookups ───────────────────────────────────────────────────────────
+def thesis_retention(thesis_id):
+    """Retention facts for a thesis: whether it must be kept, and why.
 
-def list_programs():
+    Current status is not evidence — a record can be archived and even
+    restored to draft — so this reads history and the holdings register:
+    ever published (``thesis_reviews``) or assigned an ``accession_no``.
+    Hard delete refuses retained records; only an explicit, audited purge may
+    remove one.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name, code, description, created_at FROM programs ORDER BY name")
+            cur.execute(
+                "SELECT t.accession_no, "
+                "       EXISTS ("
+                "           SELECT 1 FROM thesis_reviews r "
+                "           WHERE r.thesis_id = t.id AND r.decision = 'published'"
+                "       ) "
+                "FROM theses t WHERE t.id = %s",
+                (thesis_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return {
+                    "accession_no": None,
+                    "ever_published": False,
+                    "retained": False,
+                }
+            accession_no, ever_published = row
+            return {
+                "accession_no": accession_no,
+                "ever_published": bool(ever_published),
+                "retained": bool(accession_no) or bool(ever_published),
+            }
+    finally:
+        put_conn(conn)
+
+
+# ── Meta lookups ───────────────────────────────────────────────────────────
+
+def list_programs():
+    """Programs with the number of studies that reference them.
+
+    ``thesis_count`` is the same figure the delete route checks, so the admin
+    screen can mark a row as in use before offering the destructive action.
+    The LEFT JOIN keeps unused programs (count 0) in the list.
+    """
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT p.id, p.name, p.code, p.description, p.created_at, "
+                "       COUNT(t.id) AS thesis_count "
+                "FROM programs p "
+                "LEFT JOIN theses t ON t.program_id = p.id "
+                "GROUP BY p.id "
+                "ORDER BY p.name"
+            )
             return [
-                {"id": r[0], "name": r[1], "code": r[2], "description": r[3], "created_at": r[4].isoformat() if r[4] else None}
+                {
+                    "id": r[0],
+                    "name": r[1],
+                    "code": r[2],
+                    "description": r[3],
+                    "created_at": r[4].isoformat() if r[4] else None,
+                    "thesis_count": r[5] or 0,
+                }
                 for r in cur.fetchall()
             ]
     finally:
@@ -866,12 +945,29 @@ def list_programs():
 
 
 def list_academic_years():
+    """Academic years with the number of studies filed under each one."""
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name, start_year, end_year, is_active, created_at FROM academic_years ORDER BY start_year DESC")
+            cur.execute(
+                "SELECT ay.id, ay.name, ay.start_year, ay.end_year, ay.is_active, "
+                "       ay.created_at, COUNT(t.id) AS thesis_count "
+                "FROM academic_years ay "
+                "LEFT JOIN theses t ON t.academic_year_id = ay.id "
+                "GROUP BY ay.id "
+                "ORDER BY ay.start_year DESC"
+            )
             return [
-                {"id": r[0], "name": r[1], "label": r[1], "start_year": r[2], "end_year": r[3], "is_active": r[4], "created_at": r[5].isoformat() if r[5] else None}
+                {
+                    "id": r[0],
+                    "name": r[1],
+                    "label": r[1],
+                    "start_year": r[2],
+                    "end_year": r[3],
+                    "is_active": r[4],
+                    "created_at": r[5].isoformat() if r[5] else None,
+                    "thesis_count": r[6] or 0,
+                }
                 for r in cur.fetchall()
             ]
     finally:
@@ -879,12 +975,30 @@ def list_academic_years():
 
 
 def list_categories():
+    """Categories with the number of studies tagged with each one.
+
+    A study can carry a category at most once (composite primary key on
+    ``thesis_categories``), so the count is also the number of studies.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name, description, created_at FROM categories ORDER BY name")
+            cur.execute(
+                "SELECT c.id, c.name, c.description, c.created_at, "
+                "       COUNT(tc.thesis_id) AS thesis_count "
+                "FROM categories c "
+                "LEFT JOIN thesis_categories tc ON tc.category_id = c.id "
+                "GROUP BY c.id "
+                "ORDER BY c.name"
+            )
             return [
-                {"id": r[0], "name": r[1], "description": r[2], "created_at": r[3].isoformat() if r[3] else None}
+                {
+                    "id": r[0],
+                    "name": r[1],
+                    "description": r[2],
+                    "created_at": r[3].isoformat() if r[3] else None,
+                    "thesis_count": r[4] or 0,
+                }
                 for r in cur.fetchall()
             ]
     finally:
@@ -1339,6 +1453,78 @@ def delete_category(category_id):
 
 
 
+# ── Delete-safety usage counts ─────────────────────────────────────────────
+# Programs and academic years are protected by ON DELETE RESTRICT. Counting
+# first lets the API explain the block instead of returning an opaque server
+# error. Authors, advisers, and categories use CASCADE on their join tables,
+# so the database would not complain: it would silently drop the link. The
+# count is what turns that silent unlink into an explained 409.
+
+def count_theses_for_program(program_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM theses WHERE program_id = %s",
+                (program_id,),
+            )
+            return cur.fetchone()[0] or 0
+    finally:
+        put_conn(conn)
+
+
+def count_theses_for_academic_year(year_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM theses WHERE academic_year_id = %s",
+                (year_id,),
+            )
+            return cur.fetchone()[0] or 0
+    finally:
+        put_conn(conn)
+
+
+def count_theses_for_category(category_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM thesis_categories WHERE category_id = %s",
+                (category_id,),
+            )
+            return cur.fetchone()[0] or 0
+    finally:
+        put_conn(conn)
+
+
+def count_theses_for_author(author_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM thesis_authors WHERE author_id = %s",
+                (author_id,),
+            )
+            return cur.fetchone()[0] or 0
+    finally:
+        put_conn(conn)
+
+
+def count_theses_for_adviser(adviser_id):
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM thesis_advisers WHERE adviser_id = %s",
+                (adviser_id,),
+            )
+            return cur.fetchone()[0] or 0
+    finally:
+        put_conn(conn)
+
+
 # ── Programs CRUD ─────────────────────────────────────────────────────────
 
 def get_program_by_id(program_id):
@@ -1614,9 +1800,9 @@ def replace_thesis_file(thesis_id, filename, file_path, file_size=None, mime_typ
     report 3 files for a thesis with a single active PDF. Delete+insert in one
     transaction also cleans up duplicates left by earlier appends.
 
-    The old blob on disk is deliberately left alone: an admin can attach the
-    same stored PDF URL to more than one record, so removing the file could
-    break the other thesis. Metadata is the source of truth for "current".
+    This only moves the metadata. The old blob is removed by the caller after
+    the commit, and only when ``pdf_is_still_referenced`` says no other thesis
+    still points at it — one stored URL can be attached to several records.
     """
     conn = get_conn()
     try:
@@ -1668,7 +1854,11 @@ def get_thesis_file(thesis_id):
 
 
 def delete_thesis_files(thesis_id):
-    """Remove file metadata for a thesis (the blob on disk is left alone)."""
+    """Remove file metadata for a thesis.
+
+    The blob is not touched here; callers that clear or replace the active
+    file remove it after the commit, once nothing references it.
+    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -1685,8 +1875,31 @@ def delete_thesis_files(thesis_id):
         put_conn(conn)
 
 
+def pdf_is_still_referenced(pdf_url):
+    """True when a remaining row still points at [pdf_url].
+
+    One stored upload can be attached to more than one thesis (an admin can
+    reuse an existing ``/api/uploads/...`` URL), so a blob is only safe to
+    remove once nothing else references it. Checked after the delete commits,
+    so the row being removed no longer counts itself.
+    """
+    if not pdf_url:
+        return False
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT (SELECT COUNT(*) FROM theses WHERE pdf_url = %s) "
+                "     + (SELECT COUNT(*) FROM thesis_files WHERE file_path = %s)",
+                (pdf_url, pdf_url),
+            )
+            return (cur.fetchone()[0] or 0) > 0
+    finally:
+        put_conn(conn)
+
+
 def get_dashboard_stats():
-    """Get admin dashboard statistics."""
+    """Get admin dashboard statistics, including real activity counts."""
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -1700,16 +1913,93 @@ def get_dashboard_stats():
             total_authors = cur.fetchone()[0]
             cur.execute("SELECT count(*) FROM users WHERE is_active = true")
             active_users = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM theses "
+                "WHERE created_at >= NOW() - INTERVAL '7 days'"
+            )
+            studies_this_week = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(DISTINCT program_id) FROM theses"
+            )
+            programs_with_studies = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM search_logs")
+            searches = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM search_logs "
+                "WHERE created_at >= NOW() - INTERVAL '7 days'"
+            )
+            searches_7d = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM search_logs "
+                "WHERE created_at >= NOW() - INTERVAL '14 days' "
+                "AND created_at < NOW() - INTERVAL '7 days'"
+            )
+            searches_prev_7d = cur.fetchone()[0]
+            if searches_prev_7d:
+                search_growth = round(
+                    (searches_7d - searches_prev_7d) * 100 / searches_prev_7d
+                )
+            else:
+                search_growth = 100 if searches_7d else 0
+            cur.execute(
+                "SELECT count(*) FROM search_logs "
+                "WHERE filters->>'mode' = 'semantic'"
+            )
+            semantic_searches = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM recommendation_logs")
+            recommendations_served = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM thesis_embeddings")
+            embedding_chunks = cur.fetchone()[0]
+            cur.execute("SELECT count(DISTINCT thesis_id) FROM thesis_embeddings")
+            embedded_theses = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM theses WHERE status = 'published'"
+            )
+            published_theses = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM thesis_reviews "
+                "WHERE created_at >= NOW() - INTERVAL '7 days'"
+            )
+            reviews_7d = cur.fetchone()[0]
+            cur.execute(
+                "SELECT count(*) FROM import_jobs "
+                "WHERE created_at >= NOW() - INTERVAL '7 days'"
+            )
+            imports_7d = cur.fetchone()[0]
+            cur.execute(
+                "SELECT LOWER(BTRIM(query)) AS query, "
+                "       COALESCE(filters->>'mode', 'keyword') AS mode, "
+                "       COUNT(*) AS count "
+                "FROM search_logs "
+                "WHERE query IS NOT NULL AND BTRIM(query) <> '' "
+                "  AND created_at >= NOW() - INTERVAL '30 days' "
+                "GROUP BY 1, 2 "
+                "ORDER BY count DESC, query ASC "
+                "LIMIT 5"
+            )
+            top_queries = [
+                {"query": row[0], "mode": row[1], "count": row[2]}
+                for row in cur.fetchall()
+            ]
             return {
                 "studies": total_theses,
                 "programs": total_programs,
                 "users": total_users,
                 "authors": total_authors,
                 "active_users": active_users,
-                "studies_this_week": 0,
-                "active_programs": total_programs,
-                "searches": "0",
-                "search_growth": 0,
+                "studies_this_week": studies_this_week,
+                "active_programs": programs_with_studies,
+                "searches": searches,
+                "searches_7d": searches_7d,
+                "search_growth": search_growth,
+                "semantic_searches": semantic_searches,
+                "recommendations_served": recommendations_served,
+                "embedding_chunks": embedding_chunks,
+                "embedded_theses": embedded_theses,
+                "published_theses": published_theses,
+                "reviews_7d": reviews_7d,
+                "imports_7d": imports_7d,
+                "top_queries": top_queries,
             }
     finally:
         put_conn(conn)
@@ -1729,35 +2019,79 @@ def get_public_stats():
         put_conn(conn)
 
 
-def recent_activity(limit=10, offset=0):
+def recent_activity(limit=10, offset=0, include_admin=False):
     """Get one page of recent activity for the admin dashboard.
+
+    The public-safe feed is submissions only. Admins also see review
+    decisions and import batches, because those rows name a reviewer and
+    describe internal work. ``include_admin`` is set by the route after it
+    checks the caller's role.
 
     Returns ``(items, total)`` so the caller can render pagination. Authors are
     aggregated per thesis: the old author join duplicated a multi-author thesis
     once per author, which made a page look like repeated rows and would have
     made LIMIT/OFFSET walk the wrong rows.
     """
+    submissions = (
+        "SELECT t.id AS ref_id, t.title, t.created_at, p.name AS program, "
+        "       'New thesis added' AS activity_type, "
+        "       'Author: ' || COALESCE(a.authors, 'Unknown') AS subtitle, "
+        "       'submission' AS kind "
+        "FROM theses t "
+        "LEFT JOIN programs p ON t.program_id = p.id "
+        "LEFT JOIN ("
+        "    SELECT ta.thesis_id, "
+        "           string_agg(au.first_name || ' ' || au.last_name, ', ') AS authors "
+        "    FROM thesis_authors ta "
+        "    JOIN authors au ON ta.author_id = au.id "
+        "    GROUP BY ta.thesis_id"
+        ") a ON t.id = a.thesis_id"
+    )
+    if include_admin:
+        reviews = (
+            " SELECT tr.id AS ref_id, t.title, tr.created_at, p.name AS program, "
+            "        CASE tr.decision "
+            "            WHEN 'draft' THEN 'Review: returned to draft' "
+            "            WHEN 'approved' THEN 'Review: approved' "
+            "            WHEN 'published' THEN 'Review: published' "
+            "            WHEN 'archived' THEN 'Review: archived' "
+            "            ELSE 'Review: ' || tr.decision END AS activity_type, "
+            "        'By ' || COALESCE(u.username, 'System') AS subtitle, "
+            "        'review' AS kind "
+            " FROM thesis_reviews tr "
+            " JOIN theses t ON t.id = tr.thesis_id "
+            " LEFT JOIN programs p ON p.id = t.program_id "
+            " LEFT JOIN users u ON u.id = tr.reviewer_id"
+        )
+        imports = (
+            " SELECT ij.id AS ref_id, "
+            "        'Import: ' || COALESCE(ij.csv_filename, 'batch') AS title, "
+            "        ij.created_at, NULL::text AS program, "
+            "        CASE ij.status "
+            "            WHEN 'completed' THEN 'Import completed' "
+            "            WHEN 'failed' THEN 'Import failed' "
+            "            WHEN 'running' THEN 'Import running' "
+            "            WHEN 'queued' THEN 'Import queued' "
+            "            ELSE 'Import previewed' END AS activity_type, "
+            "        'Created ' || ij.created_count || ', updated ' || "
+            "        ij.updated_count || ', skipped ' || ij.skipped_count AS subtitle, "
+            "        'import' AS kind "
+            " FROM import_jobs ij"
+        )
+        feed = f"{submissions} UNION ALL {reviews} UNION ALL {imports}"
+    else:
+        feed = submissions
+
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT count(*) FROM theses")
-            total = cur.fetchone()[0]
-            # Get recent theses
+            cur.execute(f"SELECT COUNT(*) FROM ({feed}) AS feed")
+            total = cur.fetchone()[0] or 0
             cur.execute(
-                "SELECT t.id, t.title, t.created_at, "
-                "       p.name as program_name, "
-                "       'New thesis added' as activity_type, "
-                "       'Author: ' || COALESCE(a.authors, 'Unknown') as subtitle "
-                "FROM theses t "
-                "LEFT JOIN programs p ON t.program_id = p.id "
-                "LEFT JOIN ("
-                "    SELECT ta.thesis_id, "
-                "           string_agg(au.first_name || ' ' || au.last_name, ', ') AS authors "
-                "    FROM thesis_authors ta "
-                "    JOIN authors au ON ta.author_id = au.id "
-                "    GROUP BY ta.thesis_id"
-                ") a ON t.id = a.thesis_id "
-                "ORDER BY t.created_at DESC LIMIT %s OFFSET %s",
+                f"SELECT ref_id, title, created_at, program, activity_type, "
+                f"       subtitle, kind "
+                f"FROM ({feed}) AS feed "
+                f"ORDER BY created_at DESC, ref_id DESC LIMIT %s OFFSET %s",
                 (limit, offset),
             )
             rows = cur.fetchall()
@@ -1769,6 +2103,71 @@ def recent_activity(limit=10, offset=0):
                     "program": r[3],
                     "activity_type": r[4],
                     "subtitle": r[5],
+                    "kind": r[6],
+                }
+                for r in rows
+            ]
+            return items, total
+    finally:
+        put_conn(conn)
+
+
+def list_security_audit_logs(
+    page=1,
+    limit=25,
+    action=None,
+    actor_id=None,
+    date_from=None,
+    date_to=None,
+):
+    """One filtered page of the security audit trail, newest first."""
+    clauses = []
+    params = []
+    if action:
+        clauses.append("action = %s")
+        params.append(action)
+    if actor_id is not None:
+        clauses.append("actor_id = %s")
+        params.append(actor_id)
+    if date_from is not None:
+        clauses.append("created_at >= %s")
+        params.append(date_from)
+    if date_to is not None:
+        clauses.append("created_at <= %s")
+        params.append(date_to)
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*) FROM security_audit_log{where}",
+                params,
+            )
+            total = cur.fetchone()[0] or 0
+            cur.execute(
+                "SELECT id, actor_id, actor_username, actor_role, action, "
+                "       entity_type, entity_id, summary, details, ip_address, "
+                "       user_agent, created_at "
+                f"FROM security_audit_log{where} "
+                "ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s",
+                params + [limit, (page - 1) * limit],
+            )
+            rows = cur.fetchall()
+            items = [
+                {
+                    "id": r[0],
+                    "actor_id": r[1],
+                    "actor_username": r[2],
+                    "actor_role": r[3],
+                    "action": r[4],
+                    "entity_type": r[5],
+                    "entity_id": r[6],
+                    "summary": r[7],
+                    "details": r[8],
+                    "ip_address": r[9],
+                    "user_agent": r[10],
+                    "created_at": r[11].isoformat() if r[11] else None,
                 }
                 for r in rows
             ]
@@ -1868,12 +2267,21 @@ def get_faculty_stats(email):
             )
             active_projects = cur.fetchone()[0]
 
+            cur.execute(
+                "SELECT COUNT(DISTINCT t.program_id) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s)",
+                (email,),
+            )
+            programs = cur.fetchone()[0] or 0
+
             return {
                 "theses": total_theses,
                 "advisees": total_advisees,
                 "published": published,
                 "active_projects": active_projects,
-                "programs": 3,
+                "programs": programs,
                 "pending_reviews": active_projects,
                 "completed_reviews": published,
             }
@@ -1990,12 +2398,22 @@ def get_faculty_analytics(email):
                 (email,),
             )
             by_year = [{"year": r[0], "count": r[1]} for r in cur.fetchall()]
+            cur.execute(
+                "SELECT t.research_type, COUNT(*) FROM theses t "
+                "JOIN thesis_advisers ta ON t.id = ta.thesis_id "
+                "JOIN advisers a ON ta.adviser_id = a.id "
+                "WHERE LOWER(a.email) = LOWER(%s) "
+                "GROUP BY t.research_type ORDER BY COUNT(*) DESC",
+                (email,),
+            )
+            by_type = [{"type": r[0], "count": r[1]} for r in cur.fetchall()]
             total = sum(by_status.values())
             return {
                 "total": total,
                 "by_status": by_status,
                 "by_program": by_program,
                 "by_year": by_year,
+                "by_type": by_type,
             }
     finally:
         put_conn(conn)
@@ -2122,6 +2540,17 @@ def delete_import_job(job_id):
     except Exception:
         conn.rollback()
         raise
+    finally:
+        put_conn(conn)
+
+
+def list_import_job_ids():
+    """Every job id, used to find staging folders that lost their row."""
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM import_jobs")
+            return {row[0] for row in cur.fetchall()}
     finally:
         put_conn(conn)
 

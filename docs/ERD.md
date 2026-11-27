@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Document | CScholar — Final ERD (CEIT Scope) |
-| Version | 1.2 |
-| Date | 2026-11-21 |
+| Version | 1.3 |
+| Date | 2026-11-27 |
 | Status | Approved for Lab Activity 4 submission |
-| Source of truth | `db/schema.sql` (18 physical tables = 16 domain + 2 operational; 21 foreign keys) |
+| Source of truth | `db/schema.sql` (19 physical tables = 16 domain + 3 operational; 22 foreign keys) |
 | Tool / notation | Crow's Foot, Mermaid `erDiagram` |
 
 ## ERD
@@ -242,16 +242,17 @@ the CEIT thesis corpus.
 |---|---|---|---|
 | `thesis_reviews` | One row per lifecycle decision (draft/approved/published/archived) with the acting reviewer and any return note. Keeps history that `theses.review_notes` cannot, because that column stores only the latest note. | PK `id`; `thesis_id → theses` (CASCADE); `reviewer_id → users` (SET NULL) | Cascades with the study |
 | `import_jobs` | Bulk-import job state: status, progress counters, per-row report (`rows` JSONB), creator, timestamps. The admin screen polls one row. | PK `id`; `created_by → users` (SET NULL) | Operational history; one batch at a time |
+| `security_audit_log` | Append-only security trail: sign-ins, account changes, content/taxonomy mutations, imports, and backfill starts. `entity_id` is polymorphic and has no FK so an audit row survives deletion of its target. | PK `id`; `actor_id → users` (SET NULL) | Append-only; no update/delete endpoint |
 
 ## Statistics
 
 - Domain entities: **16** (12 regular + 4 junction)
-- Operational tables: **2** (`thesis_reviews`, `import_jobs`)
-- Total physical tables: **18** (16 domain + 2 operational)
-- Foreign keys: **21** (18 domain + 3 operational)
+- Operational tables: **3** (`thesis_reviews`, `import_jobs`, `security_audit_log`)
+- Total physical tables: **19** (16 domain + 3 operational)
+- Foreign keys: **22** (18 domain + 4 operational)
 - Unique constraints: 7 (domain only)
 - CHECK constraints: 5 (3 domain + 2 operational)
-- Indexes: 8 (6 domain + 2 operational)
+- Indexes: 11 (6 domain + 5 operational)
 
 ## Change log
 
@@ -260,3 +261,4 @@ the CEIT thesis corpus.
 | 1.0 | 2026-10-09 | Final ERD released for Lab Activity 4; verified against `db/schema.sql` |
 | 1.1 | 2026-11-19 | Added `theses.accession_no` (nullable UNIQUE) for library accession numbers |
 | 1.2 | 2026-11-21 | Documented the two operational tables (`thesis_reviews`, `import_jobs`); totals now 18 physical = 16 domain + 2 operational |
+| 1.3 | 2026-11-27 | Owner-approved `security_audit_log`; totals now 19 physical = 16 domain + 3 operational, 22 FKs |
